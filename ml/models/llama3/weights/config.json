@@ -1,0 +1,60 @@
+{
+    "model_name": "llama3-8b",
+    "model_type": "chat",
+    "version": "1.0.0",
+    "description": "Llama 3 (8B) model for supply chain analytics",
+    "model_parameters": {
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "top_k": 40,
+      "repetition_penalty": 1.05,
+      "presence_penalty": 0,
+      "frequency_penalty": 0
+    },
+    "tokenizer": {
+      "name": "llama3.model",
+      "vocab_size": 64000,
+      "max_length": 4096
+    },
+    "fine_tuning": {
+      "fine_tuned": true,
+      "base_model": "llama3-8b",
+      "training_data": "supply_chain_queries",
+      "epochs": 2,
+      "batch_size": 2,
+      "learning_rate": 1e-5
+    },
+    "performance": {
+      "latency_ms": {
+        "avg": 300,
+        "p95": 550,
+        "p99": 750
+      },
+      "tokens_per_second": 35,
+      "max_batch_size": 4
+    },
+    "capabilities": [
+      "sql_generation",
+      "supply_chain_analysis",
+      "inventory_optimization",
+      "supplier_risk_assessment",
+      "logistics_planning",
+      "multi_tier_supply_chain_mapping"
+    ],
+    "quantization": {
+      "enabled": true,
+      "precision": "int8",
+      "method": "GPTQ"
+    },
+    "deployment": {
+      "hardware": "nvidia-a10g",
+      "memory_required_gb": 16,
+      "container_image": "llama3-8b:latest"
+    },
+    "model_family": {
+      "provider": "Meta",
+      "license": "Meta Llama 3 Community License",
+      "variants": ["llama3-8b", "llama3-70b"]
+    }
+  }

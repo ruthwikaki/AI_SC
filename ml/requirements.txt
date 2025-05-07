@@ -1,0 +1,35 @@
+# Core ML/DL dependencies
+torch>=2.0.0
+transformers>=4.30.0
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+
+# Quantization libraries
+auto-gptq>=0.3.0
+awq>=0.1.0
+bitsandbytes>=0.39.0
+
+# ONNX dependencies
+onnx>=1.14.0
+onnxruntime>=1.15.0
+onnxruntime-gpu>=1.15.0
+onnxruntime-tools>=1.8.0
+
+# TensorRT (install separately through NVIDIA)
+# tensorrt
+
+# Utilities
+tqdm>=4.65.0
+matplotlib>=3.7.0
+pandas>=1.5.3
+psutil>=5.9.0
+pyyaml>=6.0
+
+# API server
+fastapi>=0.95.0
+uvicorn>=0.22.0
+pydantic>=1.10.7
+
+# CUDA utilities (needed for TensorRT)
+# pycuda

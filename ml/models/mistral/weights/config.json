@@ -1,0 +1,54 @@
+{
+    "model_name": "mistral-medium",
+    "model_type": "chat",
+    "version": "1.0.0",
+    "description": "Mistral Medium model for supply chain analytics",
+    "model_parameters": {
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "top_p": 0.95,
+      "top_k": 50,
+      "repetition_penalty": 1.03,
+      "presence_penalty": 0,
+      "frequency_penalty": 0
+    },
+    "tokenizer": {
+      "name": "mistral.model",
+      "vocab_size": 32000,
+      "max_length": 4096
+    },
+    "fine_tuning": {
+      "fine_tuned": true,
+      "base_model": "mistral-medium",
+      "training_data": "supply_chain_queries",
+      "epochs": 3,
+      "batch_size": 4,
+      "learning_rate": 2e-5
+    },
+    "performance": {
+      "latency_ms": {
+        "avg": 250,
+        "p95": 450,
+        "p99": 650
+      },
+      "tokens_per_second": 45,
+      "max_batch_size": 8
+    },
+    "capabilities": [
+      "sql_generation",
+      "supply_chain_analysis",
+      "inventory_optimization",
+      "supplier_risk_assessment",
+      "logistics_planning"
+    ],
+    "quantization": {
+      "enabled": true,
+      "precision": "int8",
+      "method": "GPTQ"
+    },
+    "deployment": {
+      "hardware": "nvidia-a10g",
+      "memory_required_gb": 12,
+      "container_image": "mistral-medium:latest"
+    }
+  }
