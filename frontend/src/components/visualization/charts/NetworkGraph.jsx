@@ -1,341 +1,290 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { FaCog, FaSearchPlus, FaSearchMinus, FaExpand } from 'react-icons/fa';
+import { formatValue } from '../../../utils/formatting';
 
-const NetworkGraph = ({
-  data = { nodes: [], links: [] },
-  title = "Network Graph",
+const NetworkGraph = ({ 
+  data, 
+  config = {}, 
   height = 500,
-  nodeSize = 20,
-  directed = false,
-  colorScheme = d3.schemeCategory10,
-  config = {}
+  onNodeClick,
+  onLinkClick
 }) => {
   const svgRef = useRef(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const tooltipRef = useRef(null);
   const [simulation, setSimulation] = useState(null);
-  
-  // Initialize the simulation and render graph on component mount or data change
+
+  const {
+    title = '',
+    nodeSize = 'value', // 'value' or static number
+    nodeSizeRange = [5, 20],
+    linkWidth = 'value', // 'value' or static number
+    linkWidthRange = [1, 5],
+    colorScheme = 'schemeCategory10',
+    valueFormatter,
+    nodeLabels = true,
+    margin = { top: 30, right: 30, bottom: 30, left: 30 },
+    forceStrength = -100,
+    distanceMin = 30,
+    distanceMax = 200
+  } = config;
+
   useEffect(() => {
-    if (!data || !data.nodes || !data.links || data.nodes.length === 0) {
-      setIsLoading(false);
+    if (!data || !svgRef.current) return;
+    if (!data.nodes || !data.links) {
+      console.error('Invalid data format for Network graph. Expected {nodes: [], links: []}');
       return;
     }
+
+    // Clean up previous chart
+    d3.select(svgRef.current).selectAll('*').remove();
     
-    // Clear previous graph
-    d3.select(svgRef.current).selectAll("*").remove();
-    
+    // Create tooltip if it doesn't exist
+    if (!tooltipRef.current) {
+      tooltipRef.current = d3.select('body')
+        .append('div')
+        .attr('class', 'absolute hidden p-2 bg-gray-800 text-white rounded shadow-lg text-xs z-50 pointer-events-none')
+        .style('opacity', 0);
+    }
+
+    // Stop any existing simulation
+    if (simulation) {
+      simulation.stop();
+    }
+
+    // Setup dimensions
+    const svg = d3.select(svgRef.current);
     const width = svgRef.current.clientWidth;
-    const height = svgRef.current.clientHeight;
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    // Create chart group
+    const chart = svg
+      .attr('width', width)
+      .attr('height', height)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Add title if provided
+    if (title) {
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', margin.top / 2)
+        .attr('text-anchor', 'middle')
+        .attr('class', 'text-sm font-semibold')
+        .text(title);
+    }
+
+    // Make a deep copy of the data
+    const graphData = {
+      nodes: data.nodes.map(d => ({...d})),
+      links: data.links.map(d => ({...d}))
+    };
+
+    // Color scale for nodes
+    const color = d3.scaleOrdinal(d3[colorScheme] || d3.schemeCategory10);
+
+    // Node size scale (if using value-based sizing)
+    let nodeSizeScale;
+    if (nodeSize === 'value') {
+      const nodeValues = graphData.nodes.map(d => d.value || 1);
+      nodeSizeScale = d3.scaleLinear()
+        .domain([Math.min(...nodeValues), Math.max(...nodeValues)])
+        .range(nodeSizeRange);
+    }
+
+    // Link width scale (if using value-based width)
+    let linkWidthScale;
+    if (linkWidth === 'value') {
+      const linkValues = graphData.links.map(d => d.value || 1);
+      linkWidthScale = d3.scaleLinear()
+        .domain([Math.min(...linkValues), Math.max(...linkValues)])
+        .range(linkWidthRange);
+    }
+
+    // Create a map for faster lookups
+    const nodeById = new Map(graphData.nodes.map(node => [node.id, node]));
     
-    // Process data to ensure it has required properties
-    const nodes = data.nodes.map((node, index) => ({
-      ...node,
-      id: node.id || `node-${index}`,
-      group: node.group || 0,
-      radius: node.size ? nodeSize * node.size : nodeSize
-    }));
-    
-    // Ensure links reference nodes by id
-    const links = data.links.map((link, index) => ({
-      ...link,
-      id: link.id || `link-${index}`,
-      source: link.source,
-      target: link.target,
+    // Convert link references from IDs to objects
+    const links = graphData.links.map(link => ({
+      source: typeof link.source === 'object' ? link.source : nodeById.get(link.source),
+      target: typeof link.target === 'object' ? link.target : nodeById.get(link.target),
       value: link.value || 1
     }));
-    
-    // Create D3 force simulation
-    const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(link => 100 / (link.value || 1)))
-      .force("charge", d3.forceManyBody().strength(-200))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => d.radius + 5));
-    
-    // Create SVG elements
-    const svg = d3.select(svgRef.current);
-    
-    // Add zoom functionality
-    const zoom = d3.zoom()
-      .scaleExtent([0.1, 4])
-      .on("zoom", (event) => {
-        g.attr("transform", event.transform);
-        setZoomLevel(event.transform.k);
-      });
-    
-    svg.call(zoom);
-    
-    // Create container for zoomable content
-    const g = svg.append("g");
-    
-    // Add arrow marker for directed graph
-    if (directed) {
-      svg.append("defs").append("marker")
-        .attr("id", "arrowhead")
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 25)
-        .attr("refY", 0)
-        .attr("orient", "auto")
-        .attr("markerWidth", 6)
-        .attr("markerHeight", 6)
-        .append("path")
-        .attr("d", "M0,-5L10,0L0,5")
-        .attr("fill", "#999");
-    }
-    
-    // Add links
-    const link = g.append("g")
-      .selectAll("line")
+
+    // Create force simulation
+    const sim = d3.forceSimulation(graphData.nodes)
+      .force('link', d3.forceLink(links)
+        .id(d => d.id)
+        .distance(d => distanceMin + (d.value ? distanceMax * (1 / d.value) : distanceMax / 2))
+      )
+      .force('charge', d3.forceManyBody().strength(forceStrength))
+      .force('center', d3.forceCenter(chartWidth / 2, chartHeight / 2))
+      .force('collision', d3.forceCollide().radius(d => {
+        return nodeSize === 'value' 
+          ? nodeSizeScale(d.value || 1) + 5 
+          : (typeof nodeSize === 'number' ? nodeSize : 10) + 5;
+      }));
+
+    // Save simulation to state for cleanup
+    setSimulation(sim);
+
+    // Draw links
+    const link = chart.append('g')
+      .attr('class', 'links')
+      .selectAll('line')
       .data(links)
       .enter()
-      .append("line")
-      .attr("stroke-width", d => Math.max(1, Math.sqrt(d.value)))
-      .attr("stroke", "#999")
-      .attr("stroke-opacity", 0.6)
-      .attr("class", "link")
-      .attr("marker-end", directed ? "url(#arrowhead)" : null);
-    
-    // Create node groups
-    const node = g.append("g")
-      .selectAll(".node")
-      .data(nodes)
-      .enter()
-      .append("g")
-      .attr("class", "node")
-      .on("click", (event, d) => {
-        setSelectedNode(selectedNode === d.id ? null : d.id);
+      .append('line')
+      .attr('stroke', '#999')
+      .attr('stroke-opacity', 0.6)
+      .attr('stroke-width', d => {
+        return linkWidth === 'value'
+          ? linkWidthScale(d.value || 1)
+          : (typeof linkWidth === 'number' ? linkWidth : 1);
       })
-      .call(d3.drag()
-        .on("start", dragStarted)
-        .on("drag", dragged)
-        .on("end", dragEnded));
-    
-    // Add circles for nodes
-    node.append("circle")
-      .attr("r", d => d.radius)
-      .attr("fill", d => colorScheme[d.group % colorScheme.length])
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1.5);
-    
-    // Add labels
-    node.append("text")
-      .attr("dy", 4)
-      .attr("text-anchor", "middle")
-      .text(d => d.name || d.id)
-      .style("font-size", "10px")
-      .style("pointer-events", "none")
-      .style("fill", d => {
-        const color = d3.rgb(colorScheme[d.group % colorScheme.length]);
-        return color.r * 0.299 + color.g * 0.587 + color.b * 0.114 > 150 ? "#000" : "#fff";
+      .on('mouseover', function(event, d) {
+        d3.select(this)
+          .attr('stroke', '#666')
+          .attr('stroke-opacity', 1);
+
+        tooltipRef.current
+          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+          .html(`
+            <strong>${d.source.name || d.source.id} → ${d.target.name || d.target.id}</strong><br>
+            ${formatValue(d.value, valueFormatter)}
+          `);
+        d3.select(tooltipRef.current).classed('hidden', false);
+      })
+      .on('mouseout', function() {
+        d3.select(this)
+          .attr('stroke', '#999')
+          .attr('stroke-opacity', 0.6);
+        d3.select(tooltipRef.current).classed('hidden', true);
+      })
+      .on('click', function(event, d) {
+        if (onLinkClick) onLinkClick({
+          source: d.source.id,
+          target: d.target.id,
+          value: d.value
+        });
       });
-    
-    // Add title for tooltip
-    node.append("title")
-      .text(d => d.name || d.id);
-    
-    // Update positions on each tick
-    simulation.on("tick", () => {
+
+    // Create node groups
+    const node = chart.append('g')
+      .attr('class', 'nodes')
+      .selectAll('g')
+      .data(graphData.nodes)
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .call(d3.drag()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended)
+      );
+
+    // Add circle for each node
+    node.append('circle')
+      .attr('r', d => {
+        return nodeSize === 'value'
+          ? nodeSizeScale(d.value || 1)
+          : (typeof nodeSize === 'number' ? nodeSize : 10);
+      })
+      .attr('fill', d => color(d.group || d.category || d.type || d.id))
+      .attr('stroke', d => d3.rgb(color(d.group || d.category || d.type || d.id)).darker(0.5))
+      .attr('stroke-width', 1.5)
+      .on('mouseover', function(event, d) {
+        d3.select(this).attr('stroke-width', 2);
+        tooltipRef.current
+          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+          .html(`
+            <strong>${d.name || d.id}</strong><br>
+            ${d.value ? formatValue(d.value, valueFormatter) : ''}
+            ${d.group || d.category || d.type ? `<br>${d.group || d.category || d.type}` : ''}
+          `);
+        d3.select(tooltipRef.current).classed('hidden', false);
+      })
+      .on('mouseout', function() {
+        d3.select(this).attr('stroke-width', 1.5);
+        d3.select(tooltipRef.current).classed('hidden', true);
+      })
+      .on('click', function(event, d) {
+        if (onNodeClick) onNodeClick(d);
+      });
+
+    // Add labels if enabled
+    if (nodeLabels) {
+      node.append('text')
+        .attr('dx', d => {
+          const radius = nodeSize === 'value'
+            ? nodeSizeScale(d.value || 1)
+            : (typeof nodeSize === 'number' ? nodeSize : 10);
+          return radius + 5;
+        })
+        .attr('dy', '.35em')
+        .attr('class', 'text-xs')
+        .text(d => d.name || d.id)
+        .style('pointer-events', 'none'); // Make labels non-interactive
+    }
+
+    // Set up the tick function for the simulation
+    sim.on('tick', () => {
       link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
-      
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+
       node
-        .attr("transform", d => `translate(${d.x},${d.y})`);
+        .attr('transform', d => `translate(${d.x},${d.y})`);
     });
-    
+
     // Drag functions
-    function dragStarted(event, d) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
+    function dragstarted(event, d) {
+      if (!event.active) sim.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
     }
-    
+
     function dragged(event, d) {
       d.fx = event.x;
       d.fy = event.y;
     }
-    
-    function dragEnded(event, d) {
-      if (!event.active) simulation.alphaTarget(0);
-      if (!config.fixNodesOnDrag) {
-        d.fx = null;
-        d.fy = null;
-      }
+
+    function dragended(event, d) {
+      if (!event.active) sim.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
     }
-    
-    // Store simulation for controls
-    setSimulation(simulation);
-    setIsLoading(false);
-    
+
+    // Add zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, 5])
+      .on('zoom', (event) => {
+        chart.attr('transform', event.transform);
+      });
+
+    svg.call(zoom);
+
     // Cleanup function
     return () => {
-      simulation.stop();
+      if (simulation) {
+        simulation.stop();
+      }
+      if (tooltipRef.current) {
+        d3.select(tooltipRef.current).remove();
+        tooltipRef.current = null;
+      }
     };
-  }, [data, nodeSize, directed, colorScheme, config.fixNodesOnDrag]);
-  
-  // Handle node selection effect
-  useEffect(() => {
-    if (!svgRef.current) return;
-    
-    const svg = d3.select(svgRef.current);
-    
-    svg.selectAll(".node circle")
-      .attr("stroke-width", d => d.id === selectedNode ? 3 : 1.5)
-      .attr("stroke", d => d.id === selectedNode ? "#000" : "#fff");
-    
-    svg.selectAll(".link")
-      .attr("stroke-opacity", d => {
-        if (!selectedNode) return 0.6;
-        return (d.source.id === selectedNode || d.target.id === selectedNode) ? 1 : 0.2;
-      })
-      .attr("stroke", d => {
-        if (!selectedNode) return "#999";
-        return (d.source.id === selectedNode || d.target.id === selectedNode) ? "#666" : "#ccc";
-      });
-    
-  }, [selectedNode]);
-  
-  // Handle zoom controls
-  const handleZoomIn = () => {
-    const svg = d3.select(svgRef.current);
-    svg.transition().call(d3.zoom().scaleBy, 1.3);
-  };
-  
-  const handleZoomOut = () => {
-    const svg = d3.select(svgRef.current);
-    svg.transition().call(d3.zoom().scaleBy, 0.7);
-  };
-  
-  const handleReset = () => {
-    const svg = d3.select(svgRef.current);
-    svg.transition().call(
-      d3.zoom().transform,
-      d3.zoomIdentity
-    );
-  };
-  
-  // If no data, show placeholder message
-  if (!data || !data.nodes || !data.links || data.nodes.length === 0) {
-    return (
-      <div className="border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 h-80">
-        <p className="text-gray-500 mb-4">No data available for network graph</p>
-        <FaCog className="animate-spin text-gray-400 h-8 w-8" />
-      </div>
-    );
-  }
-  
+  }, [data, config, height, simulation, onNodeClick, onLinkClick]);
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      {title && <h3 className="text-lg font-medium text-gray-700 mb-4">{title}</h3>}
-      
-      {/* Controls */}
-      <div className="flex justify-end mb-2">
-        <div className="flex space-x-2">
-          <button 
-            onClick={handleZoomIn}
-            className="p-1 rounded hover:bg-gray-200 text-gray-700"
-            title="Zoom In"
-          >
-            <FaSearchPlus />
-          </button>
-          <button 
-            onClick={handleZoomOut}
-            className="p-1 rounded hover:bg-gray-200 text-gray-700"
-            title="Zoom Out"
-          >
-            <FaSearchMinus />
-          </button>
-          <button 
-            onClick={handleReset}
-            className="p-1 rounded hover:bg-gray-200 text-gray-700"
-            title="Reset View"
-          >
-            <FaExpand />
-          </button>
-        </div>
-      </div>
-      
-      {/* SVG Container */}
-      <div 
-        className="relative w-full overflow-hidden border border-gray-100 rounded-lg"
-        style={{ height: `${height}px` }}
-      >
-        {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-            <FaCog className="animate-spin text-gray-400 h-8 w-8" />
-          </div>
-        ) : (
-          <svg 
-            ref={svgRef} 
-            width="100%" 
-            height="100%"
-            className="cursor-move"
-          ></svg>
-        )}
-        
-        {/* Zoom level indicator */}
-        <div className="absolute bottom-2 right-2 bg-white bg-opacity-70 px-2 py-1 rounded text-xs text-gray-600">
-          {Math.round(zoomLevel * 100)}%
-        </div>
-      </div>
-      
-      {/* Node info panel - show when node is selected */}
-      {selectedNode && (
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <h4 className="font-medium text-gray-800 mb-2">
-            {data.nodes.find(n => n.id === selectedNode)?.name || selectedNode}
-          </h4>
-          
-          {data.nodes.find(n => n.id === selectedNode)?.description && (
-            <p className="text-sm text-gray-600 mb-2">
-              {data.nodes.find(n => n.id === selectedNode)?.description}
-            </p>
-          )}
-          
-          <div className="text-xs text-gray-500">
-            <p>Connections: {data.links.filter(l => l.source.id === selectedNode || l.target.id === selectedNode).length}</p>
-            {config.showDetails && (
-              <>
-                <p className="mt-1">Group: {data.nodes.find(n => n.id === selectedNode)?.group || 'None'}</p>
-                {data.nodes.find(n => n.id === selectedNode)?.attributes && (
-                  <div className="mt-1">
-                    <p className="font-medium">Attributes:</p>
-                    <ul className="mt-1 pl-3">
-                      {Object.entries(data.nodes.find(n => n.id === selectedNode)?.attributes || {}).map(([key, value]) => (
-                        <li key={key}>{key}: {value}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {/* Legend */}
-      {config.showLegend && data.nodes.some(n => n.group !== undefined) && (
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm font-medium text-gray-700 mb-2">Legend</p>
-          <div className="flex flex-wrap gap-3">
-            {Array.from(new Set(data.nodes.map(n => n.group))).map(group => (
-              <div key={group} className="flex items-center">
-                <div
-                  className="w-3 h-3 mr-1 rounded-full"
-                  style={{ backgroundColor: colorScheme[group % colorScheme.length] }}
-                ></div>
-                <span className="text-xs text-gray-700">
-                  {config.groupLabels?.[group] || `Group ${group}`}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="w-full h-full">
+      <svg ref={svgRef} className="w-full h-full" />
     </div>
   );
 };

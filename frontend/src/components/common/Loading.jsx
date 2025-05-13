@@ -1,70 +1,61 @@
 import React from 'react';
 
-const Loading = ({ size = 'md', text = 'Loading...', fullScreen = false }) => {
-  // Determine spinner size based on the size prop
-  const spinnerSizes = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12',
-    xl: 'w-16 h-16'
-  };
-  
-  const spinnerSize = spinnerSizes[size] || spinnerSizes.md;
-  
-  // Full screen loading overlay
-  if (fullScreen) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-60 z-50">
-        <div className="text-center">
-          <div className="flex justify-center">
-            <div className={`${spinnerSize} border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin`}></div>
+// Three different loading components for different contexts
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+  </div>
+);
+
+const LoadingOverlay = ({ message = 'Loading...' }) => (
+  <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-50">
+    <div className="bg-white p-5 rounded-lg shadow-xl flex flex-col items-center space-y-3">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <p className="text-gray-700">{message}</p>
+    </div>
+  </div>
+);
+
+const LoadingCard = ({ height = 'h-32', message = 'Loading data...' }) => (
+  <div className={`bg-white shadow rounded-lg ${height} flex flex-col justify-center items-center p-4`}>
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-3"></div>
+    <p className="text-gray-500 text-sm">{message}</p>
+  </div>
+);
+
+const LoadingTable = ({ rows = 5 }) => (
+  <div className="bg-white shadow overflow-hidden sm:rounded-md">
+    <div className="animate-pulse">
+      <div className="bg-gray-200 h-12 flex items-center px-4"></div>
+      {[...Array(rows)].map((_, index) => (
+        <div key={index} className="border-t border-gray-200">
+          <div className="px-4 py-4 sm:px-6">
+            <div className="flex items-center">
+              <div className="bg-gray-300 h-4 w-2/3 rounded"></div>
+            </div>
+            <div className="mt-2">
+              <div className="bg-gray-300 h-3 w-1/2 rounded"></div>
+            </div>
           </div>
-          {text && <p className="mt-4 text-white font-semibold">{text}</p>}
         </div>
-      </div>
-    );
+      ))}
+    </div>
+  </div>
+);
+
+// Main component that decides which loading indicator to show
+const Loading = ({ type = 'spinner', message, height, rows }) => {
+  switch (type) {
+    case 'overlay':
+      return <LoadingOverlay message={message} />;
+    case 'card':
+      return <LoadingCard height={height} message={message} />;
+    case 'table':
+      return <LoadingTable rows={rows} />;
+    case 'spinner':
+    default:
+      return <LoadingSpinner />;
   }
-  
-  // Inline loading spinner
-  return (
-    <div className="flex items-center justify-center py-4">
-      <div className={`${spinnerSize} border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin`}></div>
-      {text && <p className="ml-3 text-gray-700">{text}</p>}
-    </div>
-  );
 };
-
-// Specific variants for different loading states
-export const QueryLoading = () => (
-  <div className="my-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
-    <Loading 
-      size="lg" 
-      text="Processing your query. The LLM is analyzing supply chain data..." 
-    />
-    <div className="mt-4 text-sm text-gray-500">
-      <p className="text-center">Complex supply chain analyses may take a moment.</p>
-      <div className="mt-3 h-2 bg-gray-200 rounded overflow-hidden">
-        <div 
-          className="h-full bg-blue-500 rounded animate-pulse"
-          style={{ width: '60%' }}
-        ></div>
-      </div>
-    </div>
-  </div>
-);
-
-export const DataLoading = () => (
-  <div className="flex flex-col items-center justify-center py-8">
-    <Loading size="lg" text="Loading data..." />
-    <p className="mt-2 text-sm text-gray-500">Retrieving supply chain data records...</p>
-  </div>
-);
-
-export const ModelLoading = () => (
-  <div className="flex flex-col items-center justify-center h-40 bg-gray-50 rounded-lg border border-gray-200">
-    <Loading size="lg" text="Loading model..." />
-    <p className="mt-2 text-sm text-gray-500">This may take a few moments</p>
-  </div>
-);
 
 export default Loading;

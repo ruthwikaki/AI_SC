@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Supply Chain LLM - Intelligent supply chain analytics and optimization platform powered by LLM technology" />
+    <meta name="keywords" content="supply chain, analytics, LLM, optimization, logistics, inventory management" />
+    
+    <!-- OpenGraph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://supply-chain-llm.com/" />
+    <meta property="og:title" content="Supply Chain LLM" />
+    <meta property="og:description" content="Intelligent supply chain analytics and optimization platform powered by LLM technology" />
+    <meta property="og:image" content="/assets/images/og-image.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://supply-chain-llm.com/" />
+    <meta property="twitter:title" content="Supply Chain LLM" />
+    <meta property="twitter:description" content="Intelligent supply chain analytics and optimization platform powered by LLM technology" />
+    <meta property="twitter:image" content="/assets/images/twitter-image.png" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
+          crossorigin="anonymous" 
+          referrerpolicy="no-referrer" />
+    
+    <!-- Tailwind CSS (via CDN for base styles - Vite will handle the rest) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <title>Supply Chain LLM</title>
+    
+    <!-- Preload critical assets -->
+    <link rel="preload" href="/assets/images/logo.svg" as="image" type="image/svg+xml" />
+    
+    <!-- SEO -->
+    <link rel="canonical" href="https://supply-chain-llm.com/" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Supply Chain LLM" />
+    <link rel="apple-touch-icon" href="/assets/icons/icon-192x192.png" />
+    
+    <!-- Environment Variables (for client-side access) -->
+    <script>
+      window.env = {
+        VITE_API_URL: '%VITE_API_URL%',
+        VITE_ENVIRONMENT: '%VITE_ENVIRONMENT%'
+      };
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <div style="padding: 20px; text-align: center; font-family: system-ui, sans-serif;">
+        <h1>JavaScript Disabled</h1>
+        <p>Supply Chain LLM requires JavaScript to be enabled. Please enable JavaScript in your browser settings to continue.</p>
+      </div>
+    </noscript>
+    
+    <div id="root"></div>
+    
+    <!-- Global Error Handler -->
+    <script>
+      window.addEventListener('error', function(event) {
+        console.error('Global error:', event.error);
+        // You can send this to your error tracking service
+      });
+      
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        // You can send this to your error tracking service
+      });
+    </script>
+    
+    <!-- Performance Monitoring -->
+    <script>
+      if (window.performance && window.performance.timing) {
+        window.addEventListener('load', function() {
+          const timing = window.performance.timing;
+          const loadTime = timing.loadEventEnd - timing.navigationStart;
+          console.log('Page load time:', loadTime, 'ms');
+          
+          // You can send performance metrics to your analytics service
+        });
+      }
+    </script>
+    
+    <!-- Service Worker Registration (for PWA) -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
+            console.log('ServiceWorker registration successful');
+          }, function(err) {
+            console.log('ServiceWorker registration failed');
+          });
+        });
+      }
+    </script>
+    
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html>

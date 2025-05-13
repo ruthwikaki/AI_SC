@@ -1,99 +1,237 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
-import { FaCog } from 'react-icons/fa';
+import React, { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
+import { formatValue } from '../../../utils/formatting';
 
 const BarChart = ({ 
-  data = [], 
-  title = "Bar Chart", 
-  xAxisKey = "name", 
-  barKeys = ["value"], 
-  barColors = ["#3b82f6"], 
-  showValues = false,
-  stacked = false,
-  horizontal = false,
+  data, 
+  config = {}, 
   height = 400,
-  config = {}
+  onBarClick
 }) => {
-  const [chartData, setChartData] = useState([]);
-  
-  // Process and format the data when it changes
+  const svgRef = useRef(null);
+  const tooltipRef = useRef(null);
+
+  const {
+    xKey = 'name',
+    yKey = 'value',
+    title = '',
+    color = '#4f46e5',
+    horizontal = false,
+    showValues = true,
+    valueFormatter,
+    margin = { top: 30, right: 30, bottom: 50, left: 60 }
+  } = config;
+
   useEffect(() => {
-    setChartData(data);
-  }, [data]);
-  
-  // If no data, show placeholder message
-  if (!chartData || chartData.length === 0) {
-    return (
-      <div className="border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 h-80">
-        <p className="text-gray-500 mb-4">No data available for chart</p>
-        <FaCog className="animate-spin text-gray-400 h-8 w-8" />
-      </div>
-    );
-  }
-  
-  // Custom tooltip formatter
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-gray-200 shadow-md rounded">
-          <p className="font-medium text-gray-900">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm">
-              {`${entry.name}: ${config.valueFormatter ? config.valueFormatter(entry.value) : entry.value}`}
-            </p>
-          ))}
-        </div>
-      );
+    if (!data || !data.length || !svgRef.current) return;
+
+    // Clear existing chart if any
+    d3.select(svgRef.current).selectAll('*').remove();
+    
+    // Create tooltip if it doesn't exist
+    if (!tooltipRef.current) {
+      tooltipRef.current = d3.select('body')
+        .append('div')
+        .attr('class', 'absolute hidden p-2 bg-gray-800 text-white rounded shadow-lg text-xs z-50 pointer-events-none')
+        .style('opacity', 0);
     }
-    return null;
-  };
-  
+
+    // Setup dimensions
+    const svg = d3.select(svgRef.current);
+    const width = svgRef.current.clientWidth;
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    // Create chart group
+    const chart = svg
+      .attr('width', width)
+      .attr('height', height)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Add title if provided
+    if (title) {
+      chart.append('text')
+        .attr('x', chartWidth / 2)
+        .attr('y', -margin.top / 2)
+        .attr('text-anchor', 'middle')
+        .attr('class', 'text-sm font-semibold')
+        .text(title);
+    }
+
+    // For horizontal bar chart, we swap x and y
+    if (horizontal) {
+      // X scale (values)
+      const xScale = d3.scaleLinear()
+        .domain([0, d3.max(data, d => +d[yKey])])
+        .nice()
+        .range([0, chartWidth]);
+
+      // Y scale (categories)
+      const yScale = d3.scaleBand()
+        .domain(data.map(d => d[xKey]))
+        .range([0, chartHeight])
+        .padding(0.2);
+
+      // Add X axis
+      chart.append('g')
+        .attr('transform', `translate(0,${chartHeight})`)
+        .call(d3.axisBottom(xScale))
+        .selectAll('text')
+        .attr('class', 'text-xs');
+
+      // Add Y axis
+      chart.append('g')
+        .call(d3.axisLeft(yScale))
+        .selectAll('text')
+        .attr('class', 'text-xs');
+
+      // Add bars
+      const bars = chart.selectAll('.bar')
+        .data(data)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('y', d => yScale(d[xKey]))
+        .attr('height', yScale.bandwidth())
+        .attr('x', 0)
+        .attr('fill', color)
+        .attr('width', 0) // Start at 0 for animation
+        .on('mouseover', function(event, d) {
+          d3.select(this).attr('fill', d3.color(color).darker(0.2));
+          tooltipRef.current
+            .style('opacity', 1)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 10) + 'px')
+            .html(`<strong>${d[xKey]}</strong>: ${formatValue(d[yKey], valueFormatter)}`);
+          d3.select(tooltipRef.current).classed('hidden', false);
+        })
+        .on('mouseout', function() {
+          d3.select(this).attr('fill', color);
+          d3.select(tooltipRef.current).classed('hidden', true);
+        })
+        .on('click', function(event, d) {
+          if (onBarClick) onBarClick(d);
+        });
+
+      // Animate bars
+      bars.transition()
+        .duration(800)
+        .attr('width', d => xScale(+d[yKey]))
+        .delay((d, i) => i * 50);
+
+      // Add bar labels if showValues is true
+      if (showValues) {
+        chart.selectAll('.bar-label')
+          .data(data)
+          .enter()
+          .append('text')
+          .attr('class', 'bar-label text-xs')
+          .attr('y', d => yScale(d[xKey]) + yScale.bandwidth() / 2)
+          .attr('x', d => xScale(+d[yKey]) + 5)
+          .attr('dy', '.35em')
+          .attr('opacity', 0)
+          .text(d => formatValue(d[yKey], valueFormatter))
+          .transition()
+          .duration(800)
+          .delay((d, i) => i * 50 + 400)
+          .attr('opacity', 1);
+      }
+    } else {
+      // X scale (categories)
+      const xScale = d3.scaleBand()
+        .domain(data.map(d => d[xKey]))
+        .range([0, chartWidth])
+        .padding(0.2);
+
+      // Y scale (values)
+      const yScale = d3.scaleLinear()
+        .domain([0, d3.max(data, d => +d[yKey])])
+        .nice()
+        .range([chartHeight, 0]);
+
+      // Add X axis
+      chart.append('g')
+        .attr('transform', `translate(0,${chartHeight})`)
+        .call(d3.axisBottom(xScale))
+        .selectAll('text')
+        .attr('class', 'text-xs')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end');
+
+      // Add Y axis
+      chart.append('g')
+        .call(d3.axisLeft(yScale))
+        .selectAll('text')
+        .attr('class', 'text-xs');
+
+      // Add bars
+      const bars = chart.selectAll('.bar')
+        .data(data)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', d => xScale(d[xKey]))
+        .attr('width', xScale.bandwidth())
+        .attr('y', chartHeight) // Start at bottom for animation
+        .attr('height', 0) // Start with 0 height for animation
+        .attr('fill', color)
+        .on('mouseover', function(event, d) {
+          d3.select(this).attr('fill', d3.color(color).darker(0.2));
+          tooltipRef.current
+            .style('opacity', 1)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 10) + 'px')
+            .html(`<strong>${d[xKey]}</strong>: ${formatValue(d[yKey], valueFormatter)}`);
+          d3.select(tooltipRef.current).classed('hidden', false);
+        })
+        .on('mouseout', function() {
+          d3.select(this).attr('fill', color);
+          d3.select(tooltipRef.current).classed('hidden', true);
+        })
+        .on('click', function(event, d) {
+          if (onBarClick) onBarClick(d);
+        });
+
+      // Animate bars
+      bars.transition()
+        .duration(800)
+        .attr('y', d => yScale(+d[yKey]))
+        .attr('height', d => chartHeight - yScale(+d[yKey]))
+        .delay((d, i) => i * 50);
+
+      // Add bar labels if showValues is true
+      if (showValues) {
+        chart.selectAll('.bar-label')
+          .data(data)
+          .enter()
+          .append('text')
+          .attr('class', 'bar-label text-xs')
+          .attr('text-anchor', 'middle')
+          .attr('x', d => xScale(d[xKey]) + xScale.bandwidth() / 2)
+          .attr('y', d => yScale(+d[yKey]) - 5)
+          .attr('opacity', 0)
+          .text(d => formatValue(d[yKey], valueFormatter))
+          .transition()
+          .duration(800)
+          .delay((d, i) => i * 50 + 400)
+          .attr('opacity', 1);
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      // Only remove the tooltip when component unmounts
+      if (tooltipRef.current) {
+        d3.select(tooltipRef.current).remove();
+        tooltipRef.current = null;
+      }
+    };
+  }, [data, config, height, onBarClick]);
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      {title && <h3 className="text-lg font-medium text-gray-700 mb-4">{title}</h3>}
-      
-      <ResponsiveContainer width="100%" height={height}>
-        <RechartsBarChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-          layout={horizontal ? "vertical" : "horizontal"}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          
-          {horizontal ? (
-            <>
-              <XAxis type="number" />
-              <YAxis dataKey={xAxisKey} type="category" width={150} />
-            </>
-          ) : (
-            <>
-              <XAxis dataKey={xAxisKey} />
-              <YAxis />
-            </>
-          )}
-          
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
-          
-          {barKeys.map((key, index) => (
-            <Bar 
-              key={key}
-              dataKey={key} 
-              fill={barColors[index % barColors.length]}
-              stackId={stacked ? "stack" : null}
-            >
-              {showValues && (
-                <LabelList 
-                  dataKey={key} 
-                  position={horizontal ? "right" : "top"} 
-                  formatter={config.valueFormatter || null}
-                  style={{ fill: '#333', fontSize: 12 }}
-                />
-              )}
-            </Bar>
-          ))}
-        </RechartsBarChart>
-      </ResponsiveContainer>
+    <div className="w-full h-full">
+      <svg ref={svgRef} className="w-full h-full" />
     </div>
   );
 };

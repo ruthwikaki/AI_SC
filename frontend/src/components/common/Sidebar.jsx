@@ -1,104 +1,88 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  FaSearch, 
-  FaDatabase, 
-  FaChartLine, 
-  FaServer, 
-  FaCog,
-  FaHome,
-  FaTable,
-  FaTruck,
-  FaWarehouse,
-  FaBoxes,
-  FaTools,
-  FaUserCog,
-  FaFileUpload
-} from 'react-icons/fa';
+import { useAuth } from '../../hooks/useAuth';
 
-const Sidebar = ({ isOpen }) => {
+// Icons
+import {
+  HomeIcon,
+  QuestionMarkCircleIcon,
+  ChartBarIcon,
+  CubeTransparentIcon,
+  CogIcon,
+  ShieldCheckIcon,
+  DocumentReportIcon,
+  DatabaseIcon,
+  ViewGridIcon
+} from '@heroicons/react/outline';
+
+const Sidebar = () => {
   const location = useLocation();
+  const { user } = useAuth();
 
-  const mainMenuItems = [
-    { path: '/', icon: <FaHome />, label: 'Dashboard' },
-    { path: '/query', icon: <FaSearch />, label: 'Query LLM' },
-    { path: '/data', icon: <FaDatabase />, label: 'Data Management' },
-    { path: '/analytics', icon: <FaChartLine />, label: 'Analytics' },
+  const navigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+    { name: 'Query', href: '/query', icon: QuestionMarkCircleIcon },
+    { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
+    { name: 'Multi-Tier View', href: '/multi-tier', icon: CubeTransparentIcon },
+    { name: 'Database Explorer', href: '/database', icon: DatabaseIcon },
+    { name: 'Reports', href: '/reports', icon: DocumentReportIcon },
+    { name: 'Settings', href: '/settings', icon: CogIcon },
   ];
 
-  const dataMenuItems = [
-    { path: '/data/upload', icon: <FaFileUpload />, label: 'Upload Data' },
-    { path: '/data/inventory', icon: <FaBoxes />, label: 'Inventory' },
-    { path: '/data/suppliers', icon: <FaTruck />, label: 'Suppliers' },
-    { path: '/data/warehouses', icon: <FaWarehouse />, label: 'Warehouses' },
-    { path: '/data/tables', icon: <FaTable />, label: 'Data Tables' },
-  ];
+  // Add admin link if user is admin
+  if (user && user.role === 'admin') {
+    navigation.push({ name: 'Admin', href: '/admin', icon: ShieldCheckIcon });
+  }
 
-  const systemMenuItems = [
-    { path: '/server', icon: <FaServer />, label: 'Server Status' },
-    { path: '/settings', icon: <FaCog />, label: 'Settings' },
-    { path: '/system/models', icon: <FaTools />, label: 'Model Management' },
-    { path: '/system/users', icon: <FaUserCog />, label: 'User Management' },
-  ];
-
-  const renderMenuItems = (items) => {
-    return items.map((item) => (
-      <Link 
-        key={item.path}
-        to={item.path} 
-        className={`
-          flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 rounded-md mb-1
-          ${location.pathname === item.path ? 'bg-gray-700 text-white' : ''}
-        `}
-      >
-        <span className="mr-3">{item.icon}</span>
-        <span>{item.label}</span>
-      </Link>
-    ));
+  const isActive = (path) => {
+    return location.pathname === path;
   };
 
   return (
-    <div 
-      className={`
-        fixed left-0 top-16 h-full bg-gray-800 text-white transition-all duration-300 overflow-y-auto
-        ${isOpen ? 'w-64' : 'w-0'}
-      `}
-      style={{ zIndex: 40 }}
-    >
-      <div className={`p-4 ${isOpen ? 'block' : 'hidden'}`}>
-        <div className="mb-8">
-          <h3 className="text-xs uppercase font-bold tracking-wider text-gray-500 mb-2">
-            Main Menu
-          </h3>
-          <div className="space-y-1">
-            {renderMenuItems(mainMenuItems)}
+    <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
+      <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
+        <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+          <div className="flex items-center flex-shrink-0 px-4">
+            <span className="text-lg font-semibold text-indigo-600">Supply Chain LLM</span>
+          </div>
+          <div className="mt-5 flex-1 px-2 space-y-1">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`
+                  group flex items-center px-2 py-2 text-sm font-medium rounded-md
+                  ${isActive(item.href) 
+                    ? 'bg-indigo-50 text-indigo-600' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+                `}
+              >
+                <item.icon
+                  className={`
+                    mr-3 flex-shrink-0 h-6 w-6
+                    ${isActive(item.href) ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'}
+                  `}
+                  aria-hidden="true"
+                />
+                {item.name}
+              </Link>
+            ))}
           </div>
         </div>
-
-        <div className="mb-8">
-          <h3 className="text-xs uppercase font-bold tracking-wider text-gray-500 mb-2">
-            Data Management
-          </h3>
-          <div className="space-y-1">
-            {renderMenuItems(dataMenuItems)}
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <h3 className="text-xs uppercase font-bold tracking-wider text-gray-500 mb-2">
-            System
-          </h3>
-          <div className="space-y-1">
-            {renderMenuItems(systemMenuItems)}
-          </div>
-        </div>
-        
-        <div className="pt-4 mt-6 border-t border-gray-700">
-          <div className="px-4 py-2">
-            <div className="text-xs text-gray-500">Server Status</div>
-            <div className="flex items-center mt-1">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-              <span className="text-sm">System Online</span>
+        <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+          <div className="flex-shrink-0 w-full group block">
+            <div className="flex items-center">
+              <div>
+                <div className="h-9 w-9 rounded-full bg-indigo-600 flex items-center justify-center text-white">
+                  {user ? user.username.charAt(0).toUpperCase() : 'U'}
+                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-700">{user ? user.username : 'Guest'}</p>
+                <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">
+                  {user ? user.email : 'Not logged in'}
+                </p>
+              </div>
             </div>
           </div>
         </div>

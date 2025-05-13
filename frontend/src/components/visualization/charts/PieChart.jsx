@@ -1,173 +1,234 @@
-import React, { useState, useEffect } from 'react';
-import { PieChart as RechartsPieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Sector } from 'recharts';
-import { FaCog } from 'react-icons/fa';
+import React, { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
+import { formatValue } from '../../../utils/formatting';
 
-const PieChart = ({
-  data = [],
-  title = "Pie Chart",
-  nameKey = "name",
-  valueKey = "value",
-  colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#6366f1", "#14b8a6", "#f43f5e", "#64748b"],
+const PieChart = ({ 
+  data, 
+  config = {}, 
   height = 400,
-  isDoughnut = false,
-  showPercentage = true,
-  activeIndex = -1,
-  setActiveIndex = null,
-  config = {}
+  onSliceClick
 }) => {
-  const [chartData, setChartData] = useState([]);
-  const [activeSegment, setActiveSegment] = useState(-1);
-  
-  // Process and format the data when it changes
+  const svgRef = useRef(null);
+  const tooltipRef = useRef(null);
+
+  const {
+    nameKey = 'name',
+    valueKey = 'value',
+    title = '',
+    colorScheme = 'schemeSet2',
+    innerRadius = 0, // 0 for pie, >0 for donut
+    padAngle = 0.02,
+    cornerRadius = 4,
+    showLabels = true,
+    showValues = true,
+    valueFormatter,
+    showPercentages = true,
+    margin = { top: 30, right: 30, bottom: 30, left: 30 }
+  } = config;
+
   useEffect(() => {
-    setChartData(data);
-  }, [data]);
-  
-  // Manage active segment state
-  useEffect(() => {
-    if (activeIndex !== undefined && activeIndex !== null) {
-      setActiveSegment(activeIndex);
-    }
-  }, [activeIndex]);
-  
-  // If no data, show placeholder message
-  if (!chartData || chartData.length === 0) {
-    return (
-      <div className="border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 h-80">
-        <p className="text-gray-500 mb-4">No data available for chart</p>
-        <FaCog className="animate-spin text-gray-400 h-8 w-8" />
-      </div>
-    );
-  }
-  
-  // Calculate total for percentage calculations
-  const total = chartData.reduce((sum, entry) => sum + entry[valueKey], 0);
-  
-  // Handle segment click
-  const handleSegmentClick = (_, index) => {
-    const newIndex = activeSegment === index ? -1 : index;
-    setActiveSegment(newIndex);
-    if (setActiveIndex) setActiveIndex(newIndex);
-  };
-  
-  // Custom tooltip formatter
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      const value = data[valueKey];
-      const percentage = (value / total * 100).toFixed(1);
-      
-      return (
-        <div className="bg-white p-3 border border-gray-200 shadow-md rounded">
-          <p className="font-medium text-gray-900">{data[nameKey]}</p>
-          <p className="text-sm text-gray-700">
-            {`${config.valueFormatter ? config.valueFormatter(value) : value}`}
-            {showPercentage && ` (${percentage}%)`}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-  
-  // Active shape renderer for hover effect
-  const renderActiveShape = (props) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload } = props;
-    const value = payload[valueKey];
-    const percentage = (value / total * 100).toFixed(1);
+    if (!data || !data.length || !svgRef.current) return;
+
+    // Clean up previous chart
+    d3.select(svgRef.current).selectAll('*').remove();
     
-    return (
-      <g>
-        <Sector
-          cx={cx}
-          cy={cy}
-          innerRadius={innerRadius}
-          outerRadius={outerRadius + 6}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          fill={fill}
-        />
-        <Sector
-          cx={cx}
-          cy={cy}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          innerRadius={outerRadius + 6}
-          outerRadius={outerRadius + 10}
-          fill={fill}
-        />
-      </g>
-    );
-  };
-  
-  // Custom legend renderer
-  const renderCustomizedLegend = (props) => {
-    const { payload } = props;
+    // Create tooltip if it doesn't exist
+    if (!tooltipRef.current) {
+      tooltipRef.current = d3.select('body')
+        .append('div')
+        .attr('class', 'absolute hidden p-2 bg-gray-800 text-white rounded shadow-lg text-xs z-50 pointer-events-none')
+        .style('opacity', 0);
+    }
+
+    // Setup dimensions
+    const svg = d3.select(svgRef.current);
+    const width = svgRef.current.clientWidth;
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    const radius = Math.min(chartWidth, chartHeight) / 2;
+
+    // Create chart group
+    const chart = svg
+      .attr('width', width)
+      .attr('height', height)
+      .append('g')
+      .attr('transform', `translate(${width / 2},${height / 2})`);
+
+    // Add title if provided
+    if (title) {
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', margin.top / 2)
+        .attr('text-anchor', 'middle')
+        .attr('class', 'text-sm font-semibold')
+        .text(title);
+    }
+
+    // Calculate total for percentages
+    const total = d3.sum(data, d => +d[valueKey]);
     
-    return (
-      <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-4">
-        {payload.map((entry, index) => {
-          const isActive = index === activeSegment;
-          const value = chartData[index][valueKey];
-          const percentage = (value / total * 100).toFixed(1);
-          
-          return (
-            <li 
-              key={`item-${index}`}
-              className={`flex items-center cursor-pointer transition-all ${
-                isActive ? 'scale-105 font-medium' : ''
-              }`}
-              onClick={() => handleSegmentClick(null, index)}
-            >
-              <div 
-                className={`w-3 h-3 mr-2 rounded-sm`} 
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-sm text-gray-700">{entry.value}</span>
-              {showPercentage && (
-                <span className="text-xs text-gray-500 ml-1">{`(${percentage}%)`}</span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    );
-  };
-  
+    // Prepare the pie layout
+    const pie = d3.pie()
+      .value(d => +d[valueKey])
+      .sort(null);
+    
+    // Color scheme
+    const colorScale = d3.scaleOrdinal(d3[colorScheme] || d3.schemeSet2);
+    
+    // Create the arc generator
+    const arc = d3.arc()
+      .innerRadius(innerRadius * radius)
+      .outerRadius(radius)
+      .padAngle(padAngle)
+      .cornerRadius(cornerRadius);
+    
+    // Larger arc for labels
+    const outerArc = d3.arc()
+      .innerRadius(radius * 0.9)
+      .outerRadius(radius * 0.9);
+    
+    // Add the slices
+    const slices = chart.selectAll('.slice')
+      .data(pie(data))
+      .enter()
+      .append('g')
+      .attr('class', 'slice');
+    
+    // Add the paths for the slices
+    const paths = slices.append('path')
+      .attr('d', arc)
+      .attr('fill', (d, i) => colorScale(i))
+      .attr('stroke', 'white')
+      .style('stroke-width', '2px')
+      .style('opacity', 0.8)
+      .on('mouseover', function(event, d) {
+        d3.select(this).style('opacity', 1);
+        const percentage = ((d.data[valueKey] / total) * 100).toFixed(1);
+        tooltipRef.current
+          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+          .html(`
+            <strong>${d.data[nameKey]}</strong>: ${formatValue(d.data[valueKey], valueFormatter)}
+            ${showPercentages ? `<br>(${percentage}%)` : ''}
+          `);
+        d3.select(tooltipRef.current).classed('hidden', false);
+      })
+      .on('mouseout', function() {
+        d3.select(this).style('opacity', 0.8);
+        d3.select(tooltipRef.current).classed('hidden', true);
+      })
+      .on('click', function(event, d) {
+        if (onSliceClick) onSliceClick(d.data);
+      });
+    
+    // Animate slices
+    paths
+      .transition()
+      .duration(1000)
+      .attrTween('d', function(d) {
+        const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+        return function(t) {
+          return arc(interpolate(t));
+        };
+      });
+
+    // Add labels if showLabels is true
+    if (showLabels) {
+      // For outer labels with lines
+      const polyline = slices.append('polyline')
+        .attr('points', function(d) {
+          const pos = outerArc.centroid(d);
+          pos[0] = radius * 0.95 * (midAngle(d) < Math.PI ? 1 : -1);
+          return [arc.centroid(d), outerArc.centroid(d), pos];
+        })
+        .attr('stroke', 'gray')
+        .attr('fill', 'none')
+        .attr('stroke-width', 1)
+        .style('opacity', 0)
+        .transition()
+        .delay(1000)
+        .duration(500)
+        .style('opacity', 0.5);
+
+      const labels = slices.append('text')
+        .attr('transform', function(d) {
+          const pos = outerArc.centroid(d);
+          pos[0] = radius * (midAngle(d) < Math.PI ? 1.05 : -1.05);
+          return `translate(${pos})`;
+        })
+        .attr('dy', '.35em')
+        .attr('text-anchor', function(d) {
+          return midAngle(d) < Math.PI ? 'start' : 'end';
+        })
+        .attr('class', 'text-xs')
+        .text(function(d) {
+          return d.data[nameKey];
+        })
+        .style('opacity', 0)
+        .transition()
+        .delay(1000)
+        .duration(500)
+        .style('opacity', 1);
+
+      // Helper function for midpoint angle
+      function midAngle(d) {
+        return d.startAngle + (d.endAngle - d.startAngle) / 2;
+      }
+    }
+
+    // Add value labels in the center for each slice if showValues and it's a donut chart
+    if (showValues && innerRadius > 0) {
+      slices.append('text')
+        .attr('transform', function(d) {
+          const c = arc.centroid(d);
+          return `translate(${c})`;
+        })
+        .attr('dy', '.35em')
+        .attr('text-anchor', 'middle')
+        .attr('class', 'text-xs font-semibold')
+        .text(function(d) {
+          if (showPercentages) {
+            const percentage = ((d.data[valueKey] / total) * 100).toFixed(1);
+            return `${percentage}%`;
+          } else {
+            return formatValue(d.data[valueKey], valueFormatter);
+          }
+        })
+        .style('opacity', 0)
+        .style('fill', 'white')
+        .transition()
+        .delay(1200)
+        .duration(300)
+        .style('opacity', 1);
+    }
+
+    // Add center text if it's a donut chart
+    if (innerRadius > 0) {
+      chart.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '.35em')
+        .attr('class', 'text-sm font-semibold')
+        .text(formatValue(total, valueFormatter))
+        .style('opacity', 0)
+        .transition()
+        .delay(1200)
+        .duration(300)
+        .style('opacity', 1);
+    }
+
+    // Cleanup function
+    return () => {
+      if (tooltipRef.current) {
+        d3.select(tooltipRef.current).remove();
+        tooltipRef.current = null;
+      }
+    };
+  }, [data, config, height, onSliceClick]);
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      {title && <h3 className="text-lg font-medium text-gray-700 mb-4">{title}</h3>}
-      
-      <ResponsiveContainer width="100%" height={height}>
-        <RechartsPieChart>
-          <Pie
-            data={chartData}
-            dataKey={valueKey}
-            nameKey={nameKey}
-            cx="50%"
-            cy="50%"
-            innerRadius={isDoughnut ? 60 : 0}
-            outerRadius={100}
-            paddingAngle={2}
-            activeIndex={activeSegment}
-            activeShape={renderActiveShape}
-            onClick={handleSegmentClick}
-          >
-            {chartData.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={colors[index % colors.length]} 
-              />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend 
-            content={renderCustomizedLegend}
-            verticalAlign="bottom"
-            align="center"
-          />
-        </RechartsPieChart>
-      </ResponsiveContainer>
+    <div className="w-full h-full">
+      <svg ref={svgRef} className="w-full h-full" />
     </div>
   );
 };

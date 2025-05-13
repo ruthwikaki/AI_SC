@@ -1,190 +1,207 @@
-import React, { useState, useEffect } from 'react';
-import { Sankey, Tooltip, ResponsiveContainer, Rectangle } from 'recharts';
-import { FaCog } from 'react-icons/fa';
+import React, { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
+import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
+import { formatValue } from '../../../utils/formatting';
 
-const SankeyDiagram = ({
-  data = { nodes: [], links: [] },
-  title = "Sankey Diagram",
-  height = 500, 
-  nodeWidth = 20,
-  nodePadding = 50,
-  colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#6366f1", "#14b8a6"],
-  config = {}
+const SankeyDiagram = ({ 
+  data, 
+  config = {}, 
+  height = 500,
+  onNodeClick,
+  onLinkClick
 }) => {
-  const [chartData, setChartData] = useState({ nodes: [], links: [] });
-  const [hoveredNode, setHoveredNode] = useState(null);
-  const [hoveredLink, setHoveredLink] = useState(null);
-  
-  // Process and format the data when it changes
+  const svgRef = useRef(null);
+  const tooltipRef = useRef(null);
+
+  const {
+    title = '',
+    nodeWidth = 15,
+    nodePadding = 10,
+    colorScheme = 'schemeCategory10',
+    valueFormatter,
+    margin = { top: 30, right: 30, bottom: 30, left: 30 }
+  } = config;
+
   useEffect(() => {
-    if (data && data.nodes && data.links) {
-      // Ensure nodes have colors assigned
-      const nodesWithColors = data.nodes.map((node, index) => ({
-        ...node,
-        color: node.color || colors[index % colors.length]
-      }));
-      
-      setChartData({
-        nodes: nodesWithColors,
-        links: data.links
+    if (!data || !svgRef.current) return;
+    if (!data.nodes || !data.links) {
+      console.error('Invalid data format for Sankey diagram. Expected {nodes: [], links: []}');
+      return;
+    }
+
+    // Clean up previous chart
+    d3.select(svgRef.current).selectAll('*').remove();
+    
+    // Create tooltip if it doesn't exist
+    if (!tooltipRef.current) {
+      tooltipRef.current = d3.select('body')
+        .append('div')
+        .attr('class', 'absolute hidden p-2 bg-gray-800 text-white rounded shadow-lg text-xs z-50 pointer-events-none')
+        .style('opacity', 0);
+    }
+
+    // Setup dimensions
+    const svg = d3.select(svgRef.current);
+    const width = svgRef.current.clientWidth;
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    // Create chart group
+    const chart = svg
+      .attr('width', width)
+      .attr('height', height)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Add title if provided
+    if (title) {
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', margin.top / 2)
+        .attr('text-anchor', 'middle')
+        .attr('class', 'text-sm font-semibold')
+        .text(title);
+    }
+
+    // Make a copy of the data to avoid modifying original
+    const sankeyData = {
+      nodes: [...data.nodes],
+      links: [...data.links].map(d => ({...d}))
+    };
+
+    // Color scale for nodes
+    const color = d3.scaleOrdinal(d3[colorScheme] || d3.schemeCategory10);
+
+    // Create the sankey generator
+    const sankeyGenerator = sankey()
+      .nodeWidth(nodeWidth)
+      .nodePadding(nodePadding)
+      .extent([[0, 0], [chartWidth, chartHeight]]);
+
+    // Generate the sankey data
+    const sankeyLayout = sankeyGenerator(sankeyData);
+    const { nodes, links } = sankeyLayout;
+
+    // Draw the links
+    const link = chart.append('g')
+      .attr('class', 'links')
+      .attr('fill', 'none')
+      .attr('stroke-opacity', 0.4)
+      .selectAll('path')
+      .data(links)
+      .enter()
+      .append('path')
+      .attr('d', sankeyLinkHorizontal())
+      .attr('stroke', d => color(d.source.name))
+      .attr('stroke-width', d => Math.max(1, d.width))
+      .style('opacity', 0)
+      .on('mouseover', function(event, d) {
+        d3.select(this)
+          .attr('stroke-opacity', 0.8)
+          .attr('stroke-width', d => Math.max(1, d.width + 2));
+
+        tooltipRef.current
+          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+          .html(`
+            <strong>${d.source.name} → ${d.target.name}</strong><br>
+            ${formatValue(d.value, valueFormatter)}
+          `);
+        d3.select(tooltipRef.current).classed('hidden', false);
+      })
+      .on('mouseout', function() {
+        d3.select(this)
+          .attr('stroke-opacity', 0.4)
+          .attr('stroke-width', d => Math.max(1, d.width));
+        d3.select(tooltipRef.current).classed('hidden', true);
+      })
+      .on('click', function(event, d) {
+        if (onLinkClick) onLinkClick({
+          source: d.source.name,
+          target: d.target.name,
+          value: d.value
+        });
       });
-    }
-  }, [data, colors]);
-  
-  // If no data, show placeholder message
-  if (!chartData.nodes.length || !chartData.links.length) {
-    return (
-      <div className="border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 h-80">
-        <p className="text-gray-500 mb-4">No data available for Sankey diagram</p>
-        <FaCog className="animate-spin text-gray-400 h-8 w-8" />
-      </div>
-    );
-  }
-  
-  // Custom tooltip formatter
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      
-      if (data.payload.source && data.payload.target) {
-        // Link tooltip
-        const sourceNode = chartData.nodes.find(n => n.nodeId === data.payload.source);
-        const targetNode = chartData.nodes.find(n => n.nodeId === data.payload.target);
-        
-        return (
-          <div className="bg-white p-3 border border-gray-200 shadow-md rounded">
-            <p className="font-medium text-gray-800">Flow</p>
-            <p className="text-sm text-gray-700">
-              From: <span className="font-medium">{sourceNode?.name}</span>
-            </p>
-            <p className="text-sm text-gray-700">
-              To: <span className="font-medium">{targetNode?.name}</span>
-            </p>
-            <p className="text-sm text-gray-700 mt-1">
-              Value: <span className="font-medium">
-                {config.valueFormatter ? config.valueFormatter(data.payload.value) : data.payload.value}
-              </span>
-            </p>
-          </div>
-        );
-      } else {
-        // Node tooltip
-        return (
-          <div className="bg-white p-3 border border-gray-200 shadow-md rounded">
-            <p className="font-medium text-gray-800">{data.payload.name}</p>
-            {data.payload.description && (
-              <p className="text-sm text-gray-600 mt-1">{data.payload.description}</p>
-            )}
-          </div>
-        );
+
+    // Animate links
+    link.transition()
+      .duration(800)
+      .style('opacity', 1);
+
+    // Draw the nodes
+    const node = chart.append('g')
+      .attr('class', 'nodes')
+      .selectAll('rect')
+      .data(nodes)
+      .enter()
+      .append('rect')
+      .attr('x', d => d.x0)
+      .attr('y', d => d.y0)
+      .attr('height', d => d.y1 - d.y0)
+      .attr('width', d => d.x1 - d.x0)
+      .attr('fill', d => color(d.name))
+      .attr('stroke', d => d3.rgb(color(d.name)).darker(0.5))
+      .style('opacity', 0)
+      .on('mouseover', function(event, d) {
+        d3.select(this).attr('fill', d3.rgb(color(d.name)).brighter(0.2));
+        tooltipRef.current
+          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+          .html(`
+            <strong>${d.name}</strong><br>
+            ${formatValue(d.value, valueFormatter)}
+          `);
+        d3.select(tooltipRef.current).classed('hidden', false);
+      })
+      .on('mouseout', function(event, d) {
+        d3.select(this).attr('fill', color(d.name));
+        d3.select(tooltipRef.current).classed('hidden', true);
+      })
+      .on('click', function(event, d) {
+        if (onNodeClick) onNodeClick({
+          name: d.name,
+          value: d.value
+        });
+      });
+
+    // Animate nodes
+    node.transition()
+      .duration(800)
+      .style('opacity', 0.8);
+
+    // Add node labels
+    chart.append('g')
+      .attr('class', 'node-labels')
+      .selectAll('text')
+      .data(nodes)
+      .enter()
+      .append('text')
+      .attr('x', d => d.x0 < chartWidth / 2 ? d.x1 + 6 : d.x0 - 6)
+      .attr('y', d => (d.y1 + d.y0) / 2)
+      .attr('dy', '0.35em')
+      .attr('text-anchor', d => d.x0 < chartWidth / 2 ? 'start' : 'end')
+      .attr('class', 'text-xs font-semibold')
+      .text(d => d.name)
+      .style('opacity', 0)
+      .transition()
+      .duration(800)
+      .delay(400)
+      .style('opacity', 1);
+
+    // Cleanup function
+    return () => {
+      if (tooltipRef.current) {
+        d3.select(tooltipRef.current).remove();
+        tooltipRef.current = null;
       }
-    }
-    
-    return null;
-  };
-  
-  // Custom node renderer with hover effect
-  const CustomNode = ({ x, y, width, height, index, payload }) => {
-    const isHovered = hoveredNode === payload.nodeId;
-    
-    return (
-      <Rectangle
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={payload.color}
-        fillOpacity={isHovered ? 0.8 : 0.6}
-        onMouseEnter={() => setHoveredNode(payload.nodeId)}
-        onMouseLeave={() => setHoveredNode(null)}
-        className="cursor-pointer transition-all duration-150"
-        style={{
-          stroke: isHovered ? '#000' : payload.color,
-          strokeWidth: isHovered ? 2 : 0,
-          filter: isHovered ? 'drop-shadow(0 4px 3px rgb(0 0 0 / 0.07))' : 'none'
-        }}
-      />
-    );
-  };
-  
-  // Custom link renderer with hover effect
-  const CustomLink = ({ sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, index, payload }) => {
-    const isHovered = hoveredLink === `${payload.source}-${payload.target}`;
-    
-    // Generate unique gradient ID for each link
-    const gradientId = `gradient-${payload.source}-${payload.target}`;
-    
-    // Find source and target nodes to get colors
-    const sourceNode = chartData.nodes.find(n => n.nodeId === payload.source);
-    const targetNode = chartData.nodes.find(n => n.nodeId === payload.target);
-    
-    const sourceColor = sourceNode?.color || colors[0];
-    const targetColor = targetNode?.color || colors[1];
-    
-    return (
-      <g
-        onMouseEnter={() => setHoveredLink(`${payload.source}-${payload.target}`)}
-        onMouseLeave={() => setHoveredLink(null)}
-        className="cursor-pointer"
-      >
-        <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={sourceColor} />
-            <stop offset="100%" stopColor={targetColor} />
-          </linearGradient>
-        </defs>
-        <path
-          d={`
-            M${sourceX},${sourceY}
-            C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}
-          `}
-          fill="none"
-          stroke={`url(#${gradientId})`}
-          strokeWidth={linkWidth}
-          strokeOpacity={isHovered ? 0.9 : 0.6}
-          style={{
-            filter: isHovered ? 'drop-shadow(0 4px 3px rgb(0 0 0 / 0.07))' : 'none',
-            transition: 'all 150ms ease'
-          }}
-        />
-      </g>
-    );
-  };
-  
+    };
+  }, [data, config, height, onNodeClick, onLinkClick]);
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      {title && <h3 className="text-lg font-medium text-gray-700 mb-4">{title}</h3>}
-      
-      <div className="mt-2">
-        <ResponsiveContainer width="100%" height={height}>
-          <Sankey
-            data={chartData}
-            nodeWidth={nodeWidth}
-            nodePadding={nodePadding}
-            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-            iterations={64}
-            link={CustomLink}
-            node={CustomNode}
-          >
-            <Tooltip content={<CustomTooltip />} />
-          </Sankey>
-        </ResponsiveContainer>
-      </div>
-      
-      {/* Legend */}
-      {config.showLegend && (
-        <div className="mt-4 flex flex-wrap gap-3 justify-center">
-          {chartData.nodes.map((node, index) => (
-            <div key={index} className="flex items-center">
-              <div
-                className="w-3 h-3 mr-1 rounded-sm"
-                style={{ backgroundColor: node.color }}
-              />
-              <span className="text-xs text-gray-700">{node.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="w-full h-full">
+      <svg ref={svgRef} className="w-full h-full" />
     </div>
   );
 };

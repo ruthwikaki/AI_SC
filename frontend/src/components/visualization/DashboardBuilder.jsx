@@ -1,624 +1,299 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { FaPlus, FaTrash, FaEdit, FaCog, FaChartBar, FaChartLine, FaChartPie, 
-         FaThermometerHalf, FaProjectDiagram, FaTable, FaSave, FaClone } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ChartViewer from './ChartViewer';
+import {
+  ViewGridAddIcon,
+  SaveIcon,
+  PlusCircleIcon,
+  XIcon,
+  MenuAlt2Icon,
+  ShareIcon
+} from '@heroicons/react/outline';
 
-// Mock data for available visualizations
-const AVAILABLE_CHARTS = [
-  { id: 'bar-chart', name: 'Bar Chart', type: 'bar', icon: <FaChartBar /> },
-  { id: 'line-chart', name: 'Line Chart', type: 'line', icon: <FaChartLine /> },
-  { id: 'pie-chart', name: 'Pie Chart', type: 'pie', icon: <FaChartPie /> },
-  { id: 'heat-map', name: 'Heat Map', type: 'heat', icon: <FaThermometerHalf /> },
-  { id: 'sankey-diagram', name: 'Sankey Diagram', type: 'sankey', icon: <FaProjectDiagram /> },
-  { id: 'network-graph', name: 'Network Graph', type: 'network', icon: <FaProjectDiagram /> },
-  { id: 'data-table', name: 'Data Table', type: 'table', icon: <FaTable /> }
-];
+// React Grid Layout
+import { Responsive, WidthProvider } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 
-// Default layout configurations
-const DEFAULT_LAYOUTS = {
-  '1x1': [{ i: 'chart-1', x: 0, y: 0, w: 12, h: 6 }],
-  '2x2': [
-    { i: 'chart-1', x: 0, y: 0, w: 6, h: 6 },
-    { i: 'chart-2', x: 6, y: 0, w: 6, h: 6 },
-    { i: 'chart-3', x: 0, y: 6, w: 6, h: 6 },
-    { i: 'chart-4', x: 6, y: 6, w: 6, h: 6 }
-  ],
-  '2x1': [
-    { i: 'chart-1', x: 0, y: 0, w: 6, h: 12 },
-    { i: 'chart-2', x: 6, y: 0, w: 6, h: 12 }
-  ],
-  '3x1': [
-    { i: 'chart-1', x: 0, y: 0, w: 4, h: 12 },
-    { i: 'chart-2', x: 4, y: 0, w: 4, h: 12 },
-    { i: 'chart-3', x: 8, y: 0, w: 4, h: 12 }
-  ]
-};
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const DashboardBuilder = ({
+  dashboardId,
+  initialLayout = [],
   initialCharts = [],
-  onSave = () => {},
-  availableDataSets = [],
-  className = ''
+  onSave,
+  onAddChart,
+  isEditing = false
 }) => {
+  const navigate = useNavigate();
+  const [layouts, setLayouts] = useState({ lg: initialLayout });
   const [charts, setCharts] = useState(initialCharts);
-  const [layout, setLayout] = useState('custom');
-  const [editingChart, setEditingChart] = useState(null);
-  const [isChartSettingsOpen, setIsChartSettingsOpen] = useState(false);
-  const [dashboardTitle, setDashboardTitle] = useState('New Dashboard');
-  const [dashboardDescription, setDashboardDescription] = useState('');
-  const [nextChartId, setNextChartId] = useState(
-    initialCharts.length > 0 
-      ? Math.max(...initialCharts.map(c => parseInt(c.id.replace('chart-', '')))) + 1 
-      : 1
-  );
+  const [isEditMode, setIsEditMode] = useState(isEditing);
+  const [dashboardName, setDashboardName] = useState('New Dashboard');
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Update charts when initialCharts changes
+  // Update internal state when props change
   useEffect(() => {
-    if (initialCharts && initialCharts.length > 0) {
+    if (initialLayout.length > 0) {
+      setLayouts({ lg: initialLayout });
+    }
+    if (initialCharts.length > 0) {
       setCharts(initialCharts);
-      
-      // Update nextChartId
-      const maxId = Math.max(...initialCharts.map(c => {
-        const idMatch = c.id.match(/chart-(\d+)/);
-        return idMatch ? parseInt(idMatch[1]) : 0;
-      }));
-      setNextChartId(maxId + 1);
     }
-  }, [initialCharts]);
+  }, [initialLayout, initialCharts]);
 
-  // Apply a preset layout
-  const applyLayout = (layoutName) => {
-    if (layoutName === 'custom') return;
-    
-    const layoutConfig = DEFAULT_LAYOUTS[layoutName];
-    if (!layoutConfig) return;
-    
-    // Create new charts based on the layout
-    const newCharts = layoutConfig.map((item, index) => {
-      // Reuse existing chart if available
-      if (charts[index]) {
-        return {
-          ...charts[index],
-          id: item.i,
-          gridPos: {
-            x: item.x,
-            y: item.y,
-            w: item.w,
-            h: item.h
-          }
-        };
+  const handleLayoutChange = (currentLayout, allLayouts) => {
+    setLayouts(allLayouts);
+  };
+
+  const handleSaveDashboard = async () => {
+    if (!dashboardName.trim()) {
+      alert('Please provide a dashboard name');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (onSave) {
+        await onSave({
+          id: dashboardId,
+          name: dashboardName,
+          layout: layouts.lg,
+          charts: charts.map(chart => chart.id)
+        });
       }
-      
-      // Create a new chart
-      return {
-        id: item.i,
-        title: `Chart ${index + 1}`,
-        type: 'bar',
-        dataSet: availableDataSets.length > 0 ? availableDataSets[0].id : null,
-        config: {},
-        gridPos: {
-          x: item.x,
-          y: item.y,
-          w: item.w,
-          h: item.h
-        }
-      };
-    });
-    
-    setCharts(newCharts);
-    setLayout(layoutName);
+      setIsEditMode(false);
+    } catch (error) {
+      console.error('Error saving dashboard:', error);
+      alert('Failed to save dashboard. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // Handle drag and drop reordering
-  const onDragEnd = (result) => {
-    if (!result.destination) return;
-    
-    const items = Array.from(charts);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    setCharts(items);
-  };
-
-  // Add a new chart
-  const addChart = (chartType) => {
-    const newChart = {
-      id: `chart-${nextChartId}`,
-      title: `Chart ${nextChartId}`,
-      type: chartType,
-      dataSet: availableDataSets.length > 0 ? availableDataSets[0].id : null,
-      config: {},
-      gridPos: {
-        x: 0,
-        y: charts.length > 0 ? Math.max(...charts.map(c => c.gridPos.y + c.gridPos.h)) : 0,
-        w: 12,
-        h: 6
-      }
-    };
-    
-    setCharts([...charts, newChart]);
-    setNextChartId(nextChartId + 1);
-    setLayout('custom'); // Switch to custom layout when adding charts manually
-  };
-
-  // Remove a chart
-  const removeChart = (chartId) => {
+  const handleRemoveChart = (chartId) => {
     setCharts(charts.filter(chart => chart.id !== chartId));
+    setLayouts({
+      ...layouts,
+      lg: layouts.lg.filter(item => item.i !== chartId.toString())
+    });
   };
 
-  // Open chart settings
-  const openChartSettings = (chart) => {
-    setEditingChart(chart);
-    setIsChartSettingsOpen(true);
-  };
-
-  // Save chart settings
-  const saveChartSettings = (updatedChart) => {
-    setCharts(charts.map(chart => 
-      chart.id === updatedChart.id ? updatedChart : chart
-    ));
-    setIsChartSettingsOpen(false);
-    setEditingChart(null);
-  };
-
-  // Save dashboard
-  const saveDashboard = () => {
-    const dashboard = {
-      title: dashboardTitle,
-      description: dashboardDescription,
-      charts: charts,
-      layout: layout
-    };
-    
-    onSave(dashboard);
-  };
-
-  // Mock function to get chart data based on dataset
-  const getChartData = useCallback((dataSetId, chartType) => {
-    // In a real app, this would fetch data from an API based on the dataSetId
-    // For this example, return some mock data based on the chart type
-    
-    switch (chartType) {
-      case 'bar':
-        return {
-          labels: ['Category A', 'Category B', 'Category C', 'Category D'],
-          datasets: [{
-            data: [65, 59, 80, 81],
-            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
-          }]
-        };
-      case 'line':
-        return {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-          datasets: [{
-            label: 'Data Series 1',
-            data: [12, 19, 3, 5, 2, 3],
-            borderColor: '#FF6384',
-            fill: false
-          }]
-        };
-      case 'pie':
-        return {
-          labels: ['Red', 'Blue', 'Yellow'],
-          datasets: [{
-            data: [300, 50, 100],
-            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56']
-          }]
-        };
-      // Add cases for other chart types
-      default:
-        return {
-          labels: ['Sample A', 'Sample B'],
-          datasets: [{
-            data: [50, 50],
-            backgroundColor: ['#FF6384', '#36A2EB']
-          }]
-        };
+  const handleAddNewChart = () => {
+    if (onAddChart) {
+      onAddChart();
     }
-  }, []);
-
-  // Duplicate a chart
-  const duplicateChart = (chart) => {
-    const newChart = {
-      ...chart,
-      id: `chart-${nextChartId}`,
-      title: `${chart.title} (Copy)`,
-      gridPos: {
-        ...chart.gridPos,
-        y: chart.gridPos.y + chart.gridPos.h
-      }
-    };
-    
-    setCharts([...charts, newChart]);
-    setNextChartId(nextChartId + 1);
   };
+
+  const generateShareLink = () => {
+    // This would typically generate a unique sharing link
+    // For now, we'll just return the current URL
+    return window.location.href;
+  };
+
+  const copyLinkToClipboard = () => {
+    const link = generateShareLink();
+    navigator.clipboard.writeText(link);
+    // Show temporary success message
+    setShareSuccess(true);
+    setTimeout(() => setShareSuccess(false), 3000);
+  };
+
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}>
-      {/* Dashboard Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div className="mb-4 md:mb-0">
+    <div className="h-full flex flex-col">
+      {/* Dashboard header */}
+      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex justify-between items-center">
+        <div className="flex items-center">
+          {isEditMode ? (
             <input
               type="text"
-              value={dashboardTitle}
-              onChange={(e) => setDashboardTitle(e.target.value)}
-              className="text-2xl font-semibold text-gray-800 border-none focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md px-2 py-1"
-              placeholder="Dashboard Title"
+              value={dashboardName}
+              onChange={(e) => setDashboardName(e.target.value)}
+              className="border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 block w-56 shadow-sm sm:text-sm border rounded-md px-3 py-1"
+              placeholder="Dashboard name"
             />
-            <input
-              type="text"
-              value={dashboardDescription}
-              onChange={(e) => setDashboardDescription(e.target.value)}
-              className="text-sm text-gray-500 mt-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md px-2 py-1 w-full md:w-96"
-              placeholder="Add a description..."
-            />
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <div>
-              <label className="text-sm text-gray-600 mr-2">Layout:</label>
-              <select
-                value={layout}
-                onChange={(e) => applyLayout(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="custom">Custom</option>
-                <option value="1x1">1x1 (Single)</option>
-                <option value="2x2">2x2 (Four Panel)</option>
-                <option value="2x1">2x1 (Two Column)</option>
-                <option value="3x1">3x1 (Three Column)</option>
-              </select>
-            </div>
-            
-            <button
-              onClick={saveDashboard}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md"
-            >
-              <FaSave className="mr-2" /> Save Dashboard
-            </button>
-          </div>
+          ) : (
+            <h1 className="text-lg font-semibold text-gray-800">{dashboardName}</h1>
+          )}
         </div>
-      </div>
-      
-      {/* Chart Toolbar */}
-      <div className="border-b border-gray-200 px-6 py-2 bg-gray-50">
-        <div className="flex items-center space-x-1 overflow-x-auto pb-2">
-          <span className="text-sm text-gray-600 mr-2">Add Chart:</span>
-          
-          {AVAILABLE_CHARTS.map(chart => (
-            <button
-              key={chart.id}
-              onClick={() => addChart(chart.type)}
-              className="flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md text-sm hover:bg-gray-100"
-              title={`Add ${chart.name}`}
-            >
-              <span className="mr-1">{chart.icon}</span>
-              <span className="hidden sm:inline">{chart.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      {/* Dashboard Content */}
-      <div className="p-6">
-        {charts.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-            <FaChartBar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">No charts yet</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by adding a chart or selecting a layout template.
-            </p>
-            <div className="mt-6">
+        
+        <div className="flex space-x-2">
+          {!isEditMode && (
+            <>
               <button
-                onClick={() => addChart('bar')}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={() => setIsShareModalOpen(true)}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                <FaPlus className="mr-2" /> Add Bar Chart
+                <ShareIcon className="-ml-1 mr-2 h-4 w-4" />
+                Share
               </button>
-            </div>
+              
+              <button
+                onClick={() => setIsEditMode(true)}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <MenuAlt2Icon className="-ml-1 mr-2 h-4 w-4" />
+                Edit
+              </button>
+            </>
+          )}
+          
+          {isEditMode && (
+            <>
+              <button
+                onClick={handleAddNewChart}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <PlusCircleIcon className="-ml-1 mr-2 h-4 w-4" />
+                Add Chart
+              </button>
+              
+              <button
+                onClick={handleSaveDashboard}
+                disabled={isSaving}
+                className={`inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                  isSaving ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
+              >
+                {isSaving ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <SaveIcon className="-ml-1 mr-2 h-4 w-4" />
+                    Save Dashboard
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setIsEditMode(false)}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Dashboard content */}
+      <div className="flex-1 overflow-auto bg-gray-50 p-4">
+        {charts.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 flex flex-col items-center justify-center h-64">
+            <ViewGridAddIcon className="h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Add charts to your dashboard</h3>
+            <p className="text-sm text-gray-500 mb-4 text-center max-w-md">
+              Create a custom dashboard by adding charts from your analytics or query results.
+            </p>
+            <button
+              onClick={handleAddNewChart}
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <PlusCircleIcon className="-ml-1 mr-2 h-5 w-5" />
+              Add Your First Chart
+            </button>
           </div>
         ) : (
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="charts">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="space-y-6"
-                >
-                  {charts.map((chart, index) => (
-                    <Draggable key={chart.id} draggableId={chart.id} index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className="relative"
-                        >
-                          {/* Chart Controls */}
-                          <div
-                            {...provided.dragHandleProps}
-                            className="absolute top-0 right-0 bg-white border border-gray-200 rounded-bl-md rounded-tr-md z-10 flex shadow-sm"
-                          >
-                            <button 
-                              onClick={() => openChartSettings(chart)}
-                              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                              title="Edit Chart"
-                            >
-                              <FaEdit size={14} />
-                            </button>
-                            <button 
-                              onClick={() => duplicateChart(chart)}
-                              className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50"
-                              title="Duplicate Chart"
-                            >
-                              <FaClone size={14} />
-                            </button>
-                            <button 
-                              onClick={() => removeChart(chart.id)}
-                              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50"
-                              title="Remove Chart"
-                            >
-                              <FaTrash size={14} />
-                            </button>
-                          </div>
-                          
-                          {/* Chart Component */}
-                          <ChartViewer
-                            chartType={chart.type}
-                            chartData={getChartData(chart.dataSet, chart.type)}
-                            chartConfig={chart.config}
-                            title={chart.title}
-                            description={chart.description}
-                            height={chart.gridPos.h * 70} // Approximate height based on grid
-                            showControls={false}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+          <ResponsiveGridLayout
+            className="layout"
+            layouts={layouts}
+            onLayoutChange={handleLayoutChange}
+            isDraggable={isEditMode}
+            isResizable={isEditMode}
+            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+            cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+            rowHeight={100}
+            margin={[16, 16]}
+            containerPadding={[0, 0]}
+          >
+            {charts.map(chart => (
+              <div key={chart.id.toString()} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                {isEditMode && (
+                  <button
+                    onClick={() => handleRemoveChart(chart.id)}
+                    className="absolute top-2 right-2 z-10 p-1 rounded-full bg-red-100 text-red-500 hover:bg-red-200"
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                )}
+                <ChartViewer 
+                  chartData={chart} 
+                  fullHeight={true}
+                  showControls={!isEditMode}
+                  onEdit={() => {
+                    // Navigate to chart edit page
+                    navigate(`/charts/${chart.id}/edit`);
+                  }} 
+                />
+              </div>
+            ))}
+          </ResponsiveGridLayout>
         )}
       </div>
-      
-      {/* Chart Settings Modal */}
-      {isChartSettingsOpen && editingChart && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Edit Chart: {editingChart.title}</h3>
+
+      {/* Share Modal */}
+      {isShareModalOpen && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setIsShareModalOpen(false)}></div>
             </div>
-            
-            <div className="px-6 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Basic Settings */}
-                <div>
-                  <h4 className="font-medium text-gray-800 mb-3">Chart Settings</h4>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Chart Title
-                      </label>
-                      <input
-                        type="text"
-                        value={editingChart.title}
-                        onChange={(e) => setEditingChart({
-                          ...editingChart,
-                          title: e.target.value
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        value={editingChart.description || ''}
-                        onChange={(e) => setEditingChart({
-                          ...editingChart,
-                          description: e.target.value
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                        rows={3}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Chart Type
-                      </label>
-                      <select
-                        value={editingChart.type}
-                        onChange={(e) => setEditingChart({
-                          ...editingChart,
-                          type: e.target.value
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      >
-                        {AVAILABLE_CHARTS.map(chart => (
-                          <option key={chart.id} value={chart.type}>
-                            {chart.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Data Source
-                      </label>
-                      <select
-                        value={editingChart.dataSet}
-                        onChange={(e) => setEditingChart({
-                          ...editingChart,
-                          dataSet: e.target.value
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      >
-                        {availableDataSets.length === 0 ? (
-                          <option value="">No data sources available</option>
-                        ) : (
-                          availableDataSets.map(ds => (
-                            <option key={ds.id} value={ds.id}>
-                              {ds.name}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Advanced Settings */}
-                <div>
-                  <h4 className="font-medium text-gray-800 mb-3">Display Options</h4>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Size
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-xs text-gray-500">Width</label>
-                          <select
-                            value={editingChart.gridPos.w}
-                            onChange={(e) => setEditingChart({
-                              ...editingChart,
-                              gridPos: {
-                                ...editingChart.gridPos,
-                                w: parseInt(e.target.value)
-                              }
-                            })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                          >
-                            {[1, 2, 3, 4, 6, 8, 12].map(w => (
-                              <option key={w} value={w}>
-                                {w} / 12 columns
-                              </option>
-                            ))}
-                          </select>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                      Share Dashboard
+                    </h3>
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-500 mb-2">
+                        Share this link with others who should have access to this dashboard:
+                      </p>
+                      <div className="mt-1 flex rounded-md shadow-sm">
+                        <div className="relative flex items-stretch flex-grow">
+                          <input
+                            type="text"
+                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300"
+                            value={generateShareLink()}
+                            readOnly
+                          />
                         </div>
-                        <div>
-                          <label className="block text-xs text-gray-500">Height</label>
-                          <select
-                            value={editingChart.gridPos.h}
-                            onChange={(e) => setEditingChart({
-                              ...editingChart,
-                              gridPos: {
-                                ...editingChart.gridPos,
-                                h: parseInt(e.target.value)
-                              }
-                            })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                          >
-                            {[2, 3, 4, 6, 8, 10, 12].map(h => (
-                              <option key={h} value={h}>
-                                {h} units ({h * 70}px)
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Additional settings based on chart type */}
-                    {editingChart.type === 'bar' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Bar Orientation
-                        </label>
-                        <select
-                          value={editingChart.config?.orientation || 'vertical'}
-                          onChange={(e) => setEditingChart({
-                            ...editingChart,
-                            config: {
-                              ...editingChart.config,
-                              orientation: e.target.value
-                            }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        <button
+                          type="button"
+                          onClick={copyLinkToClipboard}
+                          className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 sm:text-sm hover:bg-gray-100"
                         >
-                          <option value="vertical">Vertical</option>
-                          <option value="horizontal">Horizontal</option>
-                        </select>
+                          Copy
+                        </button>
                       </div>
-                    )}
-                    
-                    {/* Color scheme */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Color Scheme
-                      </label>
-                      <select
-                        value={editingChart.config?.colorScheme || 'default'}
-                        onChange={(e) => setEditingChart({
-                          ...editingChart,
-                          config: {
-                            ...editingChart.config,
-                            colorScheme: e.target.value
-                          }
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      >
-                        <option value="default">Default</option>
-                        <option value="blue">Blues</option>
-                        <option value="green">Greens</option>
-                        <option value="red">Reds</option>
-                        <option value="purple">Purples</option>
-                        <option value="categorical">Categorical</option>
-                      </select>
-                    </div>
-                    
-                    {/* Legend position */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Legend Position
-                      </label>
-                      <select
-                        value={editingChart.config?.legendPosition || 'top'}
-                        onChange={(e) => setEditingChart({
-                          ...editingChart,
-                          config: {
-                            ...editingChart.config,
-                            legendPosition: e.target.value
-                          }
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      >
-                        <option value="top">Top</option>
-                        <option value="right">Right</option>
-                        <option value="bottom">Bottom</option>
-                        <option value="left">Left</option>
-                        <option value="none">None (hidden)</option>
-                      </select>
+                      {shareSuccess && (
+                        <p className="mt-2 text-sm text-green-600">
+                          Link copied to clipboard!
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
-              <button
-                onClick={() => setIsChartSettingsOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm mr-2"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => saveChartSettings(editingChart)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm"
-              >
-                Save Changes
-              </button>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={() => setIsShareModalOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
