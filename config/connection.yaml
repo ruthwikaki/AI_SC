@@ -1,0 +1,52 @@
+# Database connection configuration for Supply Chain LLM
+
+connections:
+  # Internal application database
+  - name: app_db
+    type: postgres
+    params:
+      host: localhost
+      port: 5432
+      user: postgres
+      password: postgres
+      database: supplychainllm
+    
+  # Development database for testing
+  - name: dev_db
+    type: postgres
+    params:
+      host: localhost
+      port: 5432
+      user: postgres
+      password: postgres
+      database: supplychainllm_dev
+    
+  # Example MySQL connection
+  - name: mysql_example
+    type: mysql
+    params:
+      host: localhost
+      port: 3306
+      user: root
+      password: password
+      database: example
+    
+  # Example SQL Server connection
+  - name: sqlserver_example
+    type: sqlserver
+    params:
+      host: localhost
+      port: 1433
+      user: sa
+      password: P@ssw0rd
+      database: example
+    
+  # Example Oracle connection
+  - name: oracle_example
+    type: oracle
+    params:
+      host: localhost
+      port: 1521
+      user: system
+      password: oracle
+      service_name: XE

@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=supplychainllm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - supply-chain-network
+
+  backend:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/backend.Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/supplychainllm
+      - ML_SERVER_URL=http://ml:8001
+      - ENVIRONMENT=development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../backend:/app/backend
+      - ../../config:/app/config
+    networks:
+      - supply-chain-network
+
+  ml:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/ml.Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../../ml:/app/ml
+      - model-data:/app/models
+    environment:
+      - MODELS_DIR=/app/models
+      - CONFIG_DIR=/app/config
+    networks:
+      - supply-chain-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/frontend.Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../../frontend:/app/frontend
+      - /app/frontend/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - supply-chain-network
+
+networks:
+  supply-chain-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  model-data:
