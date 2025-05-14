@@ -9,7 +9,7 @@ connections:
       port: 5432
       user: postgres
       password: postgres
-      database: supplychainllm
+      database: AI_SC
     
   # Development database for testing
   - name: dev_db
