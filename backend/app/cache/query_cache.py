@@ -418,3 +418,120 @@ async def shutdown_query_cache() -> None:
     if _query_cache:
         await _query_cache.shutdown()
         _query_cache = None
+        
+async def get_cached_query(
+    query: str,
+    client_id: str,
+    connection_id: Optional[str] = None,
+    context: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Get a cached query result.
+    
+    Args:
+        query: Natural language query
+        client_id: Client ID
+        connection_id: Optional connection ID
+        context: Optional context for the query
+        
+    Returns:
+        Cached query result or None if not found
+    """
+    # Create context with client info
+    query_context = context or {}
+    if "client_id" not in query_context:
+        query_context["client_id"] = client_id
+    if connection_id and "connection_id" not in query_context:
+        query_context["connection_id"] = connection_id
+    
+    # Get the cache instance
+    cache = await get_query_cache()
+    
+    # Generate schema hash (simplified version)
+    schema_hash = None
+    if client_id:
+        schema_hash = hashlib.md5(f"{client_id}:{connection_id or ''}".encode()).hexdigest()
+    
+    # Try to get from cache
+    return await cache.get(query, schema_hash, query_context)
+
+async def cache_query(
+    query: str,
+    result: Dict[str, Any],
+    client_id: str,
+    connection_id: Optional[str] = None,
+    context: Optional[Dict[str, Any]] = None
+) -> None:
+    """
+    Cache a query result.
+    
+    Args:
+        query: Natural language query
+        result: Query result
+        client_id: Client ID
+        connection_id: Optional connection ID
+        context: Optional context for the query
+    """
+    # Create context with client info
+    query_context = context or {}
+    if "client_id" not in query_context:
+        query_context["client_id"] = client_id
+    if connection_id and "connection_id" not in query_context:
+        query_context["connection_id"] = connection_id
+    
+    # Get the cache instance
+    cache = await get_query_cache()
+    
+    # Generate schema hash (simplified version)
+    schema_hash = None
+    if client_id:
+        schema_hash = hashlib.md5(f"{client_id}:{connection_id or ''}".encode()).hexdigest()
+    
+    # Add to cache
+    await cache.set(query, result, schema_hash, query_context)
+
+# Add non-async versions for compatibility
+def get_cached_query_sync(
+    query: str,
+    client_id: str,
+    connection_id: Optional[str] = None,
+    context: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
+    """Synchronous version of get_cached_query for compatibility."""
+    try:
+        # Use default event loop if available, or create a new one
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # We're already in an async context, just run the coroutine directly
+            return loop.run_until_complete(get_cached_query(query, client_id, connection_id, context))
+        else:
+            # Create a new event loop and run the coroutine
+            async_result = loop.run_until_complete(get_cached_query(query, client_id, connection_id, context))
+            return async_result
+    except Exception as e:
+        logger.error(f"Error in get_cached_query_sync: {str(e)}")
+        return None
+
+def cache_query_sync(
+    query: str,
+    result: Dict[str, Any],
+    client_id: str,
+    connection_id: Optional[str] = None,
+    context: Optional[Dict[str, Any]] = None
+) -> None:
+    """Synchronous version of cache_query for compatibility."""
+    try:
+        # Use default event loop if available, or create a new one
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # We're already in an async context, use create_task to avoid blocking
+            asyncio.create_task(cache_query(query, result, client_id, connection_id, context))
+        else:
+            # Create a new event loop and run the coroutine
+            loop.run_until_complete(cache_query(query, result, client_id, connection_id, context))
+    except Exception as e:
+        logger.error(f"Error in cache_query_sync: {str(e)}")
+
+# Create aliases for backward compatibility
+get_cached_query = get_cached_query_sync
+cache_query = cache_query_sync

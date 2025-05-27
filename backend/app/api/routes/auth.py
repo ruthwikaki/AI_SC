@@ -9,6 +9,7 @@ from app.db.interfaces.user_interface import UserInterface
 from app.security.encryption import get_password_hash, verify_password
 from app.security.rbac_manager import get_user_permissions
 from app.utils.logger import get_logger
+from app.db.interfaces.user_interface import User as DBUser
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -102,8 +103,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     
     return user
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    """Dependency to check if the user is active"""
+async def get_current_active_user(current_user: DBUser = Depends(get_current_user)):
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user

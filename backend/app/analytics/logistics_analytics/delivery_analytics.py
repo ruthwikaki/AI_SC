@@ -3343,7 +3343,8 @@ class DeliveryAnalytics:
             # This is a placeholder for filter logic
             last_mile_data["applied_filters"] = filters
         
-        return last_mile_data"""
+        return last_mile_data
+        """
 Delivery Analytics Module
 
 This module provides functionality for analyzing delivery performance,
@@ -3563,7 +3564,7 @@ class DeliveryAnalytics:
                 "exception_metrics": {}
             }
     
-   async def analyze_delivery_costs(
+    async def analyze_delivery_costs(
         self,
         time_period: str = "last_30_days",
         group_by: str = "none",
@@ -6127,3 +6128,117 @@ class DeliveryAnalytics:
             last_mile_data["applied_filters"] = filters
         
         return last_mile_data
+        # Add these wrapper functions at the end of the file
+
+async def analyze_delivery_performance(
+    time_period: str = "last_30_days",
+    group_by: str = "none",
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    filters: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Analyze delivery performance metrics.
+    
+    Args:
+        time_period: Time period for analysis
+        group_by: Group by dimension (none, carrier, region, customer, product)
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        filters: Optional filters to apply
+        
+    Returns:
+        Dictionary with delivery performance analysis
+    """
+    # Create a delivery analytics instance
+    analytics = DeliveryAnalytics()
+    
+    # Call the instance method
+    return await analytics.analyze_delivery_performance(
+        time_period=time_period,
+        group_by=group_by,
+        client_id=client_id,
+        connection_id=connection_id,
+        filters=filters
+    )
+
+async def analyze_delivery_exceptions(
+    time_period: str = "last_30_days",
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    filters: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Analyze delivery exceptions and issues.
+    
+    Args:
+        time_period: Time period for analysis
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        filters: Optional filters to apply
+        
+    Returns:
+        Dictionary with delivery exceptions analysis
+    """
+    analytics = DeliveryAnalytics()
+    return await analytics.analyze_delivery_exceptions(
+        time_period=time_period,
+        client_id=client_id,
+        connection_id=connection_id,
+        filters=filters
+    )
+
+async def analyze_delivery_costs(
+    time_period: str = "last_30_days",
+    group_by: str = "none",
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    filters: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Analyze delivery costs.
+    
+    Args:
+        time_period: Time period for analysis
+        group_by: Group by dimension (none, carrier, region, customer, product)
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        filters: Optional filters to apply
+        
+    Returns:
+        Dictionary with delivery cost analysis
+    """
+    analytics = DeliveryAnalytics()
+    return await analytics.analyze_delivery_costs(
+        time_period=time_period,
+        group_by=group_by,
+        client_id=client_id,
+        connection_id=connection_id,
+        filters=filters
+    )
+
+async def analyze_last_mile_performance(
+    time_period: str = "last_30_days",
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    filters: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Analyze last mile delivery performance.
+    
+    Args:
+        time_period: Time period for analysis
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        filters: Optional filters to apply
+        
+    Returns:
+        Dictionary with last mile performance analysis
+    """
+    analytics = DeliveryAnalytics()
+    return await analytics.analyze_last_mile_performance(
+        time_period=time_period,
+        client_id=client_id,
+        connection_id=connection_id,
+        filters=filters
+    )

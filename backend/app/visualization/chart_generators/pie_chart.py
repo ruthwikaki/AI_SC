@@ -574,3 +574,146 @@ class PieChartGenerator:
 
 # Import matplotlib patches for custom wedges
 import matplotlib.patches as matplotlib_patches
+
+def generate_pie_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    category_column: str,
+    value_column: str,
+    title: str = "Pie Chart",
+    colors: Optional[List[str]] = None,
+    explode: Optional[List[float]] = None,
+    show_labels: bool = True,
+    show_percentage: bool = True,
+    max_categories: int = 8,
+    sort_by: str = "value",  # "value" or "name"
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Generate a pie chart visualization.
+    
+    Args:
+        data: DataFrame or list of dictionaries with data
+        category_column: Column name for categories
+        value_column: Column name for values
+        title: Chart title
+        colors: List of colors for wedges
+        explode: List of values to "explode" wedges (pull them out from center)
+        show_labels: Whether to show category labels
+        show_percentage: Whether to show percentages
+        max_categories: Maximum number of categories to show (others grouped as "Other")
+        sort_by: Sort by "value" (descending) or "name" (alphabetical)
+        
+    Returns:
+        Dictionary with chart data and image
+    """
+    # Convert to DataFrame if list of dictionaries
+    if isinstance(data, list):
+        df = pd.DataFrame(data)
+    else:
+        df = data.copy()
+    
+    # Ensure necessary columns exist
+    if category_column not in df.columns:
+        raise ValueError(f"Category column '{category_column}' not found in data")
+    if value_column not in df.columns:
+        raise ValueError(f"Value column '{value_column}' not found in data")
+    
+    # Remove rows with missing values
+    df = df.dropna(subset=[category_column, value_column])
+    
+    # Group by category and sum values
+    pie_data = df.groupby(category_column)[value_column].sum().reset_index()
+    
+    # Sort the data
+    if sort_by.lower() == "value":
+        pie_data = pie_data.sort_values(value_column, ascending=False)
+    elif sort_by.lower() == "name":
+        pie_data = pie_data.sort_values(category_column)
+    
+    # Handle too many categories by grouping small ones as "Other"
+    if len(pie_data) > max_categories:
+        # Keep top N-1 categories and group the rest as "Other"
+        top_categories = pie_data.head(max_categories - 1)
+        other_sum = pie_data.iloc[max_categories - 1:][value_column].sum()
+        other_row = pd.DataFrame({category_column: ["Other"], value_column: [other_sum]})
+        pie_data = pd.concat([top_categories, other_row], ignore_index=True)
+    
+    # Set up the figure
+    plt.figure(figsize=(10, 8))
+    
+    # Set up labels
+    labels = pie_data[category_column].tolist()
+    values = pie_data[value_column].tolist()
+    
+    # Calculate percentages
+    total = sum(values)
+    percentages = [(val / total) * 100 for val in values]
+    
+    # Generate labels based on preferences
+    if show_labels and show_percentage:
+        pie_labels = [f"{label} ({perc:.1f}%)" for label, perc in zip(labels, percentages)]
+    elif show_labels:
+        pie_labels = labels
+    elif show_percentage:
+        pie_labels = [f"{perc:.1f}%" for perc in percentages]
+    else:
+        pie_labels = None
+    
+    # Set explode if not provided
+    if explode is None:
+        explode = [0] * len(labels)
+    
+    # Create the pie chart
+    wedges, texts, autotexts = plt.pie(
+        values,
+        labels=pie_labels,
+        autopct='%1.1f%%' if show_percentage else None,
+        startangle=90,
+        shadow=kwargs.get('shadow', False),
+        explode=explode[:len(values)],
+        colors=colors,
+        textprops={'fontsize': 10}
+    )
+    
+    # Hide percentage texts if we already included them in labels
+    if show_labels and show_percentage:
+        for autotext in autotexts:
+            autotext.set_visible(False)
+    
+    # Add title
+    plt.title(title, fontsize=14, pad=20)
+    
+    # Equal aspect ratio ensures the pie chart is circular
+    plt.axis('equal')
+    
+    # Add legend if we don't have labels directly on the chart
+    if not show_labels:
+        plt.legend(
+            wedges, 
+            labels,
+            title="Categories",
+            loc="center left",
+            bbox_to_anchor=(1, 0, 0.5, 1)
+        )
+    
+    # Save figure to a bytes buffer
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', bbox_inches='tight', dpi=100)
+    buffer.seek(0)
+    
+    # Convert to base64
+    image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    plt.close()
+    
+    # Prepare result
+    result = {
+        "type": "pie_chart",
+        "title": title,
+        "data": pie_data.to_dict(orient="records"),
+        "categories": labels,
+        "values": values,
+        "percentages": percentages,
+        "image": f"data:image/png;base64,{image_base64}"
+    }
+    
+    return result

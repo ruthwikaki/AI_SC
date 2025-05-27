@@ -991,3 +991,105 @@ class NetworkGraphGenerator:
         except Exception as e:
             logger.error(f"Error generating bottleneck analysis: {str(e)}")
             raise
+
+            # Standalone functions for API compatibility
+def generate_network_graph(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    source_column: str,
+    target_column: str,
+    title: str = "Network Graph",
+    node_size_column: Optional[str] = None,
+    edge_weight_column: Optional[str] = None,
+    node_color_column: Optional[str] = None,
+    node_label_column: Optional[str] = None,
+    layout: str = "spring",
+    figsize: Optional[Tuple[int, int]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Generate a network graph.
+    
+    Args:
+        data: DataFrame or list of dicts containing the data
+        source_column: Column name for source nodes
+        target_column: Column name for target nodes
+        title: Chart title
+        node_size_column: Column name for node sizes
+        edge_weight_column: Column name for edge weights
+        node_color_column: Column name for node colors
+        node_label_column: Column name for node labels
+        layout: Layout algorithm ('spring', 'circular', 'random', 'shell', 'kamada_kawai')
+        figsize: Figure size as (width, height) tuple
+        **kwargs: Additional keyword arguments
+        
+    Returns:
+        Dictionary containing chart data and metadata
+    """
+    # Create a network graph generator instance
+    generator = NetworkGraphGenerator()
+    
+    # Call the generator's method
+    return generator.generate_network_graph(
+        data=data,
+        source_column=source_column,
+        target_column=target_column,
+        title=title,
+        node_size_column=node_size_column,
+        edge_weight_column=edge_weight_column,
+        node_color_column=node_color_column,
+        node_label_column=node_label_column,
+        layout=layout,
+        figsize=figsize,
+        **kwargs
+    )
+
+# Also add standalone functions for other network graph types for consistency
+def generate_supply_chain_network(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    source_column: str,
+    target_column: str,
+    tier_column: Optional[str] = None,
+    material_column: Optional[str] = None,
+    volume_column: Optional[str] = None,
+    risk_column: Optional[str] = None,
+    title: str = "Supply Chain Network",
+    highlight_bottlenecks: bool = False,
+    **kwargs
+) -> Dict[str, Any]:
+    """Generate a supply chain network visualization with tiers."""
+    generator = NetworkGraphGenerator()
+    return generator.generate_supply_chain_network(
+        data=data,
+        source_column=source_column,
+        target_column=target_column,
+        tier_column=tier_column,
+        material_column=material_column,
+        volume_column=volume_column,
+        risk_column=risk_column,
+        title=title,
+        highlight_bottlenecks=highlight_bottlenecks,
+        **kwargs
+    )
+    
+def generate_bottleneck_analysis(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    source_column: str,
+    target_column: str,
+    value_column: Optional[str] = None,
+    tier_column: Optional[str] = None,
+    risk_column: Optional[str] = None,
+    title: str = "Bottleneck Analysis",
+    **kwargs
+) -> Dict[str, Any]:
+    """Generate a bottleneck analysis visualization."""
+    generator = NetworkGraphGenerator()
+    return generator.generate_bottleneck_analysis(
+        data=data,
+        source_column=source_column,
+        target_column=target_column,
+        value_column=value_column,
+        tier_column=tier_column,
+        risk_column=risk_column,
+        title=title,
+        **kwargs
+    )

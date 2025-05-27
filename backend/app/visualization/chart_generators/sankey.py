@@ -519,3 +519,148 @@ class HeatmapGenerator:
         except Exception as e:
             logger.error(f"Error generating matrix heatmap: {str(e)}")
             raise
+
+            # Standalone function for API compatibility
+def generate_sankey_diagram(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    source_column: str,
+    target_column: str,
+    value_column: str,
+    title: str = "Sankey Diagram",
+    color_column: Optional[str] = None,
+    node_color: Optional[str] = "#1f77b4",
+    link_color: Optional[str] = "rgba(31, 119, 180, 0.4)",
+    figsize: Optional[Tuple[int, int]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Generate a Sankey diagram showing flow between nodes.
+    
+    Args:
+        data: DataFrame or list of dicts containing the flow data
+        source_column: Column name for source nodes
+        target_column: Column name for target nodes
+        value_column: Column name for flow values
+        title: Chart title
+        color_column: Optional column name for coloring flows
+        node_color: Default color for nodes
+        link_color: Default color for links
+        figsize: Figure size as (width, height) tuple
+        **kwargs: Additional keyword arguments
+        
+    Returns:
+        Dictionary containing diagram data and image
+    """
+    # If you have a SankeyGenerator class, use it
+    try:
+        # Create a generator instance
+        generator = SankeyGenerator()
+        
+        # Call the generator's method
+        return generator.generate_sankey_diagram(
+            data=data,
+            source_column=source_column,
+            target_column=target_column,
+            value_column=value_column,
+            title=title,
+            color_column=color_column,
+            node_color=node_color,
+            link_color=link_color,
+            figsize=figsize,
+            **kwargs
+        )
+    except NameError:
+        # If SankeyGenerator doesn't exist, create a basic implementation
+        import matplotlib.pyplot as plt
+        from matplotlib.sankey import Sankey
+        import numpy as np
+        
+        # Convert to DataFrame if list
+        if isinstance(data, list):
+            df = pd.DataFrame(data)
+        else:
+            df = data.copy()
+        
+        # Ensure necessary columns exist
+        for col in [source_column, target_column, value_column]:
+            if col not in df.columns:
+                raise ValueError(f"Column '{col}' not found in data")
+        
+        # Get unique nodes
+        sources = df[source_column].unique()
+        targets = df[target_column].unique()
+        all_nodes = np.unique(np.concatenate([sources, targets]))
+        
+        # Map node names to indices
+        node_indices = {node: i for i, node in enumerate(all_nodes)}
+        
+        # Create figure
+        fig, ax = plt.subplots(figsize=figsize or (12, 8))
+        
+        # Initialize Sankey diagram
+        sankey = Sankey(ax=ax, scale=0.01, head_angle=150, offset=0.2)
+        
+        # Process flows
+        for i, (source, target_group) in enumerate(df.groupby(source_column)):
+            # Get source index
+            source_idx = node_indices[source]
+            
+            # Get outflows from this source
+            outflows = []
+            for _, row in target_group.iterrows():
+                target = row[target_column]
+                value = row[value_column]
+                
+                # Only include non-zero flows
+                if value > 0:
+                    outflows.append((node_indices[target], value))
+            
+            # Calculate total outflow
+            total_outflow = sum(flow for _, flow in outflows)
+            
+            # Only add nodes with flows
+            if total_outflow > 0:
+                flows = [-total_outflow]  # Source outflow (negative)
+                for target_idx, flow in outflows:
+                    flows.append(flow)  # Target inflows (positive)
+                
+                # Add flows to Sankey diagram
+                sankey.add(
+                    flows=flows,
+                    labels=[source] + [all_nodes[idx] for idx, _ in outflows],
+                    orientations=[0] + [1] * len(outflows),
+                    pathlengths=[0.25] + [0.25] * len(outflows),
+                    trunklength=10.0,
+                    rotation=0
+                )
+        
+        # Finish the diagram
+        sankey.finish()
+        
+        # Set title
+        plt.title(title, fontsize=14)
+        
+        # Adjust layout
+        plt.tight_layout()
+        
+        # Convert to base64 image
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        # Prepare result
+        result = {
+            "type": "sankey_diagram",
+            "title": title,
+            "source_column": source_column,
+            "target_column": target_column,
+            "value_column": value_column,
+            "data": df.to_dict(orient="records"),
+            "nodes": all_nodes.tolist(),
+            "image": f"data:image/png;base64,{image_base64}",
+            "generated_at": datetime.now().isoformat()
+        }
+        
+        return result

@@ -420,7 +420,7 @@ class UserInterface:
             if locals().get("connector"):
                 await connector.close()
    
-async def get_users(
+    async def get_users(
         self,
         client_id: Optional[str] = None,
         role: Optional[str] = None,

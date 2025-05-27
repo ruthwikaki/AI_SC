@@ -519,3 +519,129 @@ class HeatmapGenerator:
         except Exception as e:
             logger.error(f"Error generating matrix heatmap: {str(e)}")
             raise
+
+            # Standalone function for backwards compatibility
+def generate_heatmap(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_column: str,
+    value_column: str,
+    title: str = "Heatmap",
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+    cmap: str = None,
+    figsize: Optional[Tuple[int, int]] = None,
+    annotate: bool = True,
+    normalize: bool = False,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Generate a standard heatmap.
+    
+    Args:
+        data: DataFrame or list of dicts containing the data
+        x_column: Column name for x-axis categories
+        y_column: Column name for y-axis categories
+        value_column: Column name for cell values
+        title: Chart title
+        x_label: X-axis label (defaults to x_column)
+        y_label: Y-axis label (defaults to y_column)
+        cmap: Colormap name
+        figsize: Figure size as (width, height) tuple
+        annotate: Whether to show values in cells
+        normalize: Whether to normalize values (0-1 scale)
+        **kwargs: Additional keyword arguments
+        
+    Returns:
+        Dictionary containing chart data and metadata
+    """
+    # Create a heatmap generator instance
+    generator = HeatmapGenerator()
+    
+    # Call the generator's method
+    return generator.generate_heatmap(
+        data=data,
+        x_column=x_column,
+        y_column=y_column,
+        value_column=value_column,
+        title=title,
+        x_label=x_label,
+        y_label=y_label,
+        cmap=cmap,
+        figsize=figsize,
+        annotate=annotate,
+        normalize=normalize,
+        **kwargs
+    )
+
+# Also add standalone functions for the other heatmap types for consistency
+def generate_correlation_heatmap(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    columns: Optional[List[str]] = None,
+    title: str = "Correlation Matrix",
+    cmap: str = "coolwarm",
+    figsize: Optional[Tuple[int, int]] = None,
+    annotate: bool = True,
+    mask_upper: bool = False,
+    **kwargs
+) -> Dict[str, Any]:
+    """Generate a correlation matrix heatmap."""
+    generator = HeatmapGenerator()
+    return generator.generate_correlation_heatmap(
+        data=data,
+        columns=columns,
+        title=title,
+        cmap=cmap,
+        figsize=figsize,
+        annotate=annotate,
+        mask_upper=mask_upper,
+        **kwargs
+    )
+
+def generate_calendar_heatmap(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    date_column: str,
+    value_column: str,
+    title: str = "Calendar Heatmap",
+    cmap: str = None,
+    figsize: Optional[Tuple[int, int]] = None,
+    year: Optional[int] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """Generate a calendar heatmap (values by day)."""
+    generator = HeatmapGenerator()
+    return generator.generate_calendar_heatmap(
+        data=data,
+        date_column=date_column,
+        value_column=value_column,
+        title=title,
+        cmap=cmap,
+        figsize=figsize,
+        year=year,
+        **kwargs
+    )
+
+def generate_matrix_heatmap(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    row_column: str,
+    column_column: str,
+    value_column: str,
+    title: str = "Matrix Heatmap",
+    cmap: str = None,
+    figsize: Optional[Tuple[int, int]] = None,
+    annotate: bool = True,
+    **kwargs
+) -> Dict[str, Any]:
+    """Generate a matrix heatmap for comparing categories."""
+    generator = HeatmapGenerator()
+    return generator.generate_matrix_heatmap(
+        data=data,
+        row_column=row_column,
+        column_column=column_column,
+        value_column=value_column,
+        title=title,
+        cmap=cmap,
+        figsize=figsize,
+        annotate=annotate,
+        **kwargs
+    )

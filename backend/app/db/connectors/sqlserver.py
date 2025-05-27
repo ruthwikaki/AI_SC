@@ -281,7 +281,9 @@ class SQLServerConnector:
             ]
             return not any(statement in f" {clean_query} " for statement in data_modification)
         
-        return False _get_connection_string(self) -> str:
+        return False
+        
+    def _get_connection_string(self) -> str:
         """
         Get connection string based on client and connection IDs.
         
@@ -362,7 +364,7 @@ class SQLServerConnector:
     async def _get_connection_pool(self) -> aioodbc.Pool:
         """Get a connection pool for the database."""
         if self.pool is None:
-            connection_string = await self._get_connection_string()
+            connection_string = self._get_connection_string()
             
             # Create a connection pool
             try:
@@ -707,5 +709,3 @@ class SQLServerConnector:
         except Exception as e:
             logger.error(f"Error getting SQL Server table schema: {str(e)}")
             raise
-    
-    async def

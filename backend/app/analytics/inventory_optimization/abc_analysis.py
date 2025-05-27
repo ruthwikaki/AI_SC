@@ -447,3 +447,97 @@ class ABCAnalysis:
                 "class_b_items": [],
                 "class_c_items": []
             }
+
+            # Add these functions at the end of abc_analysis.py
+
+def perform_abc_analysis(
+    items: List[Dict[str, Any]],
+    value_field: str = "annual_usage_value",
+    id_field: str = "product_id",
+    name_field: Optional[str] = "product_name",
+    class_a_threshold: float = 0.8,
+    class_b_threshold: float = 0.95,
+    class_c_threshold: float = 1.0
+) -> Dict[str, Any]:
+    """
+    Perform ABC analysis on a list of items.
+    
+    Args:
+        items: List of item dictionaries
+        value_field: Field name for the value to analyze
+        id_field: Field name for the item ID
+        name_field: Field name for the item name (optional)
+        class_a_threshold: Cumulative percentage threshold for Class A (default: 80%)
+        class_b_threshold: Cumulative percentage threshold for Class B (default: 95%)
+        class_c_threshold: Cumulative percentage threshold for Class C (default: 100%)
+        
+    Returns:
+        Dictionary with analysis results
+    """
+    # Create an ABC Analysis instance with the specified thresholds
+    analyzer = ABCAnalysis(
+        class_a_threshold=class_a_threshold,
+        class_b_threshold=class_b_threshold,
+        class_c_threshold=class_c_threshold
+    )
+    
+    # Perform the analysis using the class method
+    return analyzer.perform_analysis(
+        items=items,
+        value_field=value_field,
+        id_field=id_field,
+        name_field=name_field
+    )
+
+async def perform_multi_criteria_abc_analysis(
+    client_id: str,
+    connection_id: Optional[str] = None,
+    criteria: List[str] = ["annual_usage_value", "pick_frequency"],
+    weights: Optional[List[float]] = None,
+    period: str = "last_12_months"
+) -> Dict[str, Any]:
+    """
+    Perform multi-criteria ABC analysis.
+    
+    Args:
+        client_id: Client ID
+        connection_id: Optional connection ID
+        criteria: List of criteria to analyze
+        weights: Optional weights for each criterion (must sum to 1.0)
+        period: Time period for analysis
+        
+    Returns:
+        Dictionary with analysis results
+    """
+    return await ABCAnalysis.perform_multi_criteria_abc_analysis(
+        client_id=client_id,
+        connection_id=connection_id,
+        criteria=criteria,
+        weights=weights,
+        period=period
+    )
+
+async def get_product_data_for_abc_analysis(
+    client_id: str,
+    connection_id: Optional[str] = None,
+    criteria: str = "annual_usage_value",
+    period: str = "last_12_months"
+) -> List[Dict[str, Any]]:
+    """
+    Get product data for ABC analysis.
+    
+    Args:
+        client_id: Client ID
+        connection_id: Optional connection ID
+        criteria: Analysis criteria (e.g., "annual_usage_value", "pick_frequency")
+        period: Time period for analysis
+        
+    Returns:
+        List of product data dictionaries
+    """
+    return await ABCAnalysis.get_product_data(
+        client_id=client_id,
+        connection_id=connection_id,
+        criteria=criteria,
+        period=period
+    )

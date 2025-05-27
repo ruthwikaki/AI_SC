@@ -320,3 +320,21 @@ async def get_model_status() -> Dict[str, Any]:
         status["metrics"] = model.get_metrics()
     
     return status
+
+async def cleanup_audit_logger() -> None:
+    """
+    Cleanup audit logger data.
+    
+    This is a stub that delegates to the actual cleanup function in the audit_logger module.
+    """
+    try:
+        # Import here to avoid circular imports
+        from app.security.audit_logger import cleanup_audit_logs
+        
+        # Call the actual cleanup function
+        await cleanup_audit_logs()
+    except ImportError:
+        # If the function doesn't exist in the audit logger module
+        logger.warning("cleanup_audit_logger called but audit_logger module doesn't have cleanup_audit_logs function")
+    except Exception as e:
+        logger.error(f"Error in cleanup_audit_logger: {str(e)}")

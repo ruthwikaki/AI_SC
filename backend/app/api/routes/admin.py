@@ -4,7 +4,11 @@ from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 import uuid
 
-from app.db.interfaces.user_interface import User
+# Import the Pydantic schemas
+from app.schemas.users import User, UserCreate, UserUpdate
+# Import the database model
+from app.db.interfaces.user_interface import User as DBUser
+
 from app.security.rbac_manager import check_permission, get_role_permissions, update_role_permissions
 from app.security.audit_logger import get_audit_logs
 from app.llm.controller.active_model_manager import get_active_model, set_active_model, get_available_models
@@ -26,20 +30,6 @@ router = APIRouter(
 )
 
 # Models
-class UserCreate(BaseModel):
-    username: str
-    email: str
-    password: str
-    role: str
-    client_id: Optional[str] = None
-    is_active: bool = True
-
-class UserUpdate(BaseModel):
-    email: Optional[str] = None
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
-    client_id: Optional[str] = None
-
 class Client(BaseModel):
     id: str
     name: str
@@ -128,7 +118,7 @@ async def get_users(
     client_id: Optional[str] = None,
     role: Optional[str] = None,
     is_active: Optional[bool] = None,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get all users with optional filtering"""
     # Check user has permission
@@ -143,11 +133,14 @@ async def get_users(
         # Get users from database
         from app.db.interfaces.user_interface import UserInterface
         user_interface = UserInterface()
-        users = await user_interface.get_users(
+        db_users = await user_interface.get_users(
             client_id=client_id,
             role=role,
             is_active=is_active
         )
+        
+        # Convert DB models to Pydantic models
+        users = [User.from_db_model(user) for user in db_users]
         
         logger.info(f"Retrieved users, count: {len(users)}")
         return users
@@ -162,7 +155,7 @@ async def get_users(
 @router.post("/users", response_model=User)
 async def create_user(
     user_create: UserCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Create a new user"""
     # Check user has permission
@@ -226,7 +219,8 @@ async def create_user(
         )
         
         logger.info(f"Created user: {user_create.username}")
-        return new_user
+        # Convert to Pydantic model
+        return User.from_db_model(new_user)
         
     except HTTPException:
         raise
@@ -240,7 +234,7 @@ async def create_user(
 @router.get("/users/{user_id}", response_model=User)
 async def get_user(
     user_id: str,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get a specific user by ID"""
     # Check user has permission
@@ -266,7 +260,8 @@ async def get_user(
             )
         
         logger.info(f"Retrieved user: {user.username}")
-        return user
+        # Convert to Pydantic model
+        return User.from_db_model(user)
         
     except HTTPException:
         raise
@@ -281,7 +276,7 @@ async def get_user(
 async def update_user(
     user_id: str,
     user_update: UserUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Update a user"""
     # Check user has permission
@@ -332,7 +327,8 @@ async def update_user(
         )
         
         logger.info(f"Updated user: {user.username}")
-        return updated_user
+        # Convert to Pydantic model
+        return User.from_db_model(updated_user)
         
     except HTTPException:
         raise
@@ -346,7 +342,7 @@ async def update_user(
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: str,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Delete a user"""
     # Check user has permission
@@ -407,7 +403,7 @@ async def delete_user(
 @router.get("/clients", response_model=List[Client])
 async def get_clients(
     status: Optional[str] = None,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get all clients with optional filtering"""
     # Check user has permission
@@ -471,7 +467,7 @@ async def get_clients(
 @router.post("/clients", response_model=Client)
 async def create_client(
     client_create: ClientCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Create a new client"""
     # Check user has permission
@@ -528,7 +524,7 @@ async def create_client(
 @router.get("/clients/{client_id}", response_model=Client)
 async def get_client(
     client_id: str,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get a specific client by ID"""
     # Check permissions based on role
@@ -598,7 +594,7 @@ async def get_client(
 async def update_client(
     client_id: str,
     client_update: ClientUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Update a client"""
     # Check permissions based on role
@@ -689,7 +685,7 @@ async def update_client(
 
 @router.get("/roles", response_model=List[Role])
 async def get_roles(
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get all roles"""
     # Check user has permission
@@ -747,7 +743,7 @@ async def get_roles(
 @router.post("/roles", response_model=Role)
 async def create_role(
     role_create: RoleCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Create a new role"""
     # Check user has permission
@@ -796,7 +792,7 @@ async def create_role(
 @router.get("/roles/{role_id}", response_model=Role)
 async def get_role(
     role_id: str,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get a specific role by ID"""
     # Check user has permission
@@ -847,7 +843,7 @@ async def get_role(
 async def update_role(
     role_id: str,
     role_update: RoleUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Update a role"""
     # Check user has permission
@@ -926,7 +922,7 @@ async def update_role(
 @router.delete("/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_role(
     role_id: str,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Delete a role"""
     # Check user has permission
@@ -1006,7 +1002,7 @@ async def get_audit_logs(
     resource: Optional[str] = None,
     client_id: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get audit logs with filtering"""
     # Check permissions based on role
@@ -1047,7 +1043,7 @@ async def get_audit_logs(
 
 @router.get("/models", response_model=Dict[str, Any])
 async def get_models(
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get information about available LLM models"""
     # Check user has permission
@@ -1078,7 +1074,7 @@ async def get_models(
 @router.post("/models/active", response_model=Dict[str, str])
 async def set_active_model_endpoint(
     model_name: str,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Set the active LLM model"""
     # Check user has permission
@@ -1136,7 +1132,7 @@ async def set_active_model_endpoint(
 async def get_database_sync_status(
     client_id: Optional[str] = None,
     connection_id: Optional[str] = None,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get database synchronization status"""
     # Check permissions based on role
@@ -1169,7 +1165,7 @@ async def trigger_database_sync(
     client_id: str,
     connection_id: str,
     force_full_sync: bool = False,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Trigger database synchronization"""
     # Check permissions based on role
@@ -1221,7 +1217,7 @@ async def trigger_database_sync(
 @router.get("/domain-mappings", response_model=List[DomainMapping])
 async def get_domain_mappings_endpoint(
     client_id: Optional[str] = None,
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Get domain concept mappings for client schema"""
     # Check permissions based on role
@@ -1256,7 +1252,7 @@ async def get_domain_mappings_endpoint(
 @router.put("/domain-mappings", response_model=Dict[str, Any])
 async def update_domain_mapping(
     mappings: List[DomainMapping],
-    current_user: User = Depends(get_current_active_user),
+    current_user: DBUser = Depends(get_current_active_user),
 ):
     """Update domain concept mappings"""
     # Check permissions based on role

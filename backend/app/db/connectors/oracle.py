@@ -710,4 +710,4 @@ class OracleConnector:
             ]
             return not any(statement in f" {clean_query} " for statement in data_modification)
         
-        return False int(
+        return False

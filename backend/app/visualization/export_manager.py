@@ -947,3 +947,80 @@ class ExportManager:
             return obj.tolist()
         else:
             return str(obj)
+
+            # Add these standalone functions at the end of export_manager.py
+
+def export_chart(
+    chart_data: Dict[str, Any],
+    format: str = "png",
+    include_data: bool = False
+) -> Dict[str, Any]:
+    """
+    Export a chart in the specified format.
+    
+    Args:
+        chart_data: Chart data including image and metadata
+        format: Export format ('png', 'jpg', 'svg', 'pdf', etc.)
+        include_data: Whether to include underlying data
+        
+    Returns:
+        Dictionary with export data
+    """
+    # Create an export manager instance
+    manager = ExportManager()
+    
+    # Call the instance method
+    return manager.export_chart(chart_data, format, include_data)
+
+def export_data(
+    data: Union[pd.DataFrame, List[Dict[str, Any]], Dict[str, Any]],
+    format: str = "csv",
+    filename: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Export data in the specified format.
+    
+    Args:
+        data: Data to export
+        format: Export format ('csv', 'xlsx', 'json')
+        filename: Optional filename without extension
+        
+    Returns:
+        Dictionary with export data
+    """
+    manager = ExportManager()
+    return manager.export_data(data, format, filename)
+
+def export_multiple(
+    items: List[Dict[str, Any]], 
+    format: str = "zip"
+) -> Dict[str, Any]:
+    """
+    Export multiple items (charts, data) into a single archive.
+    
+    Args:
+        items: List of items to export
+        format: Export format ('zip')
+        
+    Returns:
+        Dictionary with export data
+    """
+    manager = ExportManager()
+    return manager.export_multiple(items, format)
+
+def export_report(
+    report_data: Dict[str, Any], 
+    format: str = "pdf"
+) -> Dict[str, Any]:
+    """
+    Export a report with multiple sections, charts, and tables.
+    
+    Args:
+        report_data: Report content and structure
+        format: Export format ('pdf', 'html')
+        
+    Returns:
+        Dictionary with export data
+    """
+    manager = ExportManager()
+    return manager.export_report(report_data, format)

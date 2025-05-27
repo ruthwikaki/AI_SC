@@ -1389,3 +1389,72 @@ class ForecastEngine:
             "product_id": "MOCK_PRODUCT",
             "is_mock_data": True
         }
+        # Add these functions at the end of forecast_engine.py
+
+async def generate_forecast(
+    historical_data: Union[List[float], List[Dict[str, Any]]],
+    periods: int = 12,
+    frequency: str = "M",
+    confidence_level: float = 0.95,
+    include_history: bool = True,
+    additional_factors: Optional[Dict[str, Any]] = None,
+    method_params: Optional[Dict[str, Any]] = None,
+    method: str = "automatic"
+) -> Dict[str, Any]:
+    """
+    Generate a forecast based on historical data.
+    
+    Args:
+        historical_data: Historical data (list of values or dictionaries)
+        periods: Number of periods to forecast
+        frequency: Data frequency (D=daily, W=weekly, M=monthly, Q=quarterly, Y=yearly)
+        confidence_level: Confidence level for prediction intervals
+        include_history: Whether to include historical data in the result
+        additional_factors: Optional additional factors for advanced forecasting
+        method_params: Optional parameters for the forecasting method
+        method: Forecasting method to use (default: automatic selection)
+        
+    Returns:
+        Dictionary with forecast results
+    """
+    # Create a forecast engine with the specified method
+    engine = ForecastEngine(method=method)
+    
+    # Call the instance method
+    return await engine.generate_forecast(
+        historical_data=historical_data,
+        periods=periods,
+        frequency=frequency,
+        confidence_level=confidence_level,
+        include_history=include_history,
+        additional_factors=additional_factors,
+        method_params=method_params
+    )
+
+async def get_product_demand_data(
+    product_id: str,
+    client_id: str,
+    connection_id: Optional[str] = None,
+    period: str = "last_12_months",
+    frequency: str = "M"
+) -> Dict[str, Any]:
+    """
+    Get historical demand data for a product.
+    
+    Args:
+        product_id: Product ID
+        client_id: Client ID
+        connection_id: Optional connection ID
+        period: Time period for data
+        frequency: Data frequency
+        
+    Returns:
+        Dictionary with historical demand data
+    """
+    return await ForecastEngine.get_product_demand_data(
+        product_id=product_id,
+        client_id=client_id,
+        connection_id=connection_id,
+        period=period,
+        frequency=frequency
+    )

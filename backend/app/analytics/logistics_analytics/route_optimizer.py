@@ -1427,3 +1427,71 @@ class RouteOptimizer:
             destinations.append(dest)
         
         return origin, destinations
+        # Add these functions at the end of route_optimizer.py
+
+async def optimize_routes(
+    origin: Dict[str, Any],
+    destinations: List[Dict[str, Any]],
+    constraints: Optional[Dict[str, Any]] = None,
+    optimization_objective: str = "distance",
+    return_to_origin: bool = True,
+    max_destinations: int = 30,
+    distance_method: str = "haversine",
+    algorithm: str = "nearest_neighbor"
+) -> Dict[str, Any]:
+    """
+    Optimize delivery routes.
+    
+    Args:
+        origin: Origin point (dict with lat, lng)
+        destinations: List of destination points (each with lat, lng)
+        constraints: Optional constraints (time windows, vehicle capacity, etc.)
+        optimization_objective: Objective function ("distance", "time", "cost")
+        return_to_origin: Whether to return to the origin point
+        max_destinations: Maximum number of destinations to consider
+        distance_method: Method for calculating distances
+        algorithm: Optimization algorithm to use
+        
+    Returns:
+        Dictionary with optimized route
+    """
+    # Create a route optimizer with the specified methods
+    optimizer = RouteOptimizer(
+        distance_method=distance_method,
+        algorithm=algorithm
+    )
+    
+    # Call the instance method
+    return await optimizer.optimize_route(
+        origin=origin,
+        destinations=destinations,
+        constraints=constraints,
+        optimization_objective=optimization_objective,
+        return_to_origin=return_to_origin,
+        max_destinations=max_destinations
+    )
+
+async def get_location_data(
+    client_id: str,
+    location_ids: List[str] = None,
+    location_type: str = "delivery",
+    connection_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Get location data for route optimization.
+    
+    Args:
+        client_id: Client ID
+        location_ids: Optional list of location IDs
+        location_type: Type of locations to retrieve
+        connection_id: Optional connection ID
+        
+    Returns:
+        Dictionary with location data
+    """
+    return await RouteOptimizer.get_location_data(
+        client_id=client_id,
+        location_ids=location_ids,
+        location_type=location_type,
+        connection_id=connection_id
+    )

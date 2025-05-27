@@ -662,3 +662,121 @@ class LineChartGenerator:
         except Exception as e:
             logger.error(f"Error generating trend line chart: {str(e)}")
             raise
+            # Standalone function for backward compatibility
+def generate_line_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_column: str,
+    title: str = "Line Chart",
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+    color: Optional[str] = None,
+    marker: Optional[str] = 'o',
+    figsize: Optional[Tuple[int, int]] = None,
+    time_series: bool = False,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Generate a simple line chart.
+    
+    This is a standalone function that delegates to LineChartGenerator.
+    
+    Args:
+        data: DataFrame or list of dicts containing the data
+        x_column: Column name for x-axis (typically time periods)
+        y_column: Column name for y-axis values
+        title: Chart title
+        x_label: X-axis label (defaults to x_column)
+        y_label: Y-axis label (defaults to y_column)
+        color: Line color
+        marker: Marker style (None for no markers)
+        figsize: Figure size as (width, height) tuple
+        time_series: Whether to treat x as datetime
+        **kwargs: Additional keyword arguments
+        
+    Returns:
+        Dictionary containing chart data and metadata
+    """
+    generator = LineChartGenerator()
+    return generator.generate_line_chart(
+        data=data,
+        x_column=x_column,
+        y_column=y_column,
+        title=title,
+        x_label=x_label,
+        y_label=y_label,
+        color=color,
+        marker=marker,
+        figsize=figsize,
+        time_series=time_series,
+        **kwargs
+    )
+
+# Add similar standalone functions for other chart types
+def generate_multi_line_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_columns: List[str],
+    title: str = "Multi-Line Chart",
+    **kwargs
+) -> Dict[str, Any]:
+    """Standalone function for generating multi-line charts."""
+    generator = LineChartGenerator()
+    return generator.generate_multi_line_chart(
+        data=data,
+        x_column=x_column,
+        y_columns=y_columns,
+        title=title,
+        **kwargs
+    )
+
+def generate_area_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_column: str,
+    title: str = "Area Chart",
+    **kwargs
+) -> Dict[str, Any]:
+    """Standalone function for generating area charts."""
+    generator = LineChartGenerator()
+    return generator.generate_area_chart(
+        data=data,
+        x_column=x_column,
+        y_column=y_column,
+        title=title,
+        **kwargs
+    )
+
+def generate_stacked_area_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_columns: List[str],
+    title: str = "Stacked Area Chart",
+    **kwargs
+) -> Dict[str, Any]:
+    """Standalone function for generating stacked area charts."""
+    generator = LineChartGenerator()
+    return generator.generate_stacked_area_chart(
+        data=data,
+        x_column=x_column,
+        y_columns=y_columns,
+        title=title,
+        **kwargs
+    )
+
+def generate_trend_line_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_column: str,
+    title: str = "Trend Line Chart",
+    **kwargs
+) -> Dict[str, Any]:
+    """Standalone function for generating trend line charts."""
+    generator = LineChartGenerator()
+    return generator.generate_trend_line_chart(
+        data=data,
+        x_column=x_column,
+        y_column=y_column,
+        title=title,
+        **kwargs
+    )

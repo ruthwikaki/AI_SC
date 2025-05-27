@@ -581,5 +581,121 @@ class BarChartGenerator:
             logger.error(f"Error generating Pareto chart: {str(e)}")
             raise
 
+# Standalone function for backward compatibility
+def generate_bar_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_column: str,
+    title: str = "Bar Chart",
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+    orientation: str = "vertical",
+    color: Optional[str] = None,
+    figsize: Optional[Tuple[int, int]] = None,
+    sort_values: bool = False,
+    limit: Optional[int] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Generate a simple bar chart.
+    
+    This is a standalone function that delegates to BarChartGenerator.
+    
+    Args:
+        data: DataFrame or list of dicts containing the data
+        x_column: Column name for x-axis categories
+        y_column: Column name for y-axis values
+        title: Chart title
+        x_label: X-axis label (defaults to x_column)
+        y_label: Y-axis label (defaults to y_column)
+        orientation: "vertical" or "horizontal"
+        color: Bar color
+        figsize: Figure size as (width, height) tuple
+        sort_values: Whether to sort by values
+        limit: Limit the number of bars shown
+        **kwargs: Additional keyword arguments
+        
+    Returns:
+        Dictionary containing chart data and metadata
+    """
+    generator = BarChartGenerator()
+    return generator.generate_bar_chart(
+        data=data,
+        x_column=x_column,
+        y_column=y_column,
+        title=title,
+        x_label=x_label,
+        y_label=y_label,
+        orientation=orientation,
+        color=color,
+        figsize=figsize,
+        sort_values=sort_values,
+        limit=limit,
+        **kwargs
+    )
+
+# Add similar standalone functions for other chart types
+def generate_grouped_bar_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_columns: List[str],
+    title: str = "Grouped Bar Chart",
+    **kwargs
+) -> Dict[str, Any]:
+    """Standalone function for generating grouped bar charts."""
+    generator = BarChartGenerator()
+    return generator.generate_grouped_bar_chart(
+        data=data,
+        x_column=x_column,
+        y_columns=y_columns,
+        title=title,
+        **kwargs
+    )
+
+def generate_stacked_bar_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    x_column: str,
+    y_columns: List[str],
+    title: str = "Stacked Bar Chart",
+    **kwargs
+) -> Dict[str, Any]:
+    """Standalone function for generating stacked bar charts."""
+    generator = BarChartGenerator()
+    return generator.generate_stacked_bar_chart(
+        data=data,
+        x_column=x_column,
+        y_columns=y_columns,
+        title=title,
+        **kwargs
+    )
+
+def generate_histogram(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    value_column: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """Standalone function for generating histograms."""
+    generator = BarChartGenerator()
+    return generator.generate_histogram(
+        data=data,
+        value_column=value_column,
+        **kwargs
+    )
+
+def generate_pareto_chart(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    category_column: str,
+    value_column: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """Standalone function for generating pareto charts."""
+    generator = BarChartGenerator()
+    return generator.generate_pareto_chart(
+        data=data,
+        category_column=category_column,
+        value_column=value_column,
+        **kwargs
+    )
+
 # Make sure to import numpy
 import numpy as np

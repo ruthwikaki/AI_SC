@@ -1232,3 +1232,69 @@ class CarrierPerformanceAnalyzer:
                 benchmark_data[metric]["std_dev"] = np.random.uniform(5, 15)
         
         return benchmark_data
+        # Add these functions at the end of carrier_performance.py
+
+async def analyze_carrier_performance(
+    carrier_id: str,
+    time_period: str = "last_6_months",
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    benchmark_comparison: bool = True,
+    metric_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Analyze performance for a specific carrier.
+    
+    Args:
+        carrier_id: Carrier ID
+        time_period: Time period for analysis
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        benchmark_comparison: Whether to include benchmark comparison
+        metric_weights: Optional custom weights for performance metrics
+        
+    Returns:
+        Dictionary with carrier performance analysis
+    """
+    # Create a carrier performance analyzer with the specified weights
+    analyzer = CarrierPerformanceAnalyzer(metric_weights=metric_weights)
+    
+    # Call the instance method
+    return await analyzer.analyze_carrier_performance(
+        carrier_id=carrier_id,
+        time_period=time_period,
+        client_id=client_id,
+        connection_id=connection_id,
+        benchmark_comparison=benchmark_comparison
+    )
+
+async def analyze_all_carriers(
+    time_period: str = "last_6_months",
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    limit: int = 20,
+    metric_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Analyze performance for all carriers.
+    
+    Args:
+        time_period: Time period for analysis
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        limit: Maximum number of carriers to analyze
+        metric_weights: Optional custom weights for performance metrics
+        
+    Returns:
+        Dictionary with analysis for all carriers
+    """
+    # Create a carrier performance analyzer with the specified weights
+    analyzer = CarrierPerformanceAnalyzer(metric_weights=metric_weights)
+    
+    # Call the instance method
+    return await analyzer.analyze_all_carriers(
+        time_period=time_period,
+        client_id=client_id,
+        connection_id=connection_id,
+        limit=limit
+    )

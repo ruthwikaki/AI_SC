@@ -1171,7 +1171,7 @@ class SupplierComplianceChecker:
                 score = np.random.uniform(0, 50)
             
             # Generate expiration date
-expiration = None
+                expiration = None
                 if status_choice == "compliant" or status_choice == "minor_issues":
                     # Generate future expiration date
                     days_to_expiration = np.random.randint(30, 365)
@@ -1527,3 +1527,101 @@ async def example_usage():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(example_usage())
+
+    # Add these wrapper functions at the end of compliance_checker.py
+
+async def check_supplier_compliance(
+    supplier_id: str,
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    include_details: bool = True,
+    include_history: bool = True,
+    category_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Check compliance for a supplier.
+    
+    Args:
+        supplier_id: Supplier ID
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        include_details: Whether to include detailed compliance data
+        include_history: Whether to include compliance history
+        category_weights: Optional custom weights for compliance categories
+        
+    Returns:
+        Dictionary with supplier compliance check
+    """
+    # Create a compliance checker instance
+    checker = SupplierComplianceChecker(category_weights=category_weights)
+    
+    # Call the instance method
+    return await checker.check_supplier_compliance(
+        supplier_id=supplier_id,
+        client_id=client_id,
+        connection_id=connection_id,
+        include_details=include_details,
+        include_history=include_history
+    )
+
+async def generate_compliance_dashboard(
+    client_id: str,
+    connection_id: Optional[str] = None,
+    supplier_ids: Optional[List[str]] = None,
+    compliance_categories: Optional[List[str]] = None,
+    category_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Generate a compliance dashboard for multiple suppliers.
+    
+    Args:
+        client_id: Client ID
+        connection_id: Optional connection ID
+        supplier_ids: Optional list of supplier IDs to include
+        compliance_categories: Optional list of compliance categories to include
+        category_weights: Optional custom weights for compliance categories
+        
+    Returns:
+        Dictionary with compliance dashboard
+    """
+    # Create a compliance checker instance
+    checker = SupplierComplianceChecker(category_weights=category_weights)
+    
+    # Call the instance method
+    return await checker.generate_compliance_dashboard(
+        client_id=client_id,
+        connection_id=connection_id,
+        supplier_ids=supplier_ids,
+        compliance_categories=compliance_categories
+    )
+
+async def check_regulatory_updates(
+    regions: List[str],
+    industries: List[str],
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    category_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Check for regulatory updates that may affect supplier compliance.
+    
+    Args:
+        regions: List of regions to check
+        industries: List of industries to check
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        category_weights: Optional custom weights for compliance categories
+        
+    Returns:
+        Dictionary with regulatory updates
+    """
+    # Create a compliance checker instance
+    checker = SupplierComplianceChecker(category_weights=category_weights)
+    
+    # Call the instance method
+    return await checker.check_regulatory_updates(
+        regions=regions,
+        industries=industries,
+        client_id=client_id,
+        connection_id=connection_id
+    )

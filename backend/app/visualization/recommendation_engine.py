@@ -896,3 +896,36 @@ class ChartRecommendationEngine:
             suggestions["value"] = num_cols[0] if num_cols else None
         
         return suggestions
+        # Add this function at the end of your recommendation_engine.py file
+
+def recommend_chart_type(
+    data: Union[pd.DataFrame, List[Dict[str, Any]]],
+    query: Optional[str] = None,
+    domain: Optional[str] = None,
+    client_id: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Recommends appropriate chart types based on data characteristics and query intent.
+    
+    Args:
+        data: DataFrame or list of dictionaries containing the data
+        query: Original natural language query (optional)
+        domain: Domain context (e.g., 'inventory', 'supplier', etc.)
+        client_id: Client ID for client-specific recommendations
+        **kwargs: Additional parameters
+        
+    Returns:
+        Dictionary with recommended chart types and configurations
+    """
+    # Create recommendation engine instance
+    engine = ChartRecommendationEngine()
+    
+    # Use the engine to get recommendations
+    return engine.recommend_chart_types(
+        data=data,
+        query=query,
+        domain=domain,
+        client_id=client_id,
+        **kwargs
+    )

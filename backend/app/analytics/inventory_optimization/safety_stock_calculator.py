@@ -410,3 +410,92 @@ class SafetyStockCalculator:
         except Exception as e:
             logger.error(f"Error generating recommendations: {str(e)}")
             return ["Error generating safety stock recommendations."]
+
+            # Add this function at the end of safety_stock_calculator.py
+
+def calculate_safety_stock(
+    demand_std_dev: float,
+    lead_time_avg: float,
+    service_level: float = 0.95,
+    lead_time_std_dev: Optional[float] = None,
+    demand_avg: Optional[float] = None,
+    historical_demand: Optional[List[float]] = None,
+    historical_lead_times: Optional[List[float]] = None,
+    method: str = "basic"
+) -> Union[float, Dict[str, Any]]:
+    """
+    Calculate safety stock based on the specified method.
+    
+    Args:
+        demand_std_dev: Standard deviation of demand (per time unit)
+        lead_time_avg: Average lead time (in time units)
+        service_level: Service level as a decimal (e.g., 0.95 for 95%)
+        lead_time_std_dev: Standard deviation of lead time (optional, for advanced method)
+        demand_avg: Average demand (per time unit) (optional, for advanced method)
+        historical_demand: List of historical demand values (optional, for historical method)
+        historical_lead_times: List of historical lead time values (optional, for historical method)
+        method: Calculation method ("basic", "advanced", or "historical")
+        
+    Returns:
+        Safety stock quantity or detailed results dictionary if using historical method
+    """
+    if method == "basic" or (method == "advanced" and (lead_time_std_dev is None or demand_avg is None)):
+        # Use basic method if advanced parameters are missing
+        return SafetyStockCalculator.calculate_basic_safety_stock(
+            demand_std_dev=demand_std_dev,
+            lead_time_avg=lead_time_avg,
+            service_level=service_level
+        )
+    elif method == "advanced":
+        # Use advanced method
+        return SafetyStockCalculator.calculate_advanced_safety_stock(
+            demand_std_dev=demand_std_dev,
+            lead_time_avg=lead_time_avg,
+            lead_time_std_dev=lead_time_std_dev,
+            demand_avg=demand_avg,
+            service_level=service_level
+        )
+    elif method == "historical" and historical_demand and historical_lead_times:
+        # Use historical data method
+        return SafetyStockCalculator.calculate_safety_stock_from_historical_data(
+            historical_demand=historical_demand,
+            historical_lead_times=historical_lead_times,
+            service_level=service_level
+        )
+    else:
+        # Default to basic method
+        logger.warning(f"Invalid method '{method}' or missing parameters, using basic safety stock calculation")
+        return SafetyStockCalculator.calculate_basic_safety_stock(
+            demand_std_dev=demand_std_dev,
+            lead_time_avg=lead_time_avg,
+            service_level=service_level
+        )
+
+# Also add a standalone wrapper for the recommendations function
+async def get_safety_stock_recommendations(
+    product_id: str,
+    service_level: float = 0.95,
+    data_source: Optional[str] = None,
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Get safety stock recommendations for a product.
+    
+    Args:
+        product_id: Product ID
+        service_level: Service level as a decimal (e.g., 0.95 for 95%)
+        data_source: Optional data source name
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        
+    Returns:
+        Dictionary with safety stock recommendations
+    """
+    return await SafetyStockCalculator.get_safety_stock_recommendations(
+        product_id=product_id,
+        service_level=service_level,
+        data_source=data_source,
+        client_id=client_id,
+        connection_id=connection_id
+    )

@@ -267,3 +267,36 @@ class TemplateManager:
         except Exception as e:
             logger.error(f"Error loading templates from {file_path}: {str(e)}")
             return {}
+
+# Standalone functions to match import expectations
+
+def get_template(template_name: str, reload: bool = False) -> Dict[str, Any]:
+    """
+    Get a prompt template by name.
+    
+    This is a standalone function that delegates to TemplateManager.get_template.
+    
+    Args:
+        template_name: Name of the template
+        reload: Whether to force reload from disk
+        
+    Returns:
+        Template data dictionary
+    """
+    return TemplateManager.get_template(template_name, reload)
+
+def render_template(template_name: str, context: Dict[str, Any]) -> str:
+    """
+    Get and render a template with context variables.
+    
+    This is a standalone function that delegates to TemplateManager methods.
+    
+    Args:
+        template_name: Name of the template
+        context: Context variables
+        
+    Returns:
+        Rendered template
+    """
+    template = get_template(template_name)
+    return TemplateManager.render_template(template, context)

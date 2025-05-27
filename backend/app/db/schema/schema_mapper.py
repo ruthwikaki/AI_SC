@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 settings = get_settings()
 
 # Domain concept mapping cache
-_domain_mapping_cache: Dict[str, List[Dict[str, Any]]] = {}
+_domain_mapping_cache: Dict[str, Dict[str, Any]] = {}
 
 # Supply chain domain concepts
 SUPPLY_CHAIN_CONCEPTS = {
@@ -98,3 +98,122 @@ SUPPLY_CHAIN_CONCEPTS = {
         "attributes": ["product", "location", "quantity", "min_days_coverage", "max_days_coverage"]
     }
 }
+
+def get_domain_mappings(client_id: str, connection_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Get domain concept mappings for a specific client and connection.
+    
+    Args:
+        client_id: Client ID
+        connection_id: Optional connection ID
+        
+    Returns:
+        Dictionary of domain mappings
+    """
+    global _domain_mapping_cache
+    
+    # Create cache key
+    cache_key = f"{client_id}:{connection_id or 'default'}"
+    
+    # Check if mappings are in cache
+    if cache_key in _domain_mapping_cache:
+        return _domain_mapping_cache[cache_key]
+    
+    # For now, return the predefined supply chain concepts
+    # In a real implementation, this would fetch client-specific mappings
+    # from a database or configuration store
+    mappings = {
+        "concepts": SUPPLY_CHAIN_CONCEPTS,
+        "table_mappings": {
+            # Example table mappings - these would be customized per client in production
+            "products": {
+                "domain": "product",
+                "column_mappings": {
+                    "id": "product_id",
+                    "name": "product_name",
+                    "sku": "product_sku",
+                    "description": "product_description",
+                    "price": "product_price"
+                }
+            },
+            "inventory": {
+                "domain": "inventory",
+                "column_mappings": {
+                    "id": "inventory_id",
+                    "product_id": "product_id",
+                    "quantity": "inventory_quantity",
+                    "location_id": "warehouse_id"
+                }
+            },
+            "suppliers": {
+                "domain": "supplier",
+                "column_mappings": {
+                    "id": "supplier_id",
+                    "name": "supplier_name",
+                    "contact": "supplier_contact",
+                    "address": "supplier_address",
+                    "rating": "performance_rating"
+                }
+            }
+        }
+    }
+    
+    # Cache the result
+    _domain_mapping_cache[cache_key] = mappings
+    
+    logger.debug(f"Generated domain mappings for {client_id}")
+    return mappings
+
+async def update_domain_mappings(
+    client_id: str,
+    mappings: Dict[str, Any],
+    connection_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Update domain concept mappings for a specific client and connection.
+    
+    Args:
+        client_id: Client ID
+        mappings: Dictionary of domain mappings to update
+        connection_id: Optional connection ID
+        
+    Returns:
+        Updated dictionary of domain mappings
+    """
+    global _domain_mapping_cache
+    
+    # Create cache key
+    cache_key = f"{client_id}:{connection_id or 'default'}"
+    
+    try:
+        # In a production environment, this would persist the mappings to a database
+        # For now, just update the in-memory cache
+        
+        # Validate the mappings structure
+        if not isinstance(mappings, dict):
+            raise ValueError("Mappings must be a dictionary")
+        
+        # Update the cache with the new mappings
+        if cache_key in _domain_mapping_cache:
+            # Update existing mappings
+            existing_mappings = _domain_mapping_cache[cache_key]
+            
+            # Update concepts
+            if "concepts" in mappings:
+                existing_mappings["concepts"].update(mappings["concepts"])
+            
+            # Update table mappings
+            if "table_mappings" in mappings:
+                if "table_mappings" not in existing_mappings:
+                    existing_mappings["table_mappings"] = {}
+                existing_mappings["table_mappings"].update(mappings["table_mappings"])
+        else:
+            # Create new mappings entry
+            _domain_mapping_cache[cache_key] = mappings
+        
+        logger.info(f"Updated domain mappings for {client_id}")
+        return _domain_mapping_cache[cache_key]
+        
+    except Exception as e:
+        logger.error(f"Error updating domain mappings for {client_id}: {str(e)}")
+        raise

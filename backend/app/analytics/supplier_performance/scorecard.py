@@ -246,6 +246,60 @@ class SupplierScorecard:
                 # Create interface
                 supplier_interface = SupplierInterface(client_id=client_id, connection_id=connection_id)
                 
+                # Get supplier data
+                supplier_data = await supplier_interface.get_supplier_data(
+                    supplier_id=supplier_id,
+                    time_period=time_period
+                )
+                
+                return supplier_data
+            
+            # Generate mock data for demonstration
+            supplier_data = self._generate_mock_supplier_data(
+                supplier_id=supplier_id,
+                time_period=time_period
+            )
+            
+            return supplier_data
+            
+        except Exception as e:
+            logger.error(f"Error getting supplier data: {str(e)}")
+            
+            # Generate mock data on error
+            return self._generate_mock_supplier_data(
+                supplier_id=supplier_id,
+                time_period=time_period,
+                error=True
+            )
+    
+    async def _get_category_benchmarks(
+        self,
+        category: str,
+        time_period: str = "last_quarter",
+        client_id: Optional[str] = None,
+        connection_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get benchmark data for a supplier category.
+        
+        Args:
+            category: Supplier category
+            time_period: Time period for analysis
+            client_id: Optional client ID
+            connection_id: Optional connection ID
+            
+        Returns:
+            Dictionary with category benchmark data
+        """
+        try:
+            # Get data from database if client_id is provided
+            if client_id:
+                # Import supplier interface
+                from app.db.interfaces.supplier_interface import SupplierInterface
+                
+                # Create interface
+                supplier_interface = SupplierInterface(client_id=client_id, connection_id=connection_id)
+                
                 # Get category benchmark data
                 benchmark_data = await supplier_interface.get_category_benchmarks(
                     category=category,
@@ -847,8 +901,7 @@ class SupplierScorecard:
                     benchmark_score = benchmark_metrics[metric_name]
                     difference = avg_score - benchmark_score
                     
-                    if abs(difference) >=
-                    5:
+                    if abs(difference) >= 5:
                         if difference > 0:
                             insights.append({
                                 "type": "benchmark",
@@ -1148,57 +1201,75 @@ class SupplierScorecard:
         }
         
         return benchmark_data
-                
-                # Get supplier data
-                supplier_data = await supplier_interface.get_supplier_data(
-                    supplier_id=supplier_id,
-                    time_period=time_period
-                )
-                
-                return supplier_data
-            
-            # Generate mock data for demonstration
-            supplier_data = self._generate_mock_supplier_data(
-                supplier_id=supplier_id,
-                time_period=time_period
-            )
-            
-            return supplier_data
-            
-        except Exception as e:
-            logger.error(f"Error getting supplier data: {str(e)}")
-            
-            # Generate mock data on error
-            return self._generate_mock_supplier_data(
-                supplier_id=supplier_id,
-                time_period=time_period,
-                error=True
-            )
+        # Add these standalone wrapper functions at the end of scorecard.py
+
+async def generate_supplier_scorecard(
+    supplier_id: str,
+    time_period: str = "last_quarter",
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    include_trends: bool = True,
+    include_recommendations: bool = True,
+    metric_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Generate a scorecard for a supplier.
     
-    async def _get_category_benchmarks(
-        self,
-        category: str,
-        time_period: str = "last_quarter",
-        client_id: Optional[str] = None,
-        connection_id: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Get benchmark data for a supplier category.
+    Args:
+        supplier_id: Supplier ID
+        time_period: Time period for analysis
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        include_trends: Whether to include performance trends
+        include_recommendations: Whether to include recommendations
+        metric_weights: Optional custom weights for performance metrics
         
-        Args:
-            category: Supplier category
-            time_period: Time period for analysis
-            client_id: Optional client ID
-            connection_id: Optional connection ID
-            
-        Returns:
-            Dictionary with category benchmark data
-        """
-        try:
-            # Get data from database if client_id is provided
-            if client_id:
-                # Import supplier interface
-                from app.db.interfaces.supplier_interface import SupplierInterface
-                
-                # Create interface
-                supplier_interface = SupplierInterface(client_id=client_id, connection_id=connection_id)
+    Returns:
+        Dictionary with supplier scorecard
+    """
+    # Create a supplier scorecard instance with the specified weights
+    scorecard = SupplierScorecard(metric_weights=metric_weights)
+    
+    # Call the instance method
+    return await scorecard.generate_scorecard(
+        supplier_id=supplier_id,
+        time_period=time_period,
+        client_id=client_id,
+        connection_id=connection_id,
+        include_trends=include_trends,
+        include_recommendations=include_recommendations
+    )
+
+async def generate_comparative_analysis(
+    supplier_ids: List[str],
+    time_period: str = "last_quarter",
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    category: Optional[str] = None,
+    metric_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Generate a comparative analysis of multiple suppliers.
+    
+    Args:
+        supplier_ids: List of supplier IDs
+        time_period: Time period for analysis
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        category: Optional supplier category for benchmarking
+        metric_weights: Optional custom weights for performance metrics
+        
+    Returns:
+        Dictionary with comparative analysis
+    """
+    # Create a supplier scorecard instance with the specified weights
+    scorecard = SupplierScorecard(metric_weights=metric_weights)
+    
+    # Call the instance method
+    return await scorecard.generate_comparative_analysis(
+        supplier_ids=supplier_ids,
+        time_period=time_period,
+        client_id=client_id,
+        connection_id=connection_id,
+        category=category
+    )

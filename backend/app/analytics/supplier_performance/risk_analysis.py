@@ -1549,3 +1549,101 @@ class SupplierRiskAnalysis:
             history["overall_risk"].append(round(period_risk, 1))
         
         return history
+
+        # Add these standalone wrapper functions at the end of risk_analysis.py
+
+async def analyze_supplier_risk(
+    supplier_id: str,
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    include_historical: bool = True,
+    include_recommendations: bool = True,
+    risk_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Analyze risk factors for a supplier.
+    
+    Args:
+        supplier_id: Supplier ID
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        include_historical: Whether to include historical risk data
+        include_recommendations: Whether to include mitigation recommendations
+        risk_weights: Optional custom weights for risk categories
+        
+    Returns:
+        Dictionary with supplier risk analysis
+    """
+    # Create a risk analysis instance with the specified weights
+    risk_analyzer = SupplierRiskAnalysis(risk_weights=risk_weights)
+    
+    # Call the instance method
+    return await risk_analyzer.analyze_supplier_risk(
+        supplier_id=supplier_id,
+        client_id=client_id,
+        connection_id=connection_id,
+        include_historical=include_historical,
+        include_recommendations=include_recommendations
+    )
+
+async def generate_risk_heatmap(
+    supplier_ids: List[str],
+    risk_categories: Optional[List[str]] = None,
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    risk_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Generate a risk heatmap for multiple suppliers.
+    
+    Args:
+        supplier_ids: List of supplier IDs
+        risk_categories: Optional list of risk categories to include
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        risk_weights: Optional custom weights for risk categories
+        
+    Returns:
+        Dictionary with risk heatmap data
+    """
+    # Create a risk analysis instance with the specified weights
+    risk_analyzer = SupplierRiskAnalysis(risk_weights=risk_weights)
+    
+    # Call the instance method
+    return await risk_analyzer.generate_risk_heatmap(
+        supplier_ids=supplier_ids,
+        risk_categories=risk_categories,
+        client_id=client_id,
+        connection_id=connection_id
+    )
+
+async def simulate_disruption_impact(
+    disruption_scenario: str,
+    supplier_ids: Optional[List[str]] = None,
+    client_id: Optional[str] = None,
+    connection_id: Optional[str] = None,
+    risk_weights: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """
+    Simulate the impact of a potential disruption.
+    
+    Args:
+        disruption_scenario: Type of disruption scenario
+        supplier_ids: Optional list of supplier IDs to include
+        client_id: Optional client ID
+        connection_id: Optional connection ID
+        risk_weights: Optional custom weights for risk categories
+        
+    Returns:
+        Dictionary with disruption impact analysis
+    """
+    # Create a risk analysis instance with the specified weights
+    risk_analyzer = SupplierRiskAnalysis(risk_weights=risk_weights)
+    
+    # Call the instance method
+    return await risk_analyzer.simulate_disruption_impact(
+        disruption_scenario=disruption_scenario,
+        supplier_ids=supplier_ids,
+        client_id=client_id,
+        connection_id=connection_id
+    )

@@ -6,7 +6,8 @@ This module provides functions for loading and accessing application settings.
 
 import os
 from typing import List, Dict, Any, Optional, Union
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator  # Removed BaseSettings from here
+from pydantic_settings import BaseSettings  # Import BaseSettings from pydantic-settings
 from functools import lru_cache
 import json
 import dotenv
@@ -28,10 +29,10 @@ class Settings(BaseSettings):
     port: int = 8000
     uvicorn_workers: int = 1
     allowed_hosts: List[str] = ["*"]
-    cors_origins: List[str] = ["*"]
+    cors_origins: List[str] = ["http://localhost:3001", "http://127.0.0.1:3001"]
     
     # Database settings
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/supply_chain"
+    database_url: str = "postgresql://postgres:123456789@localhost:5432/AI_SC"
     database_pool_size: int = 5
     database_pool_overflow: int = 10
     
