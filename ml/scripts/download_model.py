@@ -2,7 +2,7 @@
 """
 Download script for the Supply Chain LLM system.
 
-This script downloads LLM models and weights from various sources and sets up
+This script downloads LLM models from Hugging Face and sets up
 the directory structure for the supply chain analytics system.
 """
 
@@ -17,8 +17,8 @@ import zipfile
 import tarfile
 import shutil
 from pathlib import Path
-from tqdm import tqdm
 from typing import Dict, List, Optional, Any, Tuple
+from datetime import datetime
 
 # Setup logging
 logging.basicConfig(
@@ -27,48 +27,44 @@ logging.basicConfig(
 )
 logger = logging.getLogger("model_downloader")
 
-# Model repository information
+# Model repository information - Updated for Hugging Face
 MODEL_REGISTRY = {
     "mistral-7b": {
         "description": "Mistral 7B base model (fp16)",
-        "url": "https://models.example.com/mistral/mistral-7b-v0.1.tar.gz",
-        "sha256": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c",
+        "source": "huggingface",
+        "hf_repo": "mistralai/Mistral-7B-v0.1",
         "size_gb": 13.5,
         "type": "mistral",
+        "requires_token": False,
         "variants": ["int8", "int4"],
     },
     "mistral-7b-instruct": {
         "description": "Mistral 7B instruction-tuned model (fp16)",
-        "url": "https://models.example.com/mistral/mistral-7b-instruct-v0.1.tar.gz",
-        "sha256": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d",
+        "source": "huggingface",
+        "hf_repo": "mistralai/Mistral-7B-Instruct-v0.1",
         "size_gb": 13.5,
         "type": "mistral",
+        "requires_token": False,
         "variants": ["int8", "int4"],
     },
     "llama3-8b": {
         "description": "LLaMA3 8B base model (fp16)",
-        "url": "https://models.example.com/llama3/llama3-8b.tar.gz",
-        "sha256": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "source": "huggingface",
+        "hf_repo": "meta-llama/Meta-Llama-3-8B",
         "size_gb": 15.8,
         "type": "llama3",
+        "requires_token": True,
         "variants": ["int8", "int4"],
     },
     "llama3-8b-instruct": {
         "description": "LLaMA3 8B instruction-tuned model (fp16)",
-        "url": "https://models.example.com/llama3/llama3-8b-instruct.tar.gz",
-        "sha256": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+        "source": "huggingface",
+        "hf_repo": "meta-llama/Meta-Llama-3-8B-Instruct",
         "size_gb": 15.8,
         "type": "llama3",
+        "requires_token": True,
         "variants": ["int8", "int4"],
     },
-    "supply-chain-finetuned-7b": {
-        "description": "Supply chain domain-adapted model (fp16)",
-        "url": "https://models.example.com/supply-chain/finetuned-7b-v1.0.tar.gz",
-        "sha256": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
-        "size_gb": 13.5,
-        "type": "mistral",
-        "variants": ["int8", "int4"],
-    }
 }
 
 class ModelDownloader:
@@ -91,6 +87,15 @@ class ModelDownloader:
         
         # Initialize registry information
         self.model_registry = MODEL_REGISTRY
+        
+        # Try to import huggingface_hub
+        try:
+            from huggingface_hub import snapshot_download
+            self.hf_available = True
+            self.snapshot_download = snapshot_download
+        except ImportError:
+            self.hf_available = False
+            logger.warning("huggingface_hub not installed. Install with: pip install huggingface-hub")
     
     def list_available_models(self) -> List[Dict[str, Any]]:
         """
@@ -123,24 +128,18 @@ class ModelDownloader:
                 
             # Check for model weights directory
             weights_dir = type_dir / "weights"
-            if weights_dir.exists():
+            if weights_dir.exists() and any(weights_dir.iterdir()):
                 # Find matching model in registry
                 model_info = None
                 for name, info in self.model_registry.items():
                     if info["type"] == model_type:
-                        # This is a potential match, check for more specific info
-                        config_path = type_dir / "config.json"
-                        if config_path.exists():
-                            try:
-                                with open(config_path, 'r') as f:
-                                    config = json.load(f)
-                                
-                                # If we have a model_id in config, use it for exact matching
-                                if "model_id" in config and config["model_id"] == name:
-                                    model_info = {"name": name, **info}
-                                    break
-                            except Exception as e:
-                                logger.warning(f"Error reading config: {str(e)}")
+                        # Check for config.json or model files
+                        config_path = weights_dir / "config.json"
+                        model_files = list(weights_dir.glob("*.safetensors")) + list(weights_dir.glob("*.bin"))
+                        
+                        if config_path.exists() or model_files:
+                            model_info = {"name": name, **info}
+                            break
                 
                 # If we didn't find a match, use basic info
                 if not model_info:
@@ -167,13 +166,14 @@ class ModelDownloader:
         
         return downloaded
     
-    def download_model(self, model_name: str, force: bool = False) -> bool:
+    def download_model(self, model_name: str, force: bool = False, hf_token: Optional[str] = None) -> bool:
         """
         Download a model from the registry.
         
         Args:
             model_name: Name of the model to download
             force: Force download even if already exists
+            hf_token: Hugging Face token (required for some models)
             
         Returns:
             True if successful, False otherwise
@@ -181,195 +181,116 @@ class ModelDownloader:
         # Check if model exists in registry
         if model_name not in self.model_registry:
             logger.error(f"Model {model_name} not found in registry")
+            logger.info("Available models: " + ", ".join(self.model_registry.keys()))
             return False
         
         model_info = self.model_registry[model_name]
         model_type = model_info["type"]
-        model_url = model_info["url"]
-        model_hash = model_info["sha256"]
-        model_size_gb = model_info["size_gb"]
         
         # Determine target directory
-        target_dir = self.models_dir / model_type
-        weights_dir = target_dir / "weights"
+        target_dir = self.models_dir / model_type / "weights"
         
         # Check if model already exists
-        if weights_dir.exists() and not force:
-            logger.info(f"Model {model_type} already exists at {weights_dir}. Use --force to redownload.")
+        if target_dir.exists() and any(target_dir.iterdir()) and not force:
+            logger.info(f"Model {model_name} already exists at {target_dir}. Use --force to redownload.")
             return True
         
-        # Determine cache path
-        url_filename = model_url.split("/")[-1]
-        cache_path = self.cache_dir / url_filename
-        
-        # Download if not in cache or force download
-        if not cache_path.exists() or force:
-            logger.info(f"Downloading {model_name} ({model_size_gb:.1f} GB)...")
-            try:
-                self._download_file(model_url, cache_path)
-            except Exception as e:
-                logger.error(f"Error downloading model: {str(e)}")
-                return False
-        else:
-            logger.info(f"Using cached download at {cache_path}")
-        
-        # Verify hash
-        if not self._verify_file_hash(cache_path, model_hash):
-            logger.error(f"Hash verification failed for {cache_path}")
-            return False
-        
-        # Extract model
-        logger.info(f"Extracting model to {target_dir}...")
-        try:
-            self._extract_archive(cache_path, target_dir)
-        except Exception as e:
-            logger.error(f"Error extracting model: {str(e)}")
-            return False
-        
-        # Create or update config file
-        config_path = target_dir / "config.json"
-        self._create_model_config(config_path, model_name, model_info)
-        
-        logger.info(f"Successfully downloaded and set up {model_name}")
-        return True
-    
-    def _download_file(self, url: str, output_path: Path) -> None:
-        """
-        Download a file with progress bar.
-        
-        Args:
-            url: URL to download
-            output_path: Path to save the file
-        """
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        
-        total_size = int(response.headers.get('content-length', 0))
-        block_size = 1024 * 1024  # 1 MB
-        
-        with tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading") as pbar:
-            with open(output_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=block_size):
-                    if chunk:
-                        f.write(chunk)
-                        pbar.update(len(chunk))
-    
-    def _verify_file_hash(self, file_path: Path, expected_hash: str) -> bool:
-        """
-        Verify file hash matches expected value.
-        
-        Args:
-            file_path: Path to file
-            expected_hash: Expected SHA256 hash
-            
-        Returns:
-            True if hash matches, False otherwise
-        """
-        logger.info(f"Verifying hash for {file_path}...")
-        
-        sha256_hash = hashlib.sha256()
-        block_size = 1024 * 1024  # 1 MB
-        
-        with tqdm(total=file_path.stat().st_size, unit='B', unit_scale=True, desc="Verifying") as pbar:
-            with open(file_path, 'rb') as f:
-                for chunk in iter(lambda: f.read(block_size), b''):
-                    sha256_hash.update(chunk)
-                    pbar.update(len(chunk))
-        
-        file_hash = sha256_hash.hexdigest()
-        
-        if file_hash != expected_hash:
-            logger.error(f"Hash mismatch: {file_hash} != {expected_hash}")
-            return False
-        
-        return True
-    
-    def _extract_archive(self, archive_path: Path, target_dir: Path) -> None:
-        """
-        Extract archive file to target directory.
-        
-        Args:
-            archive_path: Path to archive file
-            target_dir: Directory to extract to
-        """
-        # Create target directory if it doesn't exist
+        # Create directory
         target_dir.mkdir(parents=True, exist_ok=True)
         
-        # Determine archive type and extract
-        if archive_path.name.endswith('.tar.gz') or archive_path.name.endswith('.tgz'):
-            with tarfile.open(archive_path, 'r:gz') as tar:
-                # Get total size for progress bar
-                total_size = sum(m.size for m in tar.getmembers())
-                
-                with tqdm(total=total_size, unit='B', unit_scale=True, desc="Extracting") as pbar:
-                    for member in tar.getmembers():
-                        tar.extract(member, path=target_dir)
-                        pbar.update(member.size)
-        
-        elif archive_path.name.endswith('.zip'):
-            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
-                # Get total size for progress bar
-                total_size = sum(info.file_size for info in zip_ref.infolist())
-                
-                with tqdm(total=total_size, unit='B', unit_scale=True, desc="Extracting") as pbar:
-                    for info in zip_ref.infolist():
-                        zip_ref.extract(info, path=target_dir)
-                        pbar.update(info.file_size)
-        
+        # Download based on source
+        if model_info.get("source") == "huggingface":
+            return self._download_from_huggingface(model_name, model_info, target_dir, hf_token)
         else:
-            raise ValueError(f"Unsupported archive format: {archive_path}")
-        
-        # Check if extracted to a subdirectory
-        subdirs = [d for d in target_dir.iterdir() if d.is_dir()]
-        if len(subdirs) == 1 and (subdirs[0] / "weights").exists():
-            # Move contents up one level
-            source_dir = subdirs[0]
-            for item in source_dir.iterdir():
-                shutil.move(str(item), str(target_dir / item.name))
-            
-            # Remove empty directory
-            source_dir.rmdir()
+            logger.error(f"Unknown source for model {model_name}")
+            return False
     
-    def _create_model_config(
+    def _download_from_huggingface(
         self, 
-        config_path: Path, 
         model_name: str, 
-        model_info: Dict[str, Any]
-    ) -> None:
+        model_info: Dict[str, Any], 
+        target_dir: Path,
+        hf_token: Optional[str] = None
+    ) -> bool:
         """
-        Create or update model configuration file.
+        Download model from Hugging Face.
         
         Args:
-            config_path: Path to configuration file
             model_name: Name of the model
-            model_info: Model information
+            model_info: Model information from registry
+            target_dir: Directory to save model
+            hf_token: Hugging Face token
+            
+        Returns:
+            True if successful, False otherwise
         """
-        # Load existing config if it exists
-        config = {}
-        if config_path.exists():
-            try:
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-            except Exception as e:
-                logger.warning(f"Error reading existing config: {str(e)}")
+        if not self.hf_available:
+            logger.error("huggingface_hub is not installed. Install with: pip install huggingface-hub")
+            return False
         
-        # Update with model information
-        config.update({
-            "model_id": model_name,
-            "model_type": model_info["type"],
-            "description": model_info["description"],
-            "model_parameters": {
-                "size": f"{model_info['size_gb']:.1f}B"
-            },
-            "download_timestamp": import_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "supported_quantization": model_info.get("variants", [])
-        })
+        hf_repo = model_info["hf_repo"]
+        requires_token = model_info.get("requires_token", False)
         
-        # Save updated config
-        with open(config_path, 'w') as f:
-            json.dump(config, f, indent=2)
+        # Check if token is required
+        if requires_token and not hf_token:
+            logger.error(f"Model {model_name} requires a Hugging Face token.")
+            logger.info("Please provide a token with --hf-token or set HF_TOKEN environment variable")
+            logger.info(f"Visit https://huggingface.co/{hf_repo} to accept the license")
+            logger.info("Get your token from https://huggingface.co/settings/tokens")
+            return False
         
-        logger.info(f"Created/updated config at {config_path}")
+        logger.info(f"Downloading {model_name} from Hugging Face ({model_info['size_gb']:.1f} GB)...")
+        logger.info(f"Repository: {hf_repo}")
+        
+        try:
+            # Download the model
+            self.snapshot_download(
+                repo_id=hf_repo,
+                local_dir=str(target_dir),
+                local_dir_use_symlinks=False,
+                resume_download=True,
+                token=hf_token if requires_token else None
+            )
+            
+            # Create model info file
+            info_path = target_dir.parent / "model_info.json"
+            model_metadata = {
+                "model_id": model_name,
+                "model_type": model_info["type"],
+                "description": model_info["description"],
+                "source": "huggingface",
+                "repository": hf_repo,
+                "download_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "size_gb": model_info["size_gb"],
+                "supported_quantization": model_info.get("variants", [])
+            }
+            
+            with open(info_path, 'w') as f:
+                json.dump(model_metadata, f, indent=2)
+            
+            logger.info(f"✓ Successfully downloaded {model_name} to {target_dir}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"✗ Error downloading model: {str(e)}")
+            if "401" in str(e) or "403" in str(e):
+                logger.error("Authentication failed. Please check your token.")
+                logger.info(f"Make sure you have accepted the license at https://huggingface.co/{hf_repo}")
+            return False
+    
+    def get_model_size(self, model_name: str) -> Optional[float]:
+        """
+        Get the size of a model in GB.
+        
+        Args:
+            model_name: Name of the model
+            
+        Returns:
+            Size in GB or None if not found
+        """
+        if model_name in self.model_registry:
+            return self.model_registry[model_name].get("size_gb")
+        return None
 
 
 def main():
@@ -379,11 +300,16 @@ def main():
     parser.add_argument("--cache-dir", type=str, help="Directory to cache downloaded files")
     parser.add_argument("--model", type=str, help="Model to download")
     parser.add_argument("--force", action="store_true", help="Force download even if already exists")
+    parser.add_argument("--hf-token", type=str, help="Hugging Face token (or set HF_TOKEN env var)")
     parser.add_argument("--list-available", action="store_true", help="List available models")
     parser.add_argument("--list-downloaded", action="store_true", help="List downloaded models")
     parser.add_argument("--list-all", action="store_true", help="List all models with download status")
     
     args = parser.parse_args()
+    
+    # Check for HF_TOKEN environment variable if not provided
+    if not args.hf_token:
+        args.hf_token = os.environ.get("HF_TOKEN")
     
     try:
         downloader = ModelDownloader(args.models_dir, args.cache_dir)
@@ -397,6 +323,9 @@ def main():
                 print(f"- {model['name']}")
                 print(f"  Description: {model['description']}")
                 print(f"  Size: {model['size_gb']:.1f} GB")
+                print(f"  Source: {model.get('source', 'custom')}")
+                if model.get('requires_token'):
+                    print(f"  ⚠️  Requires Hugging Face token")
                 print(f"  Supported quantization: {', '.join(model.get('variants', []))}")
                 print()
         
@@ -426,27 +355,38 @@ def main():
             print("\nAll Models:")
             print("=" * 80)
             for name, model in available.items():
-                status = "Downloaded" if name in downloaded else "Not downloaded"
-                print(f"- {name}")
+                status = "✓ Downloaded" if name in downloaded else "✗ Not downloaded"
+                print(f"- {name} [{status}]")
                 print(f"  Description: {model['description']}")
                 print(f"  Size: {model['size_gb']:.1f} GB")
-                print(f"  Status: {status}")
+                if model.get('requires_token'):
+                    print(f"  ⚠️  Requires Hugging Face token")
                 if name in downloaded and "quantized_variants" in downloaded[name]:
                     print(f"  Quantized variants: {', '.join(downloaded[name]['quantized_variants'])}")
                 print()
         
         elif args.model:
             # Download the specified model
-            success = downloader.download_model(args.model, args.force)
+            success = downloader.download_model(args.model, args.force, args.hf_token)
             
             if success:
-                print(f"Successfully downloaded {args.model}")
+                print(f"\n✓ Successfully downloaded {args.model}")
+                print(f"You can now use this model in your Supply Chain LLM system")
             else:
-                print(f"Failed to download {args.model}")
+                print(f"\n✗ Failed to download {args.model}")
                 sys.exit(1)
         
         else:
             parser.print_help()
+            print("\nExamples:")
+            print("  # List available models")
+            print("  python download_model.py --list-available")
+            print()
+            print("  # Download Mistral (no token needed)")
+            print("  python download_model.py --model mistral-7b")
+            print()
+            print("  # Download Llama3 (requires token)")
+            print("  python download_model.py --model llama3-8b --hf-token YOUR_TOKEN")
     
     except Exception as e:
         print(f"Error: {str(e)}")
@@ -454,5 +394,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import time  # For timestamp
     main()
