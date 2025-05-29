@@ -7,13 +7,13 @@ scikit-learn>=1.2.0
 
 # Quantization libraries
 auto-gptq>=0.3.0
-awq>=0.1.0
-bitsandbytes>=0.39.0
+# awq>=0.1.0  # Not available on PyPI, comment out for now
+# bitsandbytes>=0.39.0  # Requires specific CUDA setup, comment out for now
 
 # ONNX dependencies
 onnx>=1.14.0
 onnxruntime>=1.15.0
-onnxruntime-gpu>=1.15.0
+# onnxruntime-gpu>=1.15.0  # Skip GPU version for now
 onnxruntime-tools>=1.8.0
 
 # TensorRT (install separately through NVIDIA)
@@ -30,6 +30,11 @@ pyyaml>=6.0
 fastapi>=0.95.0
 uvicorn>=0.22.0
 pydantic>=1.10.7
+
+# Additional useful packages
+accelerate>=0.20.0
+sentencepiece>=0.1.99
+protobuf>=3.20.0
 
 # CUDA utilities (needed for TensorRT)
 # pycuda

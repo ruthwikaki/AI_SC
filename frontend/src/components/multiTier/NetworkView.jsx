@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Loading from '../common/Loading';
 import NetworkGraph from '../visualization/charts/NetworkGraph';
 import {
-  RefreshIcon,
-  SearchIcon,
-  FilterIcon,
-  AdjustmentsIcon,
-  DownloadIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
-  ViewListIcon
-} from '@heroicons/react/outline';
+  ArrowPathIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  AdjustmentsHorizontalIcon,
+  ArrowDownTrayIcon,
+  MagnifyingGlassPlusIcon,
+  MagnifyingGlassMinusIcon,
+  ListBulletIcon
+} from '@heroicons/react/24/outline';
 
 const NetworkView = () => {
   const navigate = useNavigate();
@@ -320,7 +320,7 @@ const NetworkView = () => {
             <div className="flex rounded-md shadow-sm">
               <div className="relative flex items-stretch flex-grow focus-within:z-10">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
                 <input
                   type="text"
@@ -345,7 +345,7 @@ const NetworkView = () => {
               onClick={() => setFilterOpen(!filterOpen)}
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
-              <FilterIcon className="-ml-1 mr-2 h-4 w-4" />
+              <FunnelIcon className="-ml-1 mr-2 h-4 w-4" />
               Filter
             </button>
             
@@ -422,7 +422,7 @@ const NetworkView = () => {
             onClick={fetchNetworkData}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            <RefreshIcon className="-ml-1 mr-2 h-4 w-4" />
+            <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4" />
             Refresh
           </button>
           
@@ -430,7 +430,7 @@ const NetworkView = () => {
             onClick={handleExportNetwork}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            <DownloadIcon className="-ml-1 mr-2 h-4 w-4" />
+            <ArrowDownTrayIcon className="-ml-1 mr-2 h-4 w-4" />
             Export
           </button>
         </div>
@@ -462,20 +462,20 @@ const NetworkView = () => {
               className="p-2 hover:bg-gray-100 rounded-t-lg"
               disabled={zoomLevel >= 2.0}
             >
-              <ZoomInIcon className="h-5 w-5 text-gray-700" />
+              <MagnifyingGlassPlusIcon className="h-5 w-5 text-gray-700" />
             </button>
             <button
               onClick={handleZoomOut}
               className="p-2 hover:bg-gray-100"
               disabled={zoomLevel <= 0.5}
             >
-              <ZoomOutIcon className="h-5 w-5 text-gray-700" />
+              <MagnifyingGlassMinusIcon className="h-5 w-5 text-gray-700" />
             </button>
             <button
               onClick={handleResetView}
               className="p-2 hover:bg-gray-100 rounded-b-lg"
             >
-              <AdjustmentsIcon className="h-5 w-5 text-gray-700" />
+              <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-700" />
             </button>
           </div>
           
@@ -657,7 +657,7 @@ const NetworkView = () => {
               <button
                 className="inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
               >
-                <ViewListIcon className="-ml-1 mr-2 h-4 w-4" />
+                <ListBulletIcon className="-ml-1 mr-2 h-4 w-4" />
                 View Connected Suppliers
               </button>
             </div>
@@ -669,3 +669,6 @@ const NetworkView = () => {
 };
 
 export default NetworkView;
+
+
+

@@ -1,130 +1,131 @@
 {
-    "name": "supply-chain-llm-frontend",
-    "version": "1.0.0",
-    "private": true,
-    "description": "Supply Chain LLM - Frontend application for intelligent supply chain analytics and optimization",
-    "keywords": [
-        "supply-chain",
-        "analytics",
-        "llm",
-        "logistics",
-        "optimization",
-        "react",
-        "typescript"
+  "name": "supply-chain-llm-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Supply Chain LLM - Frontend application for intelligent supply chain analytics and optimization",
+  "keywords": [
+    "supply-chain",
+    "analytics",
+    "llm",
+    "logistics",
+    "optimization",
+    "react",
+    "typescript"
+  ],
+  "author": {
+    "name": "Supply Chain LLM Team",
+    "email": "contact@supply-chain-llm.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/supply-chain-llm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/supply-chain-llm/issues"
+  },
+  "homepage": ".",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext js,jsx --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,json,css,md}\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "analyze": "ANALYZE=true vite build",
+    "clean": "rm -rf dist",
+    "prepare": "husky install",
+    "precommit": "lint-staged"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.0.18",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "@tanstack/react-query": "^4.35.3",
+    "axios": "^1.6.0",
+    "chart.js": "^4.4.0",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "d3": "^7.8.5",
+    "d3-sankey": "^0.12.3",
+    "date-fns": "^2.30.0",
+    "framer-motion": "^10.16.4",
+    "lucide-react": "^0.263.1",
+    "react": "^18.0.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.0.0",
+    "react-grid-layout": "^1.4.4",
+    "react-hotjar": "^6.2.0",
+    "react-router-dom": "^6.16.0",
+    "react-toastify": "^9.1.3",
+    "recharts": "^2.8.0",
+    "xlsx": "^0.18.5",
+    "zustand": "^4.4.4"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.0",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@types/react-grid-layout": "^1.3.3",
+    "@vitejs/plugin-react": "^4.2.0",
+    "@vitejs/plugin-react-swc": "^3.3.2",
+    "autoprefixer": "^10.4.15",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "postcss": "^8.4.29",
+    "prettier": "^3.0.3",
+    "prettier-plugin-tailwindcss": "^0.5.3",
+    "rollup-plugin-visualizer": "^5.9.2",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.9",
+    "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-environment": "^1.1.3",
+    "vite-plugin-eslint": "^1.8.1",
+    "vite-plugin-html": "^3.2.0",
+    "vite-plugin-imagemin": "^0.6.1",
+    "vite-plugin-pwa": "^0.16.7",
+    "vite-plugin-svgr": "^4.2.0",
+    "vitest": "^0.34.6"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
     ],
-    "author": {
-        "name": "Supply Chain LLM Team",
-        "email": "contact@supply-chain-llm.com"
-    },
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/your-org/supply-chain-llm.git"
-    },
-    "bugs": {
-        "url": "https://github.com/your-org/supply-chain-llm/issues"
-    },
-    "homepage": ".",
-    "engines": {
-        "node": ">=16.0.0",
-        "npm": ">=8.0.0"
-    },
-    "type": "module",
-    "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "preview": "vite preview",
-        "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-        "lint:fix": "eslint . --ext js,jsx --fix",
-        "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
-        "format:check": "prettier --check \"src/**/*.{js,jsx,json,css,md}\"",
-        "test": "vitest",
-        "test:ui": "vitest --ui",
-        "test:coverage": "vitest --coverage",
-        "analyze": "ANALYZE=true vite build",
-        "clean": "rm -rf dist",
-        "prepare": "husky install",
-        "precommit": "lint-staged"
-    },
-    "dependencies": {
-        "@heroicons/react": "^2.0.18",
-        "@tailwindcss/aspect-ratio": "^0.4.2",
-        "@tailwindcss/container-queries": "^0.1.1",
-        "@tailwindcss/forms": "^0.5.10",
-        "@tailwindcss/typography": "^0.5.16",
-        "@tanstack/react-query": "^4.35.3",
-        "axios": "^1.6.0",
-        "chart.js": "^4.4.0",
-        "chartjs-adapter-date-fns": "^3.0.0",
-        "d3": "^7.8.5",
-        "date-fns": "^2.30.0",
-        "framer-motion": "^10.16.4",
-        "lucide-react": "^0.263.1",
-        "react": "^18.0.0",
-        "react-chartjs-2": "^5.2.0",
-        "react-dom": "^18.0.0",
-        "react-grid-layout": "^1.4.4",
-        "react-hotjar": "^6.2.0",
-        "react-router-dom": "^6.16.0",
-        "react-toastify": "^9.1.3",
-        "recharts": "^2.8.0",
-        "xlsx": "^0.18.5",
-        "zustand": "^4.4.4"
-    },
-    "devDependencies": {
-        "@types/d3": "^7.4.0",
-        "@types/react": "^18.2.15",
-        "@types/react-dom": "^18.2.7",
-        "@types/react-grid-layout": "^1.3.3",
-        "@vitejs/plugin-react": "^4.2.0",
-        "@vitejs/plugin-react-swc": "^3.3.2",
-        "autoprefixer": "^10.4.15",
-        "eslint": "^8.45.0",
-        "eslint-config-prettier": "^9.0.0",
-        "eslint-plugin-react": "^7.33.2",
-        "eslint-plugin-react-hooks": "^4.6.0",
-        "eslint-plugin-react-refresh": "^0.4.3",
-        "husky": "^8.0.3",
-        "lint-staged": "^14.0.1",
-        "postcss": "^8.4.29",
-        "prettier": "^3.0.3",
-        "prettier-plugin-tailwindcss": "^0.5.3",
-        "rollup-plugin-visualizer": "^5.9.2",
-        "tailwindcss": "^3.3.3",
-        "typescript": "^5.0.2",
-        "vite": "^4.4.9",
-        "vite-plugin-compression": "^0.5.1",
-        "vite-plugin-environment": "^1.1.3",
-        "vite-plugin-eslint": "^1.8.1",
-        "vite-plugin-html": "^3.2.0",
-        "vite-plugin-imagemin": "^0.6.1",
-        "vite-plugin-pwa": "^0.16.7",
-        "vite-plugin-svgr": "^4.2.0",
-        "vitest": "^0.34.6"
-    },
-    "peerDependencies": {
-        "react": "^18.0.0",
-        "react-dom": "^18.0.0"
-    },
-    "browserslist": {
-        "production": [
-            ">0.2%",
-            "not dead",
-            "not op_mini all"
-        ],
-        "development": [
-            "last 1 chrome version",
-            "last 1 firefox version",
-            "last 1 safari version"
-        ]
-    },
-    "lint-staged": {
-        "*.{js,jsx}": [
-            "eslint --fix",
-            "prettier --write"
-        ],
-        "*.{json,css,md}": [
-            "prettier --write"
-        ]
-    }
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "lint-staged": {
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  }
 }

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ChartViewer from './ChartViewer';
 import {
   ViewGridAddIcon,
-  SaveIcon,
+  ArrowDownOnSquareIcon,
   PlusCircleIcon,
-  XIcon,
+  XMarkIcon,
   MenuAlt2Icon,
   ShareIcon
-} from '@heroicons/react/outline';
+} from '@heroicons/react/24/outline';
 
 // React Grid Layout
 import { Responsive, WidthProvider } from 'react-grid-layout';
@@ -168,7 +168,7 @@ const DashboardBuilder = ({
                   </>
                 ) : (
                   <>
-                    <SaveIcon className="-ml-1 mr-2 h-4 w-4" />
+                    <ArrowDownOnSquareIcon className="-ml-1 mr-2 h-4 w-4" />
                     Save Dashboard
                   </>
                 )}
@@ -222,7 +222,7 @@ const DashboardBuilder = ({
                     onClick={() => handleRemoveChart(chart.id)}
                     className="absolute top-2 right-2 z-10 p-1 rounded-full bg-red-100 text-red-500 hover:bg-red-200"
                   >
-                    <XIcon className="h-4 w-4" />
+                    <XMarkIcon className="h-4 w-4" />
                   </button>
                 )}
                 <ChartViewer 

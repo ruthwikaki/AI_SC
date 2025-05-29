@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ChartViewer from '../../visualization/ChartViewer';
-import Loading from '../../common/Loading';
+import ChartViewer from '../visualization/ChartViewer';
+import Loading from '../common/Loading';
 
 const QueryResult = ({ result, isLoading, error }) => {
   const [activeTab, setActiveTab] = useState('visualized');

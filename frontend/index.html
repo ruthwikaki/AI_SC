@@ -33,12 +33,7 @@
           crossorigin="anonymous" 
           referrerpolicy="no-referrer" />
     
-    <!-- Tailwind CSS via CDN removed - now only using the PostCSS version -->
-    
     <title>Supply Chain LLM</title>
-    
-    <!-- Preload critical assets - Verify this file exists or remove this line -->
-    <link rel="preload" href="/assets/images/logo.svg" as="image" type="image/svg+xml" />
     
     <!-- SEO -->
     <link rel="canonical" href="https://supply-chain-llm.com/" />
@@ -53,10 +48,11 @@
     
     <!-- Environment Variables (for client-side access) -->
     <script>
+      // Environment variables will be injected by Vite
       window.env = {
-        VITE_API_URL: '%VITE_API_URL%',
-        VITE_ENVIRONMENT: '%VITE_ENVIRONMENT%',
-        VITE_ML_SERVICE_URL: '%VITE_ML_SERVICE_URL%'
+        VITE_API_URL: 'http://localhost:8000/api',
+        VITE_ENVIRONMENT: 'development',
+        VITE_ML_SERVICE_URL: 'http://localhost:8001'
       };
     </script>
   </head>
@@ -95,21 +91,6 @@
         });
       }
     </script>
-    
-    <!-- Service Worker Registration (commented out until service-worker.js is ready) -->
-    <!-- 
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
-            console.log('ServiceWorker registration successful');
-          }, function(err) {
-            console.log('ServiceWorker registration failed');
-          });
-        });
-      }
-    </script>
-    -->
     
     <script type="module" src="/src/index.jsx"></script>
   </body>

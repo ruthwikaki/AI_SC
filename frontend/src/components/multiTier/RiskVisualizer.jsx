@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ChartViewer from '../visualization/ChartViewer';
 import HeatMap from '../visualization/charts/HeatMap';
 import Loading from '../common/Loading';
 import {
-  RefreshIcon,
-  FilterIcon,
-  DownloadIcon,
+  ArrowPathIcon,
+  FunnelIcon,
+  ArrowDownTrayIcon,
   ExclamationCircleIcon,
-  ArrowSmRightIcon
-} from '@heroicons/react/outline';
+  ArrowRightIcon
+} from '@heroicons/react/24/outline';
 
 const RiskVisualizer = () => {
   const navigate = useNavigate();
@@ -195,7 +195,7 @@ const RiskVisualizer = () => {
               onClick={() => setFilterOpen(!filterOpen)}
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
-              <FilterIcon className="-ml-1 mr-2 h-4 w-4" />
+              <FunnelIcon className="-ml-1 mr-2 h-4 w-4" />
               Filter
             </button>
             
@@ -268,7 +268,7 @@ const RiskVisualizer = () => {
             onClick={fetchRiskData}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            <RefreshIcon className="-ml-1 mr-2 h-4 w-4" />
+            <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4" />
             Refresh
           </button>
           
@@ -276,7 +276,7 @@ const RiskVisualizer = () => {
             onClick={handleExportRisk}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            <DownloadIcon className="-ml-1 mr-2 h-4 w-4" />
+            <ArrowDownTrayIcon className="-ml-1 mr-2 h-4 w-4" />
             Export
           </button>
         </div>
@@ -643,7 +643,7 @@ const RiskVisualizer = () => {
                  <div className="space-y-3">
                    <div className="flex items-start">
                      <div className="flex-shrink-0">
-                       <ArrowSmRightIcon className="h-5 w-5 text-indigo-400" aria-hidden="true" />
+                       <ArrowRightIcon className="h-5 w-5 text-indigo-400" aria-hidden="true" />
                      </div>
                      <div className="ml-3">
                        <p className="text-sm text-indigo-700">
@@ -653,7 +653,7 @@ const RiskVisualizer = () => {
                    </div>
                    <div className="flex items-start">
                      <div className="flex-shrink-0">
-                       <ArrowSmRightIcon className="h-5 w-5 text-indigo-400" aria-hidden="true" />
+                       <ArrowRightIcon className="h-5 w-5 text-indigo-400" aria-hidden="true" />
                      </div>
                      <div className="ml-3">
                        <p className="text-sm text-indigo-700">
@@ -663,7 +663,7 @@ const RiskVisualizer = () => {
                    </div>
                    <div className="flex items-start">
                      <div className="flex-shrink-0">
-                       <ArrowSmRightIcon className="h-5 w-5 text-indigo-400" aria-hidden="true" />
+                       <ArrowRightIcon className="h-5 w-5 text-indigo-400" aria-hidden="true" />
                      </div>
                      <div className="ml-3">
                        <p className="text-sm text-indigo-700">
@@ -700,3 +700,5 @@ const RiskVisualizer = () => {
 };
 
 export default RiskVisualizer;
+
+

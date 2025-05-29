@@ -1,6 +1,4 @@
-# Create a comprehensive startup script
-@'
-import os
+﻿import os
 import sys
 import subprocess
 import time
@@ -165,6 +163,3 @@ REDIS_URL=redis://localhost:6379
 
 if __name__ == "__main__":
     start_services()
-'@ | Out-File -FilePath "start_all_services.py" -Encoding UTF8
-
-Write-Host "Created start_all_services.py"

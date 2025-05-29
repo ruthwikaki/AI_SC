@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -8,12 +8,12 @@ import {
   QuestionMarkCircleIcon,
   ChartBarIcon,
   CubeTransparentIcon,
-  CogIcon,
+  Cog6ToothIcon,
   ShieldCheckIcon,
-  DocumentReportIcon,
-  DatabaseIcon,
-  ViewGridIcon
-} from '@heroicons/react/outline';
+  DocumentTextIcon,
+  CircleStackIcon,
+  Squares2X2Icon
+} from '@heroicons/react/24/outline';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -24,9 +24,9 @@ const Sidebar = () => {
     { name: 'Query', href: '/query', icon: QuestionMarkCircleIcon },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
     { name: 'Multi-Tier View', href: '/multi-tier', icon: CubeTransparentIcon },
-    { name: 'Database Explorer', href: '/database', icon: DatabaseIcon },
-    { name: 'Reports', href: '/reports', icon: DocumentReportIcon },
-    { name: 'Settings', href: '/settings', icon: CogIcon },
+    { name: 'Database Explorer', href: '/database', icon: CircleStackIcon },
+    { name: 'Reports', href: '/reports', icon: DocumentTextIcon },
+    { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
   ];
 
   // Add admin link if user is admin
@@ -92,3 +92,5 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
+

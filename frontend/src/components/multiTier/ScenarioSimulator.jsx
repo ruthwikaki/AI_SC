@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NetworkGraph from '../visualization/charts/NetworkGraph';
 import ChartViewer from '../visualization/ChartViewer';
 import Loading from '../common/Loading';
 import {
-  RefreshIcon,
-  SaveIcon,
+  ArrowPathIcon,
+  ArrowDownOnSquareIcon,
   PlusIcon,
-  XIcon,
+  XMarkIcon,
   PlayIcon,
   DocumentTextIcon,
-  CogIcon
-} from '@heroicons/react/outline';
+  Cog6ToothIcon
+} from '@heroicons/react/24/outline';
 
 const ScenarioSimulator = () => {
   const navigate = useNavigate();
@@ -581,7 +581,7 @@ const ScenarioSimulator = () => {
               onClick={startFromScratch}
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
-              <RefreshIcon className="-ml-1 mr-2 h-4 w-4" />
+              <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4" />
               Start New
             </button>
           )}
@@ -641,7 +641,7 @@ const ScenarioSimulator = () => {
                         <p className="text-sm text-gray-500">{scenario.description}</p>
                         <div className="mt-2 flex items-center text-xs text-gray-500">
                           <span>Created: {scenario.created}</span>
-                          <span className="mx-1">•</span>
+                          <span className="mx-1">â€¢</span>
                           <span>{scenario.disruptions.length} disruption{scenario.disruptions.length !== 1 ? 's' : ''}</span>
                         </div>
                       </div>
@@ -771,7 +771,7 @@ const ScenarioSimulator = () => {
                             onClick={() => removeDisruption(disruption.id)}
                             className="text-gray-400 hover:text-gray-500"
                           >
-                            <XIcon className="h-5 w-5" />
+                            <XMarkIcon className="h-5 w-5" />
                           </button>
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-3">
@@ -884,8 +884,8 @@ const ScenarioSimulator = () => {
                           : 'text-green-600'
                       }`}>
                         {simulationData.simulatedMetrics.inventoryCoverage < simulationData.baselineMetrics.inventoryCoverage
-                          ? `↓ ${Math.round((simulationData.baselineMetrics.inventoryCoverage - simulationData.simulatedMetrics.inventoryCoverage) / simulationData.baselineMetrics.inventoryCoverage * 100)}%`
-                          : `↑ ${Math.round((simulationData.simulatedMetrics.inventoryCoverage - simulationData.baselineMetrics.inventoryCoverage) / simulationData.baselineMetrics.inventoryCoverage * 100)}%`
+                          ? `â†“ ${Math.round((simulationData.baselineMetrics.inventoryCoverage - simulationData.simulatedMetrics.inventoryCoverage) / simulationData.baselineMetrics.inventoryCoverage * 100)}%`
+                          : `â†‘ ${Math.round((simulationData.simulatedMetrics.inventoryCoverage - simulationData.baselineMetrics.inventoryCoverage) / simulationData.baselineMetrics.inventoryCoverage * 100)}%`
                         }
                       </span>
                     </div>
@@ -906,8 +906,8 @@ const ScenarioSimulator = () => {
                           : 'text-green-600'
                       }`}>
                         {simulationData.simulatedMetrics.onTimeDelivery < simulationData.baselineMetrics.onTimeDelivery
-                          ? `↓ ${Math.round(simulationData.baselineMetrics.onTimeDelivery - simulationData.simulatedMetrics.onTimeDelivery)}pp`
-                          : `↑ ${Math.round(simulationData.simulatedMetrics.onTimeDelivery - simulationData.baselineMetrics.onTimeDelivery)}pp`
+                          ? `â†“ ${Math.round(simulationData.baselineMetrics.onTimeDelivery - simulationData.simulatedMetrics.onTimeDelivery)}pp`
+                          : `â†‘ ${Math.round(simulationData.simulatedMetrics.onTimeDelivery - simulationData.baselineMetrics.onTimeDelivery)}pp`
                         }
                       </span>
                     </div>
@@ -929,8 +929,8 @@ const ScenarioSimulator = () => {
                          : 'text-green-600'
                      }`}>
                        {simulationData.simulatedMetrics.leadTime > simulationData.baselineMetrics.leadTime
-                         ? `↑ ${Math.round((simulationData.simulatedMetrics.leadTime - simulationData.baselineMetrics.leadTime) / simulationData.baselineMetrics.leadTime * 100)}%`
-                         : `↓ ${Math.round((simulationData.baselineMetrics.leadTime - simulationData.simulatedMetrics.leadTime) / simulationData.baselineMetrics.leadTime * 100)}%`
+                         ? `â†‘ ${Math.round((simulationData.simulatedMetrics.leadTime - simulationData.baselineMetrics.leadTime) / simulationData.baselineMetrics.leadTime * 100)}%`
+                         : `â†“ ${Math.round((simulationData.baselineMetrics.leadTime - simulationData.simulatedMetrics.leadTime) / simulationData.baselineMetrics.leadTime * 100)}%`
                        }
                      </span>
                    </div>
@@ -951,8 +951,8 @@ const ScenarioSimulator = () => {
                          : 'text-green-600'
                      }`}>
                        {simulationData.simulatedMetrics.productionCapacity < simulationData.baselineMetrics.productionCapacity
-                         ? `↓ ${Math.round(simulationData.baselineMetrics.productionCapacity - simulationData.simulatedMetrics.productionCapacity)}pp`
-                         : `↑ ${Math.round(simulationData.simulatedMetrics.productionCapacity - simulationData.baselineMetrics.productionCapacity)}pp`
+                         ? `â†“ ${Math.round(simulationData.baselineMetrics.productionCapacity - simulationData.simulatedMetrics.productionCapacity)}pp`
+                         : `â†‘ ${Math.round(simulationData.simulatedMetrics.productionCapacity - simulationData.baselineMetrics.productionCapacity)}pp`
                        }
                      </span>
                    </div>
@@ -972,8 +972,8 @@ const ScenarioSimulator = () => {
                          : 'text-green-600'
                      }`}>
                        {simulationData.simulatedMetrics.costImpact > 0
-                         ? '↑'
-                         : '↓'
+                         ? 'â†‘'
+                         : 'â†“'
                        }
                      </span>
                    </div>
@@ -1127,7 +1127,7 @@ const ScenarioSimulator = () => {
            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
              <div className="sm:flex sm:items-start">
                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 sm:mx-0 sm:h-10 sm:w-10">
-                 <CogIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
+                 <Cog6ToothIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
                </div>
                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                  <h3 className="text-lg leading-6 font-medium text-gray-900">New Scenario</h3>
@@ -1176,7 +1176,7 @@ const ScenarioSimulator = () => {
                  onClick={saveScenario}
                  disabled={!newScenarioName.trim()}
                >
-                 <SaveIcon className="-ml-1 mr-2 h-5 w-5" />
+                 <ArrowDownOnSquareIcon className="-ml-1 mr-2 h-5 w-5" />
                  Create
                </button>
                <button
@@ -1196,3 +1196,4 @@ const ScenarioSimulator = () => {
 };
 
 export default ScenarioSimulator;
+

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
@@ -6,12 +6,12 @@ import HeatMap from './charts/HeatMap';
 import SankeyDiagram from './charts/SankeyDiagram';
 import NetworkGraph from './charts/NetworkGraph';
 import { 
-  DownloadIcon, 
-  RefreshIcon, 
+  ArrowDownTrayIcon, 
+  ArrowPathIcon, 
   PencilIcon, 
   PlusIcon,
-  DotsVerticalIcon
-} from '@heroicons/react/outline';
+  EllipsisVerticalIcon
+} from '@heroicons/react/24/outline';
 
 const ChartViewer = ({ 
   chartData, 
@@ -85,7 +85,7 @@ const ChartViewer = ({
                 onClick={onRefresh}
                 className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none"
               >
-                <RefreshIcon className="h-5 w-5" />
+                <ArrowPathIcon className="h-5 w-5" />
               </button>
             )}
             
@@ -103,7 +103,7 @@ const ChartViewer = ({
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none"
              >
-               <DotsVerticalIcon className="h-5 w-5" />
+               <EllipsisVerticalIcon className="h-5 w-5" />
              </button>
              
              {menuOpen && (
@@ -154,3 +154,5 @@ const ChartViewer = ({
 };
 
 export default ChartViewer;
+
+

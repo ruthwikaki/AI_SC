@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '../../../hooks/useQuery';
+import { useQuery } from '../../hooks/useQuery';
 
 const QuerySuggestions = ({ onSuggestionSelect }) => {
   const [suggestions, setSuggestions] = useState([]);

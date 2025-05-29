@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery } from '../../../hooks/useQuery';
+import { useQuery } from '../../hooks/useQuery';
 
 const QueryInput = ({ onQueryComplete }) => {
   const [query, setQuery] = useState('');

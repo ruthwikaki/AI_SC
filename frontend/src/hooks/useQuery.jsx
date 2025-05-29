@@ -217,4 +217,5 @@ const useQuery = () => {
   };
 };
 
+export { useQuery };
 export default useQuery;

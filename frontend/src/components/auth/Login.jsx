@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import logoImage from '../../assets/logo.svg';
@@ -135,6 +135,24 @@ const Login = () => {
               </span>
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
+              
+              {/* Temporary test button */}
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('auth_token', 'test-token');
+                  localStorage.setItem('user', JSON.stringify({
+                    id: 1,
+                    email: 'admin@example.com',
+                    name: 'Admin User',
+                    role: 'admin'
+                  }));
+                  window.location.href = '/dashboard';
+                }}
+                className="mt-3 w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Skip Login (Test Mode)
+              </button>
           </div>
         </form>
         

@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ChartViewer from '../visualization/ChartViewer';
 import Loading from '../common/Loading';
 import {
-  RefreshIcon,
-  FilterIcon,
-  DownloadIcon,
-  ExternalLinkIcon
-} from '@heroicons/react/outline';
+  ArrowPathIcon,
+  FunnelIcon,
+  ArrowDownTrayIcon,
+  ArrowTopRightOnSquareIcon
+} from '@heroicons/react/24/outline';
 
 const SupplierDashboard = () => {
   const navigate = useNavigate();
@@ -163,7 +163,7 @@ const SupplierDashboard = () => {
               onClick={() => setFilterOpen(!filterOpen)}
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
-              <FilterIcon className="-ml-1 mr-2 h-4 w-4" />
+              <FunnelIcon className="-ml-1 mr-2 h-4 w-4" />
               Filter
             </button>
             
@@ -236,7 +236,7 @@ const SupplierDashboard = () => {
             onClick={fetchSupplierData}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            <RefreshIcon className="-ml-1 mr-2 h-4 w-4" />
+            <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4" />
             Refresh
           </button>
           
@@ -244,7 +244,7 @@ const SupplierDashboard = () => {
             onClick={handleExportDashboard}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            <DownloadIcon className="-ml-1 mr-2 h-4 w-4" />
+            <ArrowDownTrayIcon className="-ml-1 mr-2 h-4 w-4" />
             Export
           </button>
         </div>
@@ -405,7 +405,7 @@ const SupplierDashboard = () => {
                         className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"
                       >
                         View Details
-                        <ExternalLinkIcon className="ml-1 h-4 w-4" />
+                        <ArrowTopRightOnSquareIcon className="ml-1 h-4 w-4" />
                       </button>
                     </td>
                   </tr>
@@ -420,3 +420,4 @@ const SupplierDashboard = () => {
 };
 
 export default SupplierDashboard;
+
