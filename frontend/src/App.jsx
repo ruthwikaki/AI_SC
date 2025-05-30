@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 
 // Pages
@@ -35,7 +35,7 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Admin Route Component
+// Admin Route Component - Now properly checks role
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
@@ -43,7 +43,12 @@ const AdminRoute = ({ children }) => {
     return <Loading fullScreen={true} message="Loading..." />;
   }
   
-  if (!user || user.role !== 'admin') {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Check if user has admin role
+  if (user.role !== 'admin' && user.role !== 'administrator') {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -53,13 +58,14 @@ const AdminRoute = ({ children }) => {
 // Layout Component for authenticated pages
 const AuthenticatedLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const { user } = useAuth();
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} user={user} />
       <div className="flex">
-        <Sidebar isOpen={sidebarOpen} />
-        <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
           <div className="p-6">
             {children}
           </div>
@@ -88,7 +94,16 @@ function App() {
               </ProtectedRoute>
             } />
             
+            {/* Query routes with optional queryId parameter */}
             <Route path="/query" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <QueryPage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/query/:queryId" element={
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <QueryPage />
@@ -120,7 +135,7 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* Admin Routes */}
+            {/* Admin Routes - Now properly protected by role */}
             <Route path="/admin" element={
               <AdminRoute>
                 <AuthenticatedLayout>
@@ -138,9 +153,9 @@ function App() {
                 <div className="text-center">
                   <h1 className="text-6xl font-bold text-gray-300">404</h1>
                   <p className="text-xl text-gray-600 mt-4">Page not found</p>
-                  <a href="/dashboard" className="mt-6 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                  <Link to="/dashboard" className="mt-6 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                     Go to Dashboard
-                  </a>
+                  </Link>
                 </div>
               </div>
             } />

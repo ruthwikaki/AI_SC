@@ -7,8 +7,11 @@ const Loading = ({ size = 'medium', fullScreen = false, message = '' }) => {
     large: 'w-12 h-12'
   };
 
+  // Fallback to medium size if invalid size is provided
+  const spinnerSize = sizeClasses[size] || sizeClasses.medium;
+
   const Spinner = () => (
-    <div className={`${sizeClasses[size]} relative`}>
+    <div className={`${spinnerSize} relative`}>
       <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
       <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
     </div>

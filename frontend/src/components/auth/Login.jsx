@@ -26,7 +26,14 @@ const Login = () => {
       await login(email, password, rememberMe);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      // Handle Axios error response properly
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          'Failed to sign in. Please check your credentials.';
+      setError(errorMessage);
+    } finally {
+      // Always set loading to false whether success or error
       setIsLoading(false);
     }
   };
@@ -114,9 +121,9 @@ const Login = () => {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link to="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
                 Forgot your password?
-              </a>
+              </Link>
             </div>
           </div>
 

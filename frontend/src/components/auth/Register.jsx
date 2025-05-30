@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import logoImage from '../../assets/logo.svg';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -87,13 +86,20 @@ const Register = () => {
       );
       
       // Redirect to login page after successful registration
-      navigate('/login', { 
-        state: { 
-          message: 'Registration successful! Please sign in with your new account.' 
-        } 
+      navigate('/login', {
+        state: {
+          message: 'Registration successful! Please sign in with your new account.'
+        }
       });
     } catch (err) {
-      setGeneralError(err.message || 'Registration failed. Please try again later.');
+      // Handle Axios error response properly
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          'Registration failed. Please try again later.';
+      setGeneralError(errorMessage);
+    } finally {
+      // Always set loading to false
       setIsLoading(false);
     }
   };
@@ -101,11 +107,6 @@ const Register = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <img
-          className="mx-auto h-12 w-auto"
-          src={logoImage}
-          alt="Supply Chain LLM"
-        />
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Create your account
         </h2>
@@ -119,11 +120,6 @@ const Register = () => {
           {generalError && (
             <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
               <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
                 <div className="ml-3">
                   <p className="text-sm text-red-700">
                     {generalError}
@@ -289,19 +285,6 @@ const Register = () => {
                   <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
                 )}
               </div>
-            </div>
-
-            <div className="text-sm">
-              <p className="text-gray-600">
-                By registering, you agree to our{' '}
-                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Privacy Policy
-                </a>
-              </p>
             </div>
 
             <div>

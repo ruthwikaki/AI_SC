@@ -1,182 +1,101 @@
-import { useState, useEffect, useContext, createContext } from 'react';
+// frontend/src/hooks/useAuth.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/auth';
+import api from '../services/api';
 
-// Create auth context
 const AuthContext = createContext();
 
-// Auth Provider component
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // Check if user is already logged in on mount
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        setLoading(true);
-        const currentUser = await authService.getCurrentUser();
-        
-        if (currentUser) {
-          setUser(currentUser);
-        }
-      } catch (err) {
-        console.error('Authentication check failed:', err);
-        // Do not set error here, as this is just a check
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Check if user is logged in on mount
+    const token = localStorage.getItem('authToken');
+    const refreshToken = localStorage.getItem('refreshToken');
+    const savedUser = authService.getCurrentUser();
     
-    checkAuthStatus();
+    if (token && savedUser) {
+      setUser(savedUser);
+      // Set the authorization header
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+    
+    setIsLoading(false);
   }, []);
-  
-  // Login function
-  const login = async (email, password, rememberMe = false) => {
+
+  const login = async (email, password, rememberMe = true) => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      const userData = await authService.login(email, password, rememberMe);
-      setUser(userData);
-      
-      return { success: true, user: userData };
-    } catch (err) {
-      setError(err.message || 'Login failed');
-      return { success: false, error: err.message || 'Login failed' };
-    } finally {
-      setLoading(false);
+      const response = await authService.login(email, password, rememberMe);
+      setUser(response.user);
+      return response;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
     }
   };
-  
-  // Register function
-  const register = async (userData) => {
+
+  const register = async (firstName, lastName, email, password, company, jobTitle) => {
     try {
-      setLoading(true);
-      setError(null);
+      const response = await authService.register({
+        firstName,
+        lastName,
+        email,
+        password,
+        company,
+        jobTitle
+      });
       
-      const newUser = await authService.register(userData);
-      
-      // Note: typically we don't log in automatically after registration
-      // as email verification might be required
-      
-      return { success: true, user: newUser };
-    } catch (err) {
-      setError(err.message || 'Registration failed');
-      return { success: false, error: err.message || 'Registration failed' };
-    } finally {
-      setLoading(false);
+      // Don't auto-login after registration, let user login manually
+      return response;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
     }
   };
-  
-  // Logout function
-  const logout = async () => {
+
+  const logout = () => {
+    authService.logout();
+    setUser(null);
+  };
+
+  const refreshAccessToken = async () => {
     try {
-      setLoading(true);
-      await authService.logout();
-      setUser(null);
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      setLoading(false);
+      const response = await authService.refreshToken();
+      if (response.user) {
+        setUser(response.user);
+      }
+      return response.token;
+    } catch (error) {
+      // If refresh fails, logout the user
+      logout();
+      throw error;
     }
   };
-  
-  // Update user profile
-  const updateUserProfile = async (profileData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const updatedUser = await authService.updateProfile(profileData);
-      setUser({ ...user, ...updatedUser });
-      
-      return { success: true, user: updatedUser };
-    } catch (err) {
-      setError(err.message || 'Profile update failed');
-      return { success: false, error: err.message || 'Profile update failed' };
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Change password
-  const changePassword = async (currentPassword, newPassword) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await authService.changePassword(currentPassword, newPassword);
-      
-      return { success: true };
-    } catch (err) {
-      setError(err.message || 'Password change failed');
-      return { success: false, error: err.message || 'Password change failed' };
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Reset password (forgot password)
-  const resetPassword = async (email) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await authService.resetPassword(email);
-      
-      return { success: true };
-    } catch (err) {
-      setError(err.message || 'Password reset failed');
-      return { success: false, error: err.message || 'Password reset failed' };
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Computed value for isAuthenticated
+
+  // Add isAuthenticated computed value
   const isAuthenticated = !!user;
-  
-  // Check if user has a specific role
-  const hasRole = (role) => {
-    if (!user) return false;
-    return user.role === role;
-  };
-  
-  // Check if user has a specific permission
-  const hasPermission = (permission) => {
-    if (!user || !user.permissions) return false;
-    return user.permissions.includes(permission);
-  };
-  
-  // Auth context value
-  const value = {
-    user,
-    loading,
-    error,
-    isAuthenticated,
-    login,
-    register,
-    logout,
-    updateUserProfile,
-    changePassword,
-    resetPassword,
-    hasRole,
-    hasPermission
-  };
-  
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      login,
+      register,
+      logout,
+      refreshAccessToken,
+      isLoading,
+      loading: isLoading, // Provide both for compatibility
+      isAuthenticated
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-// Custom hook for using auth context
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within AuthProvider');
   }
-  
   return context;
-}
-
-export default useAuth;
+};

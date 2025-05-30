@@ -1,4 +1,4 @@
-"""
+﻿"""
 Application entry point.
 This module serves as the main entry point for the FastAPI application.
 """
@@ -7,9 +7,9 @@ import os
 import sys
 import uvicorn
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Add current directory to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))

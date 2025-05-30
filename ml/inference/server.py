@@ -21,8 +21,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 
+# Add the parent directory to the path so we can import handlers and optimizers
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 # Import handlers and optimizers
-from handlers import InferenceHandler, ModelInfo
+try:
+    from handlers import InferenceHandler, ModelInfo, router as inference_router
+except ImportError:
+    # If handlers.py doesn't have a router, we'll create our own routes
+    from handlers import InferenceHandler, ModelInfo
+    inference_router = None
+
 from optimizers import ModelOptimizer
 
 # Setup logging
@@ -148,6 +157,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# If we have a router from handlers, include it
+if inference_router:
+    app.include_router(inference_router, prefix="/api/v1")
 
 # API routes
 @app.get("/health", response_model=HealthResponse)
@@ -498,11 +511,11 @@ def main():
     """Main function to run the inference server."""
     parser = argparse.ArgumentParser(description="Run the inference server")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to bind to")
-    parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
+    parser.add_argument("--port", type=int, default=8001, help="Port to bind to")
     parser.add_argument("--models-dir", type=str, help="Directory containing models")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
     parser.add_argument("--workers", type=int, default=1, help="Number of worker processes")
-    parser.add_argument("--log-level", type=str, default="info", 
+    parser.add_argument("--log-level", type=str, default="info",
                         choices=["debug", "info", "warning", "error", "critical"],
                         help="Logging level")
     

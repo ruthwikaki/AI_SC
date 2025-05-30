@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # jobs/analytics_update.py
 
 """
@@ -402,7 +403,6 @@ class AnalyticsCalculator:
         
         self.db.commit()
         return calc
-    
     def assess_supplier_risk(self, supplier_id: str) -> RiskAssessment:
         """Assess supplier risk"""
         
@@ -537,12 +537,12 @@ class AnalyticsCalculator:
         for node in nodes:
             # Calculate input/output flow
             input_capacity = sum(
-                edge.capacity for edge in edges 
+                edge.capacity for edge in edges
                 if edge.target_node_id == node.id
             )
             
             output_capacity = sum(
-                edge.capacity for edge in edges 
+                edge.capacity for edge in edges
                 if edge.source_node_id == node.id
             )
             
@@ -595,386 +595,385 @@ async def update_supplier_metrics():
         start_date = end_date.replace(day=1)
         
         # jobs/analytics_update.py (continued)
-
-       results = []
-       
-       for supplier in suppliers:
-           try:
-               metrics = calculator.calculate_supplier_performance(
-                   supplier_id=str(supplier.id),
-                   start_date=start_date,
-                   end_date=end_date
-               )
-               if metrics:
-                   results.append({
-                       "supplier_id": str(supplier.id),
-                       "supplier_name": supplier.name,
-                       "overall_score": metrics.overall_score
-                   })
-           except Exception as e:
-               logger.error(f"Failed to calculate metrics for supplier {supplier.id}: {str(e)}")
-       
-       logger.info(f"Updated metrics for {len(results)} suppliers")
-       return results
+        
+        results = []
+        
+        for supplier in suppliers:
+            try:
+                metrics = calculator.calculate_supplier_performance(
+                    supplier_id=str(supplier.id),
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                if metrics:
+                    results.append({
+                        "supplier_id": str(supplier.id),
+                        "supplier_name": supplier.name,
+                        "overall_score": metrics.overall_score
+                    })
+            except Exception as e:
+                logger.error(f"Failed to calculate metrics for supplier {supplier.id}: {str(e)}")
+        
+        logger.info(f"Updated metrics for {len(results)} suppliers")
+        return results
 
 
 @scheduled_job(name="update_inventory_metrics", description="Update inventory metrics")
 async def update_inventory_metrics():
-   """Update inventory metrics for all locations"""
-   with get_db_session() as db:
-       calculator = AnalyticsCalculator(db)
-       
-       # Get unique locations
-       locations = db.query(Inventory.location_id).distinct().all()
-       
-       # Calculate last month's metrics
-       end_date = date.today().replace(day=1) - timedelta(days=1)
-       start_date = end_date.replace(day=1)
-       
-       results = []
-       
-       for location in locations:
-           try:
-               metrics = calculator.calculate_inventory_metrics(
-                   location_id=location[0],
-                   product_id=None,  # All products
-                   start_date=start_date,
-                   end_date=end_date
-               )
-               results.extend(metrics)
-           except Exception as e:
-               logger.error(f"Failed to calculate metrics for location {location[0]}: {str(e)}")
-       
-       logger.info(f"Updated {len(results)} inventory metrics")
-       return len(results)
+    """Update inventory metrics for all locations"""
+    with get_db_session() as db:
+        calculator = AnalyticsCalculator(db)
+        
+        # Get unique locations
+        locations = db.query(Inventory.location_id).distinct().all()
+        
+        # Calculate last month's metrics
+        end_date = date.today().replace(day=1) - timedelta(days=1)
+        start_date = end_date.replace(day=1)
+        
+        results = []
+        
+        for location in locations:
+            try:
+                metrics = calculator.calculate_inventory_metrics(
+                    location_id=location[0],
+                    product_id=None,  # All products
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                results.extend(metrics)
+            except Exception as e:
+                logger.error(f"Failed to calculate metrics for location {location[0]}: {str(e)}")
+        
+        logger.info(f"Updated {len(results)} inventory metrics")
+        return len(results)
 
 
 @scheduled_job(name="update_delivery_performance", description="Update delivery performance metrics")
 async def update_delivery_performance():
-   """Update delivery performance metrics"""
-   with get_db_session() as db:
-       # Get completed shipments from last month
-       end_date = date.today().replace(day=1) - timedelta(days=1)
-       start_date = end_date.replace(day=1)
-       
-       shipments = db.query(Shipment).filter(
-           and_(
-               Shipment.actual_delivery_date >= start_date,
-               Shipment.actual_delivery_date <= end_date,
-               Shipment.status == "delivered"
-           )
-       ).all()
-       
-       metrics_by_carrier = defaultdict(lambda: {
-           "total_shipments": 0,
-           "on_time": 0,
-           "late": 0,
-           "damaged": 0,
-           "total_cost": Decimal("0")
-       })
-       
-       for shipment in shipments:
-           carrier = shipment.carrier or "Unknown"
-           metrics = metrics_by_carrier[carrier]
-           
-           metrics["total_shipments"] += 1
-           metrics["total_cost"] += shipment.shipping_cost or Decimal("0")
-           
-           # Check on-time delivery
-           if shipment.estimated_delivery_date and shipment.actual_delivery_date:
-               if shipment.actual_delivery_date <= shipment.estimated_delivery_date:
-                   metrics["on_time"] += 1
-               else:
-                   metrics["late"] += 1
-       
-       # Create performance records
-       for carrier, metrics in metrics_by_carrier.items():
-           on_time_rate = (metrics["on_time"] / metrics["total_shipments"] * 100) if metrics["total_shipments"] > 0 else 0
-           
-           perf = DeliveryPerformance(
-               carrier=carrier,
-               period_start=start_date,
-               period_end=end_date,
-               total_shipments=metrics["total_shipments"],
-               on_time_deliveries=metrics["on_time"],
-               late_deliveries=metrics["late"],
-               damaged_deliveries=metrics["damaged"],
-               on_time_rate=on_time_rate,
-               average_transit_time=0,  # Would need to calculate
-               average_cost=metrics["total_cost"] / metrics["total_shipments"] if metrics["total_shipments"] > 0 else 0
-           )
-           db.add(perf)
-       
-       db.commit()
-       logger.info(f"Updated delivery performance for {len(metrics_by_carrier)} carriers")
-       return len(metrics_by_carrier)
+    """Update delivery performance metrics"""
+    with get_db_session() as db:
+        # Get completed shipments from last month
+        end_date = date.today().replace(day=1) - timedelta(days=1)
+        start_date = end_date.replace(day=1)
+        
+        shipments = db.query(Shipment).filter(
+            and_(
+                Shipment.actual_delivery_date >= start_date,
+                Shipment.actual_delivery_date <= end_date,
+                Shipment.status == "delivered"
+            )
+        ).all()
+        
+        metrics_by_carrier = defaultdict(lambda: {
+            "total_shipments": 0,
+            "on_time": 0,
+            "late": 0,
+            "damaged": 0,
+            "total_cost": Decimal("0")
+        })
+        
+        for shipment in shipments:
+            carrier = shipment.carrier or "Unknown"
+            metrics = metrics_by_carrier[carrier]
+            
+            metrics["total_shipments"] += 1
+            metrics["total_cost"] += shipment.shipping_cost or Decimal("0")
+            
+            # Check on-time delivery
+            if shipment.estimated_delivery_date and shipment.actual_delivery_date:
+                if shipment.actual_delivery_date <= shipment.estimated_delivery_date:
+                    metrics["on_time"] += 1
+                else:
+                    metrics["late"] += 1
+        
+        # Create performance records
+        for carrier, metrics in metrics_by_carrier.items():
+            on_time_rate = (metrics["on_time"] / metrics["total_shipments"] * 100) if metrics["total_shipments"] > 0 else 0
+            
+            perf = DeliveryPerformance(
+                carrier=carrier,
+                period_start=start_date,
+                period_end=end_date,
+                total_shipments=metrics["total_shipments"],
+                on_time_deliveries=metrics["on_time"],
+                late_deliveries=metrics["late"],
+                damaged_deliveries=metrics["damaged"],
+                on_time_rate=on_time_rate,
+                average_transit_time=0,  # Would need to calculate
+                average_cost=metrics["total_cost"] / metrics["total_shipments"] if metrics["total_shipments"] > 0 else 0)
+            db.add(perf)
+        
+        db.commit()
+        logger.info(f"Updated delivery performance for {len(metrics_by_carrier)} carriers")
+        return len(metrics_by_carrier)
 
 
 @scheduled_job(name="calculate_abc_analysis", description="Perform ABC analysis on inventory")
 async def calculate_abc_analysis():
-   """Perform ABC analysis for all locations"""
-   with get_db_session() as db:
-       calculator = AnalyticsCalculator(db)
-       
-       # Get unique locations
-       locations = db.query(Inventory.location_id).distinct().all()
-       
-       all_results = []
-       
-       for location in locations:
-           try:
-               results = calculator.perform_abc_analysis(location_id=location[0])
-               all_results.extend(results)
-           except Exception as e:
-               logger.error(f"Failed to perform ABC analysis for location {location[0]}: {str(e)}")
-       
-       logger.info(f"Completed ABC analysis for {len(all_results)} products")
-       return len(all_results)
+    """Perform ABC analysis for all locations"""
+    with get_db_session() as db:
+        calculator = AnalyticsCalculator(db)
+        
+        # Get unique locations
+        locations = db.query(Inventory.location_id).distinct().all()
+        
+        all_results = []
+        
+        for location in locations:
+            try:
+                results = calculator.perform_abc_analysis(location_id=location[0])
+                all_results.extend(results)
+            except Exception as e:
+                logger.error(f"Failed to perform ABC analysis for location {location[0]}: {str(e)}")
+        
+        logger.info(f"Completed ABC analysis for {len(all_results)} products")
+        return len(all_results)
 
 
 @scheduled_job(name="update_risk_assessments", description="Update supplier risk assessments")
 async def update_risk_assessments():
-   """Update risk assessments for all suppliers"""
-   with get_db_session() as db:
-       calculator = AnalyticsCalculator(db)
-       
-       # Get suppliers needing assessment
-       suppliers = db.query(Supplier).filter(
-           Supplier.status == "active"
-       ).all()
-       
-       results = []
-       
-       for supplier in suppliers:
-           try:
-               assessment = calculator.assess_supplier_risk(str(supplier.id))
-               if assessment:
-                   results.append({
-                       "supplier_id": str(supplier.id),
-                       "supplier_name": supplier.name,
-                       "risk_level": assessment.risk_level,
-                       "risk_score": assessment.risk_score
-                   })
-           except Exception as e:
-               logger.error(f"Failed to assess risk for supplier {supplier.id}: {str(e)}")
-       
-       logger.info(f"Updated risk assessments for {len(results)} suppliers")
-       return results
+    """Update risk assessments for all suppliers"""
+    with get_db_session() as db:
+        calculator = AnalyticsCalculator(db)
+        
+        # Get suppliers needing assessment
+        suppliers = db.query(Supplier).filter(
+            Supplier.status == "active"
+        ).all()
+        
+        results = []
+        
+        for supplier in suppliers:
+            try:
+                assessment = calculator.assess_supplier_risk(str(supplier.id))
+                if assessment:
+                    results.append({
+                        "supplier_id": str(supplier.id),
+                        "supplier_name": supplier.name,
+                        "risk_level": assessment.risk_level,
+                        "risk_score": assessment.risk_score
+                    })
+            except Exception as e:
+                logger.error(f"Failed to assess risk for supplier {supplier.id}: {str(e)}")
+        
+        logger.info(f"Updated risk assessments for {len(results)} suppliers")
+        return results
 
 
 @scheduled_job(name="update_safety_stock", description="Update safety stock calculations")
 async def update_safety_stock():
-   """Update safety stock for all products"""
-   with get_db_session() as db:
-       calculator = AnalyticsCalculator(db)
-       
-       # Get active inventory items
-       inventory_items = db.query(Inventory).filter(
-           Inventory.quantity_on_hand > 0
-       ).all()
-       
-       results = []
-       
-       for item in inventory_items:
-           try:
-               calc = calculator.calculate_safety_stock(
-                   product_id=str(item.product_id),
-                   location_id=item.location_id,
-                   service_level=0.95
-               )
-               if calc:
-                   results.append({
-                       "product_id": str(item.product_id),
-                       "location_id": item.location_id,
-                       "safety_stock": calc.safety_stock_quantity,
-                       "reorder_point": calc.reorder_point
-                   })
-           except Exception as e:
-               logger.error(f"Failed to calculate safety stock for product {item.product_id}: {str(e)}")
-       
-       logger.info(f"Updated safety stock for {len(results)} items")
-       return len(results)
+    """Update safety stock for all products"""
+    with get_db_session() as db:
+        calculator = AnalyticsCalculator(db)
+        
+        # Get active inventory items
+        inventory_items = db.query(Inventory).filter(
+            Inventory.quantity_on_hand > 0
+        ).all()
+        
+        results = []
+        
+        for item in inventory_items:
+            try:
+                calc = calculator.calculate_safety_stock(
+                    product_id=str(item.product_id),
+                    location_id=item.location_id,
+                    service_level=0.95
+                )
+                if calc:
+                    results.append({
+                        "product_id": str(item.product_id),
+                        "location_id": item.location_id,
+                        "safety_stock": calc.safety_stock_quantity,
+                        "reorder_point": calc.reorder_point
+                    })
+            except Exception as e:
+                logger.error(f"Failed to calculate safety stock for product {item.product_id}: {str(e)}")
+        
+        logger.info(f"Updated safety stock for {len(results)} items")
+        return len(results)
 
 
 @scheduled_job(name="identify_network_bottlenecks", description="Identify supply chain bottlenecks")
 async def identify_network_bottlenecks():
-   """Identify bottlenecks in all supply chain networks"""
-   with get_db_session() as db:
-       calculator = AnalyticsCalculator(db)
-       
-       # Get active networks
-       from app.models import SupplyChainNetwork
-       networks = db.query(SupplyChainNetwork).filter(
-           SupplyChainNetwork.is_active == True
-       ).all()
-       
-       all_bottlenecks = []
-       
-       for network in networks:
-           try:
-               bottlenecks = calculator.identify_bottlenecks(str(network.id))
-               all_bottlenecks.extend(bottlenecks)
-           except Exception as e:
-               logger.error(f"Failed to identify bottlenecks for network {network.id}: {str(e)}")
-       
-       logger.info(f"Identified {len(all_bottlenecks)} bottlenecks")
-       return len(all_bottlenecks)
+    """Identify bottlenecks in all supply chain networks"""
+    with get_db_session() as db:
+        calculator = AnalyticsCalculator(db)
+        
+        # Get active networks
+        from app.models import SupplyChainNetwork
+        networks = db.query(SupplyChainNetwork).filter(
+            SupplyChainNetwork.is_active == True
+        ).all()
+        
+        all_bottlenecks = []
+        
+        for network in networks:
+            try:
+                bottlenecks = calculator.identify_bottlenecks(str(network.id))
+                all_bottlenecks.extend(bottlenecks)
+            except Exception as e:
+                logger.error(f"Failed to identify bottlenecks for network {network.id}: {str(e)}")
+        
+        logger.info(f"Identified {len(all_bottlenecks)} bottlenecks")
+        return len(all_bottlenecks)
 
 
 @scheduled_job(name="run_all_analytics", description="Run all analytics updates")
 async def run_all_analytics():
-   """Run all analytics calculations"""
-   results = {
-       "supplier_metrics": await update_supplier_metrics(),
-       "inventory_metrics": await update_inventory_metrics(),
-       "delivery_performance": await update_delivery_performance(),
-       "abc_analysis": await calculate_abc_analysis(),
-       "risk_assessments": await update_risk_assessments(),
-       "safety_stock": await update_safety_stock(),
-       "bottlenecks": await identify_network_bottlenecks()
-   }
-   
-   logger.info(f"Completed all analytics updates: {results}")
-   return results
+    """Run all analytics calculations"""
+    results = {
+        "supplier_metrics": await update_supplier_metrics(),
+        "inventory_metrics": await update_inventory_metrics(),
+        "delivery_performance": await update_delivery_performance(),
+        "abc_analysis": await calculate_abc_analysis(),
+        "risk_assessments": await update_risk_assessments(),
+        "safety_stock": await update_safety_stock(),
+        "bottlenecks": await identify_network_bottlenecks()
+    }
+    
+    logger.info(f"Completed all analytics updates: {results}")
+    return results
 
 
 async def run_analytics_by_id(analytics_id: str):
-   """Run a specific scheduled analytics job"""
-   with get_db_session() as db:
-       # Get scheduled analytics
-       scheduled = db.query(ScheduledAnalytics).filter(
-           ScheduledAnalytics.id == analytics_id
-       ).first()
-       
-       if not scheduled:
-           raise ValueError(f"Scheduled analytics {analytics_id} not found")
-       
-       # Run based on type
-       analytics_type = scheduled.analytics_type
-       parameters = scheduled.parameters or {}
-       
-       calculator = AnalyticsCalculator(db)
-       
-       if analytics_type == "supplier_performance":
-           supplier_id = parameters.get("supplier_id")
-           if supplier_id:
-               result = calculator.calculate_supplier_performance(
-                   supplier_id=supplier_id,
-                   start_date=date.today() - timedelta(days=30),
-                   end_date=date.today()
-               )
-           else:
-               result = await update_supplier_metrics()
-       
-       elif analytics_type == "inventory_metrics":
-           location_id = parameters.get("location_id")
-           product_id = parameters.get("product_id")
-           result = calculator.calculate_inventory_metrics(
-               location_id=location_id,
-               product_id=product_id,
-               start_date=date.today() - timedelta(days=30),
-               end_date=date.today()
-           )
-       
-       elif analytics_type == "abc_analysis":
-           location_id = parameters.get("location_id")
-           result = calculator.perform_abc_analysis(location_id=location_id)
-       
-       elif analytics_type == "risk_assessment":
-           supplier_id = parameters.get("supplier_id")
-           if supplier_id:
-               result = calculator.assess_supplier_risk(supplier_id)
-           else:
-               result = await update_risk_assessments()
-       
-       else:
-           raise ValueError(f"Unknown analytics type: {analytics_type}")
-       
-       # Store result
-       analytics_result = AnalyticsResult(
-           analytics_type=analytics_type,
-           parameters=parameters,
-           result_data={"result": result},
-           created_by_id=scheduled.created_by_id
-       )
-       db.add(analytics_result)
-       
-       # Update last run time
-       scheduled.last_run_time = datetime.utcnow()
-       scheduled.next_run_time = datetime.utcnow() + timedelta(
-           seconds=scheduled.schedule_config.get("interval_seconds", 86400)
-       )
-       
-       db.commit()
-       
-       return result
+    """Run a specific scheduled analytics job"""
+    with get_db_session() as db:
+        # Get scheduled analytics
+        scheduled = db.query(ScheduledAnalytics).filter(
+            ScheduledAnalytics.id == analytics_id
+        ).first()
+        
+        if not scheduled:
+            raise ValueError(f"Scheduled analytics {analytics_id} not found")
+        
+        # Run based on type
+        analytics_type = scheduled.analytics_type
+        parameters = scheduled.parameters or {}
+        
+        calculator = AnalyticsCalculator(db)
+        
+        if analytics_type == "supplier_performance":
+            supplier_id = parameters.get("supplier_id")
+            if supplier_id:
+                result = calculator.calculate_supplier_performance(
+                    supplier_id=supplier_id,
+                    start_date=date.today() - timedelta(days=30),
+                    end_date=date.today()
+                )
+            else:
+                result = await update_supplier_metrics()
+        
+        elif analytics_type == "inventory_metrics":
+            location_id = parameters.get("location_id")
+            product_id = parameters.get("product_id")
+            result = calculator.calculate_inventory_metrics(
+                location_id=location_id,
+                product_id=product_id,
+                start_date=date.today() - timedelta(days=30),
+                end_date=date.today()
+            )
+        
+        elif analytics_type == "abc_analysis":
+            location_id = parameters.get("location_id")
+            result = calculator.perform_abc_analysis(location_id=location_id)
+        
+        elif analytics_type == "risk_assessment":
+            supplier_id = parameters.get("supplier_id")
+            if supplier_id:
+                result = calculator.assess_supplier_risk(supplier_id)
+            else:
+                result = await update_risk_assessments()
+        
+        else:
+            raise ValueError(f"Unknown analytics type: {analytics_type}")
+        
+        # Store result
+        analytics_result = AnalyticsResult(
+            analytics_type=analytics_type,
+            parameters=parameters,
+            result_data={"result": result},
+            created_by_id=scheduled.created_by_id
+        )
+        db.add(analytics_result)
+        
+        # Update last run time
+        scheduled.last_run_time = datetime.utcnow()
+        scheduled.next_run_time = datetime.utcnow() + timedelta(
+            seconds=scheduled.schedule_config.get("interval_seconds", 86400)
+        )
+        
+        db.commit()
+        
+        return result
 
 
 async def generate_scheduled_report(report_type: str, recipients: List[str]):
-   """Generate and send scheduled report"""
-   with get_db_session() as db:
-       # Generate report based on type
-       if report_type == "supplier_performance":
-           # Get latest supplier metrics
-           metrics = db.query(SupplierPerformanceMetrics).filter(
-               SupplierPerformanceMetrics.period_end >= date.today() - timedelta(days=35)
-           ).all()
-           
-           # Create report data
-           report_data = {
-               "report_type": "supplier_performance",
-               "period": f"{metrics[0].period_start} to {metrics[0].period_end}" if metrics else "N/A",
-               "summary": {
-                   "total_suppliers": len(metrics),
-                   "average_score": sum(m.overall_score for m in metrics) / len(metrics) if metrics else 0,
-                   "high_performers": len([m for m in metrics if m.overall_score >= 90]),
-                   "at_risk": len([m for m in metrics if m.overall_score < 60])
-               },
-               "details": [
-                   {
-                       "supplier_id": str(m.supplier_id),
-                       "overall_score": m.overall_score,
-                       "on_time_rate": m.on_time_delivery_rate,
-                       "quality_score": m.quality_score
-                   }
-                   for m in sorted(metrics, key=lambda x: x.overall_score, reverse=True)[:10]
-               ]
-           }
-       
-       elif report_type == "inventory_status":
-           # Get inventory metrics and ABC analysis
-           abc_results = db.query(ABCAnalysisResult).all()
-           
-           report_data = {
-               "report_type": "inventory_status",
-               "generated_at": datetime.utcnow().isoformat(),
-               "summary": {
-                   "total_products": len(abc_results),
-                   "a_items": len([r for r in abc_results if r.classification == "A"]),
-                   "b_items": len([r for r in abc_results if r.classification == "B"]),
-                   "c_items": len([r for r in abc_results if r.classification == "C"]),
-                   "total_inventory_value": sum(r.current_inventory_value for r in abc_results)
-               }
-           }
-       
-       else:
-           raise ValueError(f"Unknown report type: {report_type}")
-       
-       # Create report record
-       from app.models import Report
-       report = Report(
-           report_type=report_type,
-           name=f"{report_type.replace('_', ' ').title()} - {date.today()}",
-           parameters={"recipients": recipients},
-           status="completed",
-           result_data=report_data,
-           generated_at=datetime.utcnow(),
-           created_by_id=None  # System generated
-       )
-       db.add(report)
-       db.commit()
-       
-       # Send report to recipients (would integrate with email service)
-       logger.info(f"Generated {report_type} report for {len(recipients)} recipients")
-       
-       return report
+    """Generate and send scheduled report"""
+    with get_db_session() as db:
+        # Generate report based on type
+        if report_type == "supplier_performance":
+            # Get latest supplier metrics
+            metrics = db.query(SupplierPerformanceMetrics).filter(
+                SupplierPerformanceMetrics.period_end >= date.today() - timedelta(days=35)
+            ).all()
+            
+            # Create report data
+            report_data = {
+                "report_type": "supplier_performance",
+                "period": f"{metrics[0].period_start} to {metrics[0].period_end}" if metrics else "N/A",
+                "summary": {
+                    "total_suppliers": len(metrics),
+                    "average_score": sum(m.overall_score for m in metrics) / len(metrics) if metrics else 0,
+                    "high_performers": len([m for m in metrics if m.overall_score >= 90]),
+                    "at_risk": len([m for m in metrics if m.overall_score < 60])
+                },
+                "details": [
+                    {
+                        "supplier_id": str(m.supplier_id),
+                        "overall_score": m.overall_score,
+                        "on_time_rate": m.on_time_delivery_rate,
+                        "quality_score": m.quality_score
+                    }
+                    for m in sorted(metrics, key=lambda x: x.overall_score, reverse=True)[:10]
+                ]
+            }
+        
+        elif report_type == "inventory_status":
+            # Get inventory metrics and ABC analysis
+            abc_results = db.query(ABCAnalysisResult).all()
+            
+            report_data = {
+                "report_type": "inventory_status",
+                "generated_at": datetime.utcnow().isoformat(),
+                "summary": {
+                    "total_products": len(abc_results),
+                    "a_items": len([r for r in abc_results if r.classification == "A"]),
+                    "b_items": len([r for r in abc_results if r.classification == "B"]),
+                    "c_items": len([r for r in abc_results if r.classification == "C"]),
+                    "total_inventory_value": sum(r.current_inventory_value for r in abc_results)
+                }
+            }
+        
+        else:
+            raise ValueError(f"Unknown report type: {report_type}")
+        
+        # Create report record
+        from app.models import Report
+        report = Report(
+            report_type=report_type,
+            name=f"{report_type.replace('_', ' ').title()} - {date.today()}",
+            parameters={"recipients": recipients},
+            status="completed",
+            result_data=report_data,
+            generated_at=datetime.utcnow(),
+            created_by_id=None  # System generated
+        )
+        db.add(report)
+        db.commit()
+        
+        # Send report to recipients (would integrate with email service)
+        logger.info(f"Generated {report_type} report for {len(recipients)} recipients")
+        
+        return report

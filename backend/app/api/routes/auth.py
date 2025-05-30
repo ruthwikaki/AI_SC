@@ -4,15 +4,22 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
+from passlib.context import CryptContext
 
 from app.db.interfaces.user_interface import UserInterface
-from app.security.encryption import get_password_hash, verify_password
 from app.security.rbac_manager import get_user_permissions
 from app.utils.logger import get_logger
 from app.db.interfaces.user_interface import User as DBUser
+from app.config import get_settings
 
 # Initialize logger
 logger = get_logger(__name__)
+
+# Get settings
+settings = get_settings()
+
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Router
 router = APIRouter(
@@ -20,11 +27,6 @@ router = APIRouter(
     tags=["authentication"],
     responses={401: {"description": "Unauthorized"}},
 )
-
-# JWT Config (should be in environment variables in production)
-SECRET_KEY = "REPLACE_WITH_SECURE_SECRET_KEY"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Models
 class Token(BaseModel):
@@ -61,14 +63,22 @@ class UserInDB(User):
 # Auth utilities
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
+def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt."""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash."""
+    return pwd_context.verify(plain_password, hashed_password)
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return encoded_jwt, expire
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -80,7 +90,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         username: str = payload.get("sub")
         user_id: str = payload.get("user_id")
         role: str = payload.get("role")
@@ -161,9 +171,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     
     # Create access token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token, expires_at = create_access_token(
-        data={"sub": user.username, "user_id": user.id, "role": user.role}, 
+        data={"sub": user.username, "user_id": user.id, "role": user.role},
         expires_delta=access_token_expires
     )
     
@@ -172,7 +182,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     
     logger.info(f"User logged in: {form_data.username}")
     return {
-        "access_token": access_token, 
+        "access_token": access_token,
         "token_type": "bearer",
         "expires_at": expires_at,
         "user_id": user.id,
@@ -182,7 +192,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @router.post("/logout")
 async def logout(current_user: User = Depends(get_current_active_user)):
-    """Logout the user 
+    """Logout the user
     
     In a stateless JWT setup, we don't actually invalidate the token on the server.
     Instead, the client should discard the token. This endpoint provides a standardized

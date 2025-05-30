@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// Create axios instance with base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Create API base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -13,12 +14,10 @@ const api = axios.create({
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
-    
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
   (error) => {
@@ -34,13 +33,24 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    // Add detailed logging
+    console.error('API Error Details:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers,
+      message: error.message,
+      code: error.code
+    });
+    
     // Handle token expiration and refresh
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
       try {
-        // Attempt to refresh token
-        const refreshToken = localStorage.getItem('refresh_token');
+        const refreshToken = localStorage.getItem('refreshToken');
         
         if (refreshToken) {
           const res = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
@@ -48,7 +58,7 @@ api.interceptors.response.use(
           });
           
           if (res.data.token) {
-            localStorage.setItem('auth_token', res.data.token);
+            localStorage.setItem('authToken', res.data.token);
             api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
             return api(originalRequest);
           }
@@ -56,11 +66,20 @@ api.interceptors.response.use(
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         
-        // Clear auth data and redirect to login
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
         window.location.href = '/login';
       }
+    }
+    
+    // Check if this is a network error (no response)
+    if (!error.response) {
+      console.error('Network Error - Backend might be down or CORS issue');
+      const networkError = new Error('Unable to connect to server. Please check if the backend is running.');
+      networkError.status = null;
+      networkError.data = null;
+      return Promise.reject(networkError);
     }
     
     // Extract error message
@@ -76,79 +95,19 @@ api.interceptors.response.use(
     const formattedError = new Error(errorMessage);
     formattedError.status = error.response ? error.response.status : null;
     formattedError.data = error.response ? error.response.data : null;
+    formattedError.originalError = error; // Keep original for debugging
     
     return Promise.reject(formattedError);
   }
 );
 
-// API helper functions
-const apiHelper = {
-  // Generic GET request
-  get: async (url, params = {}) => {
-    try {
-      const response = await api.get(url, { params });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-  
-  // Generic POST request
-  post: async (url, data = {}) => {
-    try {
-      const response = await api.post(url, data);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-  
-  // Generic PUT request
-  put: async (url, data = {}) => {
-    try {
-      const response = await api.put(url, data);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-  
-  // Generic PATCH request
-  patch: async (url, data = {}) => {
-    try {
-      const response = await api.patch(url, data);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-  
-  // Generic DELETE request
-  delete: async (url) => {
-    try {
-      const response = await api.delete(url);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-  
-  // Function to upload files
-  upload: async (url, formData, onUploadProgress = () => {}) => {
-    try {
-      const response = await api.post(url, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress,
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
+// API helper object with common methods
+export const apiHelper = {
+  get: (url, params) => api.get(url, { params }),
+  post: (url, data) => api.post(url, data),
+  put: (url, data) => api.put(url, data),
+  patch: (url, data) => api.patch(url, data),
+  delete: (url) => api.delete(url),
 };
 
-// Export both api instance and helper functions
-export { apiHelper };
 export default api;

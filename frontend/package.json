@@ -43,7 +43,6 @@
     "test:coverage": "vitest --coverage",
     "analyze": "ANALYZE=true vite build",
     "clean": "rm -rf dist",
-    "prepare": "husky install",
     "precommit": "lint-staged"
   },
   "dependencies": {
