@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Create API base URL from environment variable
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// CHANGE THIS: Use empty string to let Vite proxy handle the routing
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Create axios instance
 const api = axios.create({
@@ -14,7 +14,7 @@ const api = axios.create({
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -50,10 +50,11 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
+        const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
         
         if (refreshToken) {
-          const res = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
+          // CHANGE THIS: Remove API_BASE_URL since we're using relative URLs
+          const res = await axios.post('/api/auth/refresh-token', {
             refresh_token: refreshToken,
           });
           

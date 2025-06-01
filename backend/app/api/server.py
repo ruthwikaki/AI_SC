@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
@@ -7,6 +7,8 @@ import time
 import os
 from datetime import datetime
 import logging
+from sqlalchemy import text
+from sqlalchemy import create_engine
 
 from app.api.routes import auth, queries, visualizations, database, analytics, admin
 from app.api.middleware.auth import JWTAuthMiddleware, AdminOnlyMiddleware
@@ -22,6 +24,9 @@ settings = get_settings()
 # Setup logging
 setup_logging()
 logger = get_logger(__name__)
+
+# Create database engine for health checks
+engine = create_engine(settings.database_url, echo=False)
 
 # Create FastAPI application
 app = FastAPI(
@@ -69,6 +74,27 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "environment": settings.environment,
     }
+
+# ADDED: Database health check endpoint
+@app.get("/api/health/db", tags=["system"])
+async def health_db():
+    """
+    Database health check endpoint to verify database connectivity.
+    """
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Database health check failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unreachable"
+        )
 
 # Include routers
 app.include_router(auth.router, prefix="/api")
@@ -141,7 +167,7 @@ async def shutdown_event():
     logger.info("Shutting down Supply Chain LLM API")
     
     # Clean up resources, close connections, etc.
-    # These would be implemented in a real application
+    await engine.dispose()
 
 # Export the app for ASGI servers (like Uvicorn)
 api_app = app

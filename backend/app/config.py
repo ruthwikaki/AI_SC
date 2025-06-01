@@ -6,8 +6,8 @@ This module provides functions for loading and accessing application settings.
 
 import os
 from typing import List, Dict, Any, Optional, Union
-from pydantic_settings import BaseSettings  # Updated import
-from pydantic import Field, validator
+from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator, ConfigDict
 from functools import lru_cache
 import json
 import dotenv
@@ -31,19 +31,28 @@ class Settings(BaseSettings):
     allowed_hosts: List[str] = ["*"]
     cors_origins: List[str] = ["*"]
     
-    # Database settings
-    database_url: str = "postgresql://postgres:123456789@localhost:5432/supplychain_AI"
+    # Database settings - FIXED: Using Field with validation_alias for env mapping
+    database_url: str = Field(
+        default="postgresql://postgres:123456789@localhost:5432/supplychain_AI",
+        validation_alias="DATABASE_URL"
+    )
     database_pool_size: int = 5
     database_pool_overflow: int = 10
     
     # Authentication settings
-    jwt_secret_key: str = Field("CHANGE_THIS_IN_PRODUCTION", env="JWT_SECRET_KEY")
+    jwt_secret_key: str = Field(
+        default="CHANGE_THIS_IN_PRODUCTION",
+        validation_alias="JWT_SECRET_KEY"
+    )
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     
     # Encryption settings
-    encryption_key: Optional[str] = Field(None, env="ENCRYPTION_KEY")
+    encryption_key: Optional[str] = Field(
+        default=None,
+        validation_alias="ENCRYPTION_KEY"
+    )
     
     # Rate limiting settings
     rate_limit_requests: int = 100
@@ -52,12 +61,21 @@ class Settings(BaseSettings):
     token_limit_window: int = 3600  # seconds
     
     # LLM settings
-    llm_api_key: Optional[str] = Field(None, env="LLM_API_KEY")
-    llm_api_base: Optional[str] = Field(None, env="LLM_API_BASE")
+    llm_api_key: Optional[str] = Field(
+        default=None,
+        validation_alias="LLM_API_KEY"
+    )
+    llm_api_base: Optional[str] = Field(
+        default=None,
+        validation_alias="LLM_API_BASE"
+    )
     default_model: str = "mistral-medium"
     active_model: Optional[str] = None
     model_config_path: str = "app/llm/config"
-    llama3_model_path: Optional[str] = Field(None, env="LLAMA3_MODEL_PATH")
+    llama3_model_path: Optional[str] = Field(
+        default=None,
+        validation_alias="LLAMA3_MODEL_PATH"
+    )
     
     # LLM health check settings
     llm_health_check_interval: int = 300  # seconds
@@ -79,7 +97,7 @@ class Settings(BaseSettings):
     
     # Client settings
     default_client_id: Optional[str] = None
-    admin_db_client_id: str = "admin"  # Added this field that was missing
+    admin_db_client_id: str = "admin"
     
     # File storage settings
     storage_provider: str = "local"  # local, s3
@@ -94,9 +112,17 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = None
     email_sender: str = "noreply@example.com"
     
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "case_sensitive": False}
+    # FIXED: Using Pydantic v2 ConfigDict
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"  # This prevents "extra inputs are not permitted" error
+    )
     
-    @validator("environment")
+    # FIXED: Updated validators to Pydantic v2 syntax
+    @field_validator("environment")
+    @classmethod
     def validate_environment(cls, v):
         """Validate environment setting."""
         allowed = ["development", "testing", "staging", "production"]
@@ -104,7 +130,8 @@ class Settings(BaseSettings):
             raise ValueError(f"environment must be one of {allowed}")
         return v.lower()
     
-    @validator("log_level")
+    @field_validator("log_level")
+    @classmethod
     def validate_log_level(cls, v):
         """Validate log level setting."""
         allowed = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -112,17 +139,19 @@ class Settings(BaseSettings):
             raise ValueError(f"log_level must be one of {allowed}")
         return v.upper()
     
-    @validator("database_url")
-    def validate_database_url(cls, v, values):
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, v, info):
         """Validate database URL based on environment."""
-        if values.get("environment") == "production" and "localhost" in v:
+        if info.data.get("environment") == "production" and "localhost" in v:
             raise ValueError("Production environment should not use localhost database")
         return v
     
-    @validator("jwt_secret_key")
-    def validate_jwt_secret(cls, v, values):
+    @field_validator("jwt_secret_key")
+    @classmethod
+    def validate_jwt_secret(cls, v, info):
         """Validate JWT secret key."""
-        if values.get("environment") == "production" and v == "CHANGE_THIS_IN_PRODUCTION":
+        if info.data.get("environment") == "production" and v == "CHANGE_THIS_IN_PRODUCTION":
             raise ValueError("Production environment requires a secure JWT secret key")
         return v
 

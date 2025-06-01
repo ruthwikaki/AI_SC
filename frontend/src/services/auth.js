@@ -4,18 +4,17 @@ const authService = {
   // Register new user
   async register(userData) {
     try {
-      // Backend expects username, email, and password
       const registrationData = {
-        username: userData.email.split('@')[0], // Use email prefix as username
+        username: userData.email.split('@')[0],
         email: userData.email,
         password: userData.password,
-        first_name: userData.firstName,
-        last_name: userData.lastName,
-        company: userData.company,
-        job_title: userData.jobTitle
+        //first_name: userData.firstName,
+        //last_name: userData.lastName,
+        //company: userData.company,
+        //job_title: userData.jobTitle
       };
       
-      const response = await api.post('/auth/register', registrationData);
+      const response = await api.post('/api/auth/register', registrationData);
       return response.data;
     } catch (error) {
       if (error.response?.data?.detail) {
@@ -28,39 +27,34 @@ const authService = {
   // Login user
   async login(email, password, rememberMe = true) {
     try {
-      // OAuth2 compatible login
       const formData = new URLSearchParams();
       formData.append('username', email);
       formData.append('password', password);
       
-      const response = await api.post('/auth/token', formData, {
+      const response = await api.post('/api/auth/token', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
       
       if (response.data.access_token) {
-        // Use appropriate storage based on rememberMe
         const storage = rememberMe ? localStorage : sessionStorage;
-        
         storage.setItem('authToken', response.data.access_token);
         
-        // Store refresh token if provided
         if (response.data.refresh_token) {
           storage.setItem('refreshToken', response.data.refresh_token);
         }
         
         api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
         
-        // Get user details
-        const userResponse = await api.get('/auth/me');
+        const userResponse = await api.get('/api/auth/me');
         const user = userResponse.data;
         storage.setItem('user', JSON.stringify(user));
         
-        return { 
-          user, 
+        return {
+          user,
           token: response.data.access_token,
-          refreshToken: response.data.refresh_token 
+          refreshToken: response.data.refresh_token
         };
       }
       
@@ -83,33 +77,29 @@ const authService = {
       formData.append('refresh_token', refreshToken);
       formData.append('grant_type', 'refresh_token');
       
-      const response = await api.post('/auth/token/refresh', formData, {
+      const response = await api.post('/api/auth/token/refresh', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
       
       if (response.data.access_token) {
-        // Determine which storage was used
         const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage;
-        
         storage.setItem('authToken', response.data.access_token);
         api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
         
-        // Update refresh token if a new one is provided
         if (response.data.refresh_token) {
           storage.setItem('refreshToken', response.data.refresh_token);
         }
         
-        // Get updated user details
-        const userResponse = await api.get('/auth/me');
+        const userResponse = await api.get('/api/auth/me');
         const user = userResponse.data;
         storage.setItem('user', JSON.stringify(user));
         
-        return { 
-          user, 
+        return {
+          user,
           token: response.data.access_token,
-          refreshToken: response.data.refresh_token 
+          refreshToken: response.data.refresh_token
         };
       }
       

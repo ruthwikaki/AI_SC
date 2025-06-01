@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 import json
 
@@ -36,12 +36,15 @@ class Column(BaseModel):
 class Table(BaseModel):
     """Database table metadata"""
     name: str
-    schema: str
+    schema_name: str = Field(..., alias='schema')  # Changed from schema to schema_name with alias
     columns: List[Column]
     primary_key: Optional[List[str]] = None
     foreign_keys: Optional[List[Dict[str, str]]] = None
     description: Optional[str] = None
     row_count: Optional[int] = None
+    
+    class Config:
+        populate_by_name = True  # Allow population by field name or alias
 
 class DatabaseSchema(BaseModel):
     """Database schema information"""
@@ -85,13 +88,16 @@ class Connection(BaseModel):
     database: str
     username: str
     password: Optional[str] = None  # This would be encrypted in storage
-    schema: Optional[str] = None
+    schema_name: Optional[str] = Field(None, alias='schema')  # Changed from schema to schema_name with alias
     ssl_enabled: bool = False
     created_by: str
     created_at: datetime
     last_used: Optional[datetime] = None
     client_id: str
     description: Optional[str] = None
+    
+    class Config:
+        populate_by_name = True  # Allow population by field name or alias
 
 # Routes
 @router.get("/schema", response_model=DatabaseSchema)
@@ -168,7 +174,7 @@ async def get_table_data(
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=1000),
     sort_by: Optional[str] = None,
-    sort_order: str = Query("asc", regex="^(asc|desc)$"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$"),  # Changed from regex to pattern
     filter: Optional[str] = None,  # JSON string of filter conditions
     client_id: Optional[str] = None,
     connection_id: Optional[str] = None,
@@ -378,7 +384,7 @@ async def get_connections(
                 port=5432,
                 database="supply_chain_db",
                 username="readonly_user",
-                schema="public",
+                schema_name="public",  # Changed from schema
                 ssl_enabled=True,
                 created_by=current_user.id,
                 created_at=datetime.now(),
@@ -394,7 +400,7 @@ async def get_connections(
                 port=5432,
                 database="analytics_db",
                 username="readonly_user",
-                schema="public",
+                schema_name="public",  # Changed from schema
                 ssl_enabled=True,
                 created_by=current_user.id,
                 created_at=datetime.now(),

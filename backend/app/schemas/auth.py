@@ -2,10 +2,10 @@
 Authentication and user management schemas
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Annotated
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field, validator, constr
+from pydantic import BaseModel, EmailStr, Field, field_validator, StringConstraints
 
 
 # =====================================================
@@ -15,7 +15,7 @@ from pydantic import BaseModel, EmailStr, Field, validator, constr
 class UserBase(BaseModel):
     """Base user schema"""
     email: EmailStr
-    username: constr(min_length=3, max_length=100, regex='^[a-zA-Z0-9_-]+$')
+    username: Annotated[str, StringConstraints(min_length=3, max_length=100, pattern='^[a-zA-Z0-9_-]+$')]
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     department: Optional[str] = Field(None, max_length=100)
@@ -25,9 +25,10 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Schema for creating a new user"""
-    password: constr(min_length=8, max_length=100)
+    password: Annotated[str, StringConstraints(min_length=8, max_length=100)]
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         """Validate password strength"""
         if not any(char.isdigit() for char in v):
@@ -42,7 +43,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """Schema for updating user information"""
     email: Optional[EmailStr] = None
-    username: Optional[constr(min_length=3, max_length=100, regex='^[a-zA-Z0-9_-]+$')] = None
+    username: Optional[Annotated[str, StringConstraints(min_length=3, max_length=100, pattern='^[a-zA-Z0-9_-]+$')]] = None
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     department: Optional[str] = Field(None, max_length=100)
@@ -62,7 +63,7 @@ class UserInDB(UserBase):
     updated_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 class UserResponse(BaseModel):
@@ -84,7 +85,7 @@ class UserResponse(BaseModel):
     roles: List['RoleResponse'] = []
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -132,9 +133,10 @@ class PasswordResetRequest(BaseModel):
 class PasswordReset(BaseModel):
     """Password reset schema"""
     token: str
-    new_password: constr(min_length=8, max_length=100)
+    new_password: Annotated[str, StringConstraints(min_length=8, max_length=100)]
     
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         """Validate password strength"""
         if not any(char.isdigit() for char in v):
@@ -149,9 +151,10 @@ class PasswordReset(BaseModel):
 class PasswordChangeRequest(BaseModel):
     """Password change request schema"""
     current_password: str
-    new_password: constr(min_length=8, max_length=100)
+    new_password: Annotated[str, StringConstraints(min_length=8, max_length=100)]
     
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         """Validate password strength"""
         if not any(char.isdigit() for char in v):
@@ -181,12 +184,12 @@ class PermissionResponse(PermissionBase):
     is_active: bool
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 class RoleBase(BaseModel):
     """Base role schema"""
-    name: constr(min_length=3, max_length=50, regex='^[a-zA-Z0-9_-]+$')
+    name: Annotated[str, StringConstraints(min_length=3, max_length=50, pattern='^[a-zA-Z0-9_-]+$')]
     display_name: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = None
 
@@ -213,7 +216,7 @@ class RoleResponse(RoleBase):
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 class RoleAssignment(BaseModel):
@@ -229,8 +232,8 @@ class RoleAssignment(BaseModel):
 
 class UserPreferencesUpdate(BaseModel):
     """User preferences update schema"""
-    theme: Optional[str] = Field(None, regex='^(light|dark|auto)$')
-    language: Optional[str] = Field(None, regex='^[a-z]{2}(-[A-Z]{2})?$')
+    theme: Optional[Annotated[str, StringConstraints(pattern='^(light|dark|auto)$')]] = None
+    language: Optional[Annotated[str, StringConstraints(pattern='^[a-z]{2}(-[A-Z]{2})?$')]] = None
     timezone: Optional[str] = None
     date_format: Optional[str] = None
     number_format: Optional[str] = None
@@ -248,7 +251,7 @@ class UserPreferencesResponse(UserPreferencesUpdate):
     updated_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -267,7 +270,7 @@ class SessionInfo(BaseModel):
     expires_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 class ActiveSessionsResponse(BaseModel):
@@ -295,7 +298,7 @@ class AuditLogEntry(BaseModel):
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 class AuditLogFilter(BaseModel):

@@ -38,7 +38,7 @@ from .analytics import (
     ForecastRequest, ForecastResponse,
     SafetyStockRequest, SafetyStockResponse,
     NetworkAnalysisRequest, NetworkAnalysisResponse,
-    BottleneckAnalysisResponse, RiskScenarioRequest,
+    RiskScenarioRequest,  # Removed BottleneckAnalysisResponse
     ReportGenerationRequest, ReportResponse,
     ScheduledAnalyticsCreate, ScheduledAnalyticsResponse
 )
@@ -90,7 +90,7 @@ __all__ = [
     'ForecastRequest', 'ForecastResponse',
     'SafetyStockRequest', 'SafetyStockResponse',
     'NetworkAnalysisRequest', 'NetworkAnalysisResponse',
-    'BottleneckAnalysisResponse', 'RiskScenarioRequest',
+    'RiskScenarioRequest',  # Removed BottleneckAnalysisResponse
     'ReportGenerationRequest', 'ReportResponse',
     'ScheduledAnalyticsCreate', 'ScheduledAnalyticsResponse',
     

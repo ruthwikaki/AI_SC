@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, date
 from decimal import Decimal
 from uuid import UUID
-from pydantic import BaseModel, Field, validator, condecimal
+from pydantic import BaseModel, Field, field_validator, condecimal
 from enum import Enum
 
 
@@ -116,7 +116,7 @@ class SupplierResponse(SupplierBase):
     risk_level: Optional[str] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
         use_enum_values = True
 
 
@@ -196,7 +196,7 @@ class ProductResponse(ProductBase):
     is_active: bool
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # schemas/supply_chain.py (continued)
@@ -220,6 +220,20 @@ class MaterialCreate(MaterialBase):
     specifications: Dict[str, Any] = Field(default_factory=dict)
 
 
+class MaterialUpdate(BaseModel):
+    """Update material request"""
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    type: Optional[str] = Field(None, max_length=100)
+    unit_of_measure: Optional[str] = Field(None, max_length=50)
+    unit_cost: Optional[condecimal(max_digits=15, decimal_places=2)] = None
+    lead_time_days: Optional[int] = Field(None, ge=0)
+    minimum_order_quantity: Optional[condecimal(max_digits=15, decimal_places=3)] = None
+    hazmat: Optional[bool] = None
+    perishable: Optional[bool] = None
+    specifications: Optional[Dict[str, Any]] = None
+
+
 class MaterialResponse(MaterialBase):
     """Material response schema"""
     id: UUID
@@ -230,7 +244,7 @@ class MaterialResponse(MaterialBase):
     updated_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 class BillOfMaterials(BaseModel):
@@ -267,13 +281,15 @@ class InventoryCreate(InventoryBase):
     expiry_date: Optional[date] = None
     cost_per_unit: Optional[condecimal(max_digits=15, decimal_places=2)] = None
     
-    @validator('product_id', 'material_id')
-    def validate_item_reference(cls, v, values):
-        if 'product_id' in values and 'material_id' in values:
-            if values.get('product_id') and values.get('material_id'):
-                raise ValueError("Cannot specify both product_id and material_id")
-            if not values.get('product_id') and not values.get('material_id'):
-                raise ValueError("Must specify either product_id or material_id")
+    @field_validator('material_id')
+    @classmethod
+    def validate_item_reference(cls, v, info):
+        """Validate that either product_id or material_id is specified, but not both"""
+        product_id = info.data.get('product_id')
+        if product_id and v:
+            raise ValueError("Cannot specify both product_id and material_id")
+        if not product_id and not v:
+            raise ValueError("Must specify either product_id or material_id")
         return v
 
 
@@ -303,14 +319,14 @@ class InventoryResponse(InventoryBase):
     item_sku: Optional[str] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 class InventoryAdjustment(BaseModel):
     """Inventory adjustment request"""
     inventory_id: UUID
     adjustment_quantity: condecimal(max_digits=15, decimal_places=3)
-    adjustment_type: str = Field(..., regex="^(manual|cycle_count|damage|theft|found)$")
+    adjustment_type: str = Field(..., pattern="^(manual|cycle_count|damage|theft|found)$")  # Changed from regex
     reason: str = Field(..., min_length=1)
     reference_number: Optional[str] = Field(None, max_length=100)
 
@@ -326,6 +342,16 @@ class InventoryTransfer(BaseModel):
     notes: Optional[str] = None
 
 
+class InventoryReservation(BaseModel):
+    """Inventory reservation request"""
+    inventory_id: UUID
+    reserved_quantity: condecimal(max_digits=15, decimal_places=3) = Field(..., gt=0)
+    reserved_for: str
+    reservation_type: str
+    expires_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
 # =====================================================
 # Order Schemas
 # =====================================================
@@ -333,7 +359,7 @@ class InventoryTransfer(BaseModel):
 class OrderBase(BaseModel):
     """Base order schema"""
     order_number: str = Field(..., min_length=1, max_length=100)
-    type: str = Field(..., regex="^(purchase|sales|transfer|return)$")
+    type: str = Field(..., pattern="^(purchase|sales|transfer|return)$")  # Changed from regex
     supplier_id: Optional[UUID] = None
     customer_id: Optional[UUID] = None
     order_date: datetime
@@ -348,7 +374,7 @@ class OrderBase(BaseModel):
 class OrderCreate(OrderBase):
     """Create order request"""
     status: OrderStatus = OrderStatus.DRAFT
-    priority: str = Field(default="normal", regex="^(low|normal|high|urgent)$")
+    priority: str = Field(default="normal", pattern="^(low|normal|high|urgent)$")  # Changed from regex
     tags: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -360,7 +386,7 @@ class OrderUpdate(BaseModel):
     shipping_address: Optional[str] = None
     billing_address: Optional[str] = None
     payment_terms: Optional[str] = Field(None, max_length=100)
-    priority: Optional[str] = Field(None, regex="^(low|normal|high|urgent)$")
+    priority: Optional[str] = Field(None, pattern="^(low|normal|high|urgent)$")  # Changed from regex
     notes: Optional[str] = None
     tags: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -384,7 +410,7 @@ class OrderResponse(OrderBase):
     items_count: int = 0
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
         use_enum_values = True
 
 
@@ -421,7 +447,7 @@ class OrderItemResponse(OrderItemBase):
     item_sku: Optional[str] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -474,7 +500,7 @@ class ShipmentResponse(ShipmentBase):
     items_count: int = 0
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
         use_enum_values = True
 
 
@@ -507,7 +533,18 @@ class SupplierPerformanceMetrics(BaseModel):
     lead_time_variance: float
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
+
+
+class SupplierPerformanceUpdate(BaseModel):
+    """Update supplier performance metrics"""
+    on_time_delivery_rate: Optional[float] = None
+    quality_score: Optional[float] = None
+    responsiveness_score: Optional[float] = None
+    price_competitiveness: Optional[float] = None
+    overall_score: Optional[float] = None
+    defect_rate: Optional[float] = None
+    lead_time_variance: Optional[float] = None
 
 
 class InventoryMetrics(BaseModel):
@@ -525,7 +562,17 @@ class InventoryMetrics(BaseModel):
     service_level: float
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
+
+
+class ComplianceCheckCreate(BaseModel):
+    """Create compliance check"""
+    supplier_id: UUID
+    check_type: str
+    findings: List[str] = []
+    recommendations: List[str] = []
+    score: Optional[float] = None
+    next_check_date: Optional[date] = None
 
 
 class ComplianceCheck(BaseModel):
@@ -540,7 +587,7 @@ class ComplianceCheck(BaseModel):
     next_check_date: Optional[date] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
         use_enum_values = True
 
 
@@ -555,7 +602,7 @@ class RiskAssessment(BaseModel):
     review_date: Optional[date] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -597,4 +644,4 @@ class InventoryMovement(BaseModel):
     description: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode

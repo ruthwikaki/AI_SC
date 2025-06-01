@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 import uuid
 
-# Import the Pydantic schemas
-from app.schemas.users import User, UserCreate, UserUpdate
+# Import the Pydantic schemas - FIXED: importing from auth module
+from app.schemas.auth import UserResponse as User, UserCreate, UserUpdate
 # Import the database model
 from app.db.interfaces.user_interface import User as DBUser
 

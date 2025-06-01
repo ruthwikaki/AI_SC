@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 from decimal import Decimal
 from uuid import UUID
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 
 
@@ -68,11 +68,12 @@ class AnalyticsRequest(BaseModel):
     end_date: Optional[date] = None
     filters: Dict[str, Any] = Field(default_factory=dict)
     
-    @validator('end_date')
-    def validate_dates(cls, v, values):
+    @field_validator('end_date')
+    @classmethod
+    def validate_dates(cls, v, info):
         """Validate date range"""
-        if v and 'start_date' in values and values['start_date']:
-            if v < values['start_date']:
+        if v and 'start_date' in info.data and info.data['start_date']:
+            if v < info.data['start_date']:
                 raise ValueError('End date must be after start date')
         return v
 
@@ -91,7 +92,7 @@ class AnalyticsResponse(BaseModel):
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -137,7 +138,7 @@ class InventoryAnalyticsResponse(BaseModel):
 
 class ABCAnalysisRequest(BaseModel):
     """ABC analysis request"""
-    analysis_type: str = Field(default="value", regex="^(value|quantity|frequency)$")
+    analysis_type: str = Field(default="value", pattern="^(value|quantity|frequency)$")  # Changed from regex
     location_code: Optional[str] = None
     categories: Optional[List[str]] = None
     thresholds: Dict[str, float] = Field(default_factory=lambda: {
@@ -182,7 +183,7 @@ class SafetyStockRequest(BaseModel):
     service_level: float = Field(default=95.0, ge=50.0, le=99.9)
     lead_time_days: Optional[int] = Field(None, ge=1)
     include_seasonality: bool = True
-    calculation_method: str = Field(default="basic", regex="^(basic|advanced|dynamic)$")
+    calculation_method: str = Field(default="basic", pattern="^(basic|advanced|dynamic)$")  # Changed from regex
 
 
 class SafetyStockItem(BaseModel):
@@ -404,7 +405,7 @@ class ReportGenerationRequest(BaseModel):
     report_type: str
     report_name: str
     parameters: Dict[str, Any] = Field(default_factory=dict)
-    format: str = Field(default="pdf", regex="^(pdf|excel|html|pptx)$")
+    format: str = Field(default="pdf", pattern="^(pdf|excel|html|pptx)$")  # Changed from regex
     include_sections: List[str] = Field(default_factory=lambda: [
         "executive_summary", "detailed_analysis", "recommendations"
     ])
@@ -424,7 +425,7 @@ class ReportResponse(BaseModel):
     expires_at: Optional[datetime] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -457,4 +458,4 @@ class ScheduledAnalyticsResponse(BaseModel):
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode

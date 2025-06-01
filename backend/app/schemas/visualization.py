@@ -2,10 +2,10 @@
 Visualization schemas for charts and dashboards
 """
 
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Annotated
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, StringConstraints
 from enum import Enum
 
 
@@ -57,7 +57,7 @@ class ChartTypeResponse(BaseModel):
     preview_image: Optional[str] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -106,7 +106,8 @@ class ChartCreate(ChartBase):
     filters: Dict[str, Any] = Field(default_factory=dict)
     query_id: Optional[UUID] = None
     
-    @validator('data_source')
+    @field_validator('data_source')
+    @classmethod
     def validate_data_source(cls, v):
         """Validate data source has required fields"""
         if 'type' not in v:
@@ -150,7 +151,7 @@ class ChartResponse(ChartBase):
     last_accessed_at: Optional[datetime] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -176,7 +177,7 @@ class SavedChartResponse(BaseModel):
     saved_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 # =====================================================
@@ -225,7 +226,7 @@ class DashboardResponse(DashboardBase):
     charts: List['DashboardChartResponse'] = []
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
         use_enum_values = True
 
 
@@ -240,7 +241,8 @@ class DashboardChartPosition(BaseModel):
     w: int = Field(..., ge=1, le=12)
     h: int = Field(..., ge=1)
     
-    @validator('w')
+    @field_validator('w')
+    @classmethod
     def validate_width(cls, v):
         """Validate width doesn't exceed grid columns"""
         if v > 12:
@@ -271,14 +273,15 @@ class DashboardChartResponse(BaseModel):
     display_order: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
 
 
 class DashboardLayoutUpdate(BaseModel):
     """Update multiple chart positions"""
     chart_positions: List[Dict[str, Any]]
     
-    @validator('chart_positions')
+    @field_validator('chart_positions')
+    @classmethod
     def validate_positions(cls, v):
         """Validate each position has required fields"""
         for pos in v:
@@ -293,7 +296,7 @@ class DashboardLayoutUpdate(BaseModel):
 
 class ChartExportRequest(BaseModel):
     """Chart export request"""
-    format: str = Field(..., regex='^(png|svg|pdf|csv|xlsx)$')
+    format: str = Field(..., pattern='^(png|svg|pdf|csv|xlsx)$')  # Changed from regex
     width: Optional[int] = Field(None, ge=100, le=4000)
     height: Optional[int] = Field(None, ge=100, le=4000)
     include_data: bool = True
@@ -302,10 +305,9 @@ class ChartExportRequest(BaseModel):
 
 class DashboardExportRequest(BaseModel):
     """Dashboard export request"""
-    format: str = Field(..., regex='^(pdf|png|html)$')
-    include_data: bool = True
-    paper_size: str = Field(default='a4', regex='^(a4|letter|legal)$')
-    orientation: str = Field(default='portrait', regex='^(portrait|landscape)$')
+    format: str = Field(..., pattern='^(pdf|png|html)$')  # Changed from regex
+    paper_size: str = Field(default='a4', pattern='^(a4|letter|legal)$')  # Changed from regex
+    orientation: str = Field(default='portrait', pattern='^(portrait|landscape)$')  # Changed from regex
 
 
 # =====================================================
@@ -357,4 +359,4 @@ class VisualizationRecommendation(BaseModel):
 
 
 # Forward reference update
-DashboardResponse.update_forward_refs()
+DashboardResponse.model_rebuild()  # Changed from update_forward_refs()
