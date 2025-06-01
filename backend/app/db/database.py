@@ -6,6 +6,7 @@ import os
 from typing import Generator, Optional
 from contextlib import contextmanager
 import logging
+import time
 
 from sqlalchemy import create_engine, event, pool
 from sqlalchemy.ext.declarative import declarative_base
@@ -13,7 +14,8 @@ from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.engine import Engine
 
-from config import settings
+from app.config import get_settings
+settings = get_settings()
 
 logger = logging.getLogger(__name__)
 
@@ -227,5 +229,3 @@ def import_all_models():
 # Initialize models on module load
 import_all_models()
 
-# Missing time import
-import time

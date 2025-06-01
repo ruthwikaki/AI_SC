@@ -28,9 +28,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     
     <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
-          crossorigin="anonymous" 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous"
           referrerpolicy="no-referrer" />
     
     <title>Supply Chain LLM</title>
@@ -84,10 +84,13 @@
       if (window.performance && window.performance.timing) {
         window.addEventListener('load', function() {
           const timing = window.performance.timing;
-          const loadTime = timing.loadEventEnd - timing.navigationStart;
-          console.log('Page load time:', loadTime, 'ms');
           
-          // You can send performance metrics to your analytics service
+          // If loadEventEnd is 0, fall back to Date.now()
+          const end = timing.loadEventEnd || Date.now();
+          const loadTime = end - timing.navigationStart;
+          
+          console.log('Page load time:', loadTime, 'ms');
+          // You can send performance metrics to your analytics service here
         });
       }
     </script>

@@ -6,8 +6,8 @@ This module provides functions for loading and accessing application settings.
 
 import os
 from typing import List, Dict, Any, Optional, Union
-from pydantic import Field, validator  # Removed BaseSettings from here
-from pydantic_settings import BaseSettings  # Import BaseSettings from pydantic-settings
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 from functools import lru_cache
 import json
 import dotenv
@@ -35,6 +35,18 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:123456789@localhost:5432/AI_SC"
     database_pool_size: int = 5
     database_pool_overflow: int = 10
+    
+    # Database individual settings (for database.py)
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = "123456789"
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_NAME: str = "AI_SC"
+    DB_ECHO: bool = False
+    DATABASE_URL: Optional[str] = Field(None, env="DATABASE_URL")
+    ENVIRONMENT: str = Field("development", env="ENVIRONMENT")
+    LOG_SLOW_QUERIES: bool = False
+    SLOW_QUERY_THRESHOLD: float = 1.0
     
     # Authentication settings
     jwt_secret_key: str = Field("CHANGE_THIS_IN_PRODUCTION", env="JWT_SECRET_KEY")
@@ -128,6 +140,24 @@ class Settings(BaseSettings):
         if values.get("environment") == "production" and v == "CHANGE_THIS_IN_PRODUCTION":
             raise ValueError("Production environment requires a secure JWT secret key")
         return v
+    
+    @validator("DATABASE_URL", pre=True)
+    def construct_database_url(cls, v, values):
+        """Construct DATABASE_URL if not provided."""
+        if v:
+            return v
+        # Construct from individual settings
+        user = values.get("DB_USER", "postgres")
+        password = values.get("DB_PASSWORD", "123456789")
+        host = values.get("DB_HOST", "localhost")
+        port = values.get("DB_PORT", 5432)
+        name = values.get("DB_NAME", "AI_SC")
+        return f"postgresql://{user}:{password}@{host}:{port}/{name}"
+    
+    @validator("ENVIRONMENT", pre=True)
+    def sync_environments(cls, v, values):
+        """Keep ENVIRONMENT in sync with environment."""
+        return v or values.get("environment", "development")
 
 @lru_cache()
 def get_settings() -> Settings:
