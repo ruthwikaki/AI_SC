@@ -10,11 +10,13 @@ const Navbar = ({ onMenuClick, user }) => {
   const mockUser = user || { name: 'Test User', email: 'test@example.com' };
 
   const handleLogout = () => {
-    console.log('Logout clicked');
-    // Clear auth data
-    localStorage.removeItem('auth_token');
+  console.log('Logout clicked');
+  // Clear auth data with correct keys
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
-    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('refreshToken');
     sessionStorage.removeItem('user');
     navigate('/login');
   };

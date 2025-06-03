@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import QueryPage from './pages/QueryPage';
 import Analytics from './pages/Analytics';
 import MultiTier from './pages/MultiTier';
+import Database from './pages/Database';
+import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 
@@ -123,6 +125,24 @@ function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <MultiTier />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            
+            {/* Database Explorer Route */}
+            <Route path="/database" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Database />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            
+            {/* Reports Route */}
+            <Route path="/reports" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Reports />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />

@@ -1,4 +1,4 @@
-﻿"""
+"""
 User-related database models
 """
 
@@ -19,14 +19,18 @@ Base = declarative_base()
 # Association tables
 role_permissions = Table(
     'role_permissions',
-    # Base.metadata,`n    Column('permission_id', UUID(as_uuid=True), ForeignKey('permissions.id', ondelete='CASCADE'), primary_key=True),
+    Base.metadata,
+    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
+    Column('permission_id', UUID(as_uuid=True), ForeignKey('permissions.id', ondelete='CASCADE'), primary_key=True),
     Column('granted_at', DateTime(timezone=True), default=datetime.utcnow),
     Column('granted_by', UUID(as_uuid=True), ForeignKey('users.id'))
 )
 
 user_roles = Table(
     'user_roles',
-    # Base.metadata,`n    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
+    Base.metadata,
+    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
     Column('assigned_at', DateTime(timezone=True), default=datetime.utcnow),
     Column('assigned_by', UUID(as_uuid=True), ForeignKey('users.id')),
     Column('expires_at', DateTime(timezone=True))
@@ -53,7 +57,7 @@ class User(Base):
     last_login = Column(DateTime(timezone=True))
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime(timezone=True))
-    user_metadata = Column(JSONB, default={})
+    metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
@@ -242,7 +246,7 @@ class AuditLog(Base):
     new_values = Column(JSONB)
     ip_address = Column(INET)
     user_agent = Column(Text)
-    user_metadata = Column(JSONB, default={})
+    metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
     
     # Relationships
@@ -268,7 +272,3 @@ class UserRole:
     assigned_at: datetime
     assigned_by: UUID
     expires_at: Optional[datetime]
-
-
-
-

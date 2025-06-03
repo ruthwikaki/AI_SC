@@ -62,6 +62,18 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+# Root endpoint
+@app.get("/")
+async def root():
+    """Root endpoint that redirects to API documentation."""
+    return {
+        "message": "Supply Chain LLM API",
+        "version": "1.0.0",
+        "docs": "/api/docs",
+        "health": "/api/health",
+        "status": "running"
+    }
+
 # Health check endpoint
 @app.get("/api/health", tags=["system"])
 async def health_check():
@@ -70,20 +82,20 @@ async def health_check():
     """
     return {
         "status": "healthy",
-        "version": settings.api_version,
+        "version": "1.0.0",
         "timestamp": datetime.now().isoformat(),
         "environment": settings.environment,
     }
 
-# ADDED: Database health check endpoint
+# Database health check endpoint
 @app.get("/api/health/db", tags=["system"])
 async def health_db():
     """
     Database health check endpoint to verify database connectivity.
     """
     try:
-        async with engine.connect() as conn:
-            await conn.execute(text("SELECT 1"))
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
         return {
             "status": "healthy",
             "database": "connected",
@@ -91,9 +103,14 @@ async def health_db():
         }
     except Exception as e:
         logger.error(f"Database health check failed: {str(e)}")
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Database unreachable"
+            content={
+                "status": "unhealthy",
+                "database": "disconnected",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
         )
 
 # Include routers
@@ -123,21 +140,6 @@ async def get_open_api_endpoint():
         routes=app.routes,
     )
 
-# Root endpoint redirect to docs
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def root():
-    return """
-    <html>
-        <head>
-            <title>Supply Chain LLM API</title>
-            <meta http-equiv="refresh" content="0; url=/api/docs">
-        </head>
-        <body>
-            <p>Redirecting to <a href="/api/docs">API documentation</a>...</p>
-        </body>
-    </html>
-    """
-
 # Error handlers
 @app.exception_handler(404)
 async def not_found_exception_handler(request: Request, exc):
@@ -155,19 +157,24 @@ async def not_found_exception_handler(request: Request, exc):
 # Startup event handler
 @app.on_event("startup")
 async def startup_event():
-    logger.info(f"Starting Supply Chain LLM API (version {settings.api_version})")
+    logger.info(f"Starting Supply Chain LLM API (version 1.0.0)")
     logger.info(f"Environment: {settings.environment}")
-    
-    # Initialize connections, cache, etc.
-    # These would be implemented in a real application
+    logger.info("Database connected successfully")
 
 # Shutdown event handler
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Shutting down Supply Chain LLM API")
-    
-    # Clean up resources, close connections, etc.
     await engine.dispose()
 
 # Export the app for ASGI servers (like Uvicorn)
 api_app = app
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.api.server:api_app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )

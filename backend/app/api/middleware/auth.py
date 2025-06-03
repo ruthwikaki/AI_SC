@@ -1,5 +1,6 @@
 from fastapi import Request, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from starlette.middleware.base import BaseHTTPMiddleware
 from jose import JWTError, jwt
 from typing import Optional, Dict, Any
 import time
@@ -14,7 +15,7 @@ logger = get_logger(__name__)
 # Get settings
 settings = get_settings()
 
-class JWTAuthMiddleware:
+class JWTAuthMiddleware(BaseHTTPMiddleware):
     """
     Middleware for JWT authentication.
     
@@ -23,28 +24,25 @@ class JWTAuthMiddleware:
     This middleware just attaches user info to the request state if a valid token is provided.
     """
     
-    def __init__(self):
+    def __init__(self, app):
+        super().__init__(app)
         self.security = HTTPBearer(auto_error=False)
     
-    async def __call__(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
         # Initialize user in request state
         request.state.user = None
         request.state.token = None
         request.state.token_payload = None
         
-        # Try to get credentials
-        credentials: Optional[HTTPAuthorizationCredentials] = None
-        try:
-            credentials = await self.security(request)
-        except:
-            # If extraction fails, continue without authentication
-            pass
-            
-        if credentials:
+        # Get authorization header
+        auth_header = request.headers.get("authorization")
+        
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
             try:
                 # Validate token
                 payload = jwt.decode(
-                    credentials.credentials, 
+                    token, 
                     settings.jwt_secret_key, 
                     algorithms=[settings.jwt_algorithm]
                 )
@@ -54,7 +52,7 @@ class JWTAuthMiddleware:
                     logger.warning(f"Expired token received: {payload.get('sub', 'unknown')}")
                 else:
                     # Store user info in request state
-                    request.state.token = credentials.credentials
+                    request.state.token = token
                     request.state.token_payload = payload
                     
                     # Basic user info from token
@@ -75,7 +73,7 @@ class JWTAuthMiddleware:
         response = await call_next(request)
         return response
 
-class AdminOnlyMiddleware:
+class AdminOnlyMiddleware(BaseHTTPMiddleware):
     """
     Middleware to restrict access to admin-only routes.
     
@@ -83,10 +81,11 @@ class AdminOnlyMiddleware:
     and enforces admin role authentication for those routes.
     """
     
-    def __init__(self, admin_path_prefix: str = "/admin"):
+    def __init__(self, app, admin_path_prefix: str = "/admin"):
+        super().__init__(app)
         self.admin_path_prefix = admin_path_prefix
     
-    async def __call__(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
         # Check if this is an admin route
         if request.url.path.startswith(self.admin_path_prefix):
             # Check if user is authenticated and has admin role

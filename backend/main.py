@@ -7,9 +7,11 @@ import os
 import sys
 import uvicorn
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
+import jwt
 
 # Add current directory to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +33,7 @@ except ImportError as e:
         port = 8000
         uvicorn_workers = 1
         cors_origins = ["http://localhost:3001", "http://127.0.0.1:3001"]
+        database_url = "postgresql://postgres:123456789@localhost:5432/AI_SC"
     
     settings = FallbackSettings()
 except Exception as e:
@@ -44,6 +47,7 @@ except Exception as e:
         port = 8000
         uvicorn_workers = 1
         cors_origins = ["http://localhost:3001", "http://127.0.0.1:3001"]
+        database_url = "postgresql://postgres:123456789@localhost:5432/AI_SC"
     
     settings = FallbackSettings()
 
@@ -53,6 +57,14 @@ def log_info(message):
 
 def log_error(message):
     print(f"[ERROR] {datetime.now().isoformat()} - {message}")
+
+# Test user for development
+TEST_USER = {
+    "email": "test@example.com",
+    "username": "testuser",
+    "password": "testpassword",
+    "role": "user"
+}
 
 # Define startup and shutdown context
 @asynccontextmanager
@@ -66,22 +78,12 @@ async def lifespan(app: FastAPI):
     log_info(f"Version: {getattr(settings, 'api_version', '1.0.0')}")
     log_info(f"Environment: {getattr(settings, 'environment', 'development')}")
     
-    # TODO: Initialize components when they're ready
-    # - Initialize RBAC roles
-    # - Initialize LLM models  
-    # - Start health checker
-    
     log_info("Application startup complete (simplified mode)")
     
     yield
     
     # ===== Shutdown =====
     log_info("Shutting down application")
-    
-    # TODO: Cleanup when components are ready
-    # - Stop health checker
-    # - Cleanup audit logger
-    
     log_info("Application shutdown complete")
 
 # Create the main application
@@ -98,7 +100,8 @@ app = FastAPI(
 cors_origins = getattr(settings, 'cors_origins', [
     "http://localhost:3001",
     "http://127.0.0.1:3001",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "*"
 ])
 
 app.add_middleware(
@@ -127,6 +130,17 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
+    # Try database connection
+    db_status = "not configured"
+    try:
+        from sqlalchemy import create_engine, text
+        engine = create_engine(getattr(settings, 'database_url', ''))
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            db_status = "connected"
+    except:
+        db_status = "disconnected"
+    
     return {
         "status": "healthy",
         "version": getattr(settings, 'api_version', '1.0.0'),
@@ -134,13 +148,13 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "services": {
             "api": "running",
-            "database": "not configured",  # Will be configured later
-            "llm": "not configured",       # Will be configured later
-            "cache": "not configured"      # Will be configured later
+            "database": db_status,
+            "llm": "not configured",
+            "cache": "not configured"
         }
     }
 
-# API Routes (Simplified versions)
+# API Routes
 @app.get("/api/status")
 async def api_status():
     """API status endpoint."""
@@ -148,17 +162,7 @@ async def api_status():
         "api": "running",
         "version": getattr(settings, 'api_version', '1.0.0'),
         "environment": getattr(settings, 'environment', 'development'),
-        "timestamp": datetime.now().isoformat(),
-        "endpoints": [
-            "/",
-            "/health", 
-            "/api/status",
-            "/api/test",
-            "/api/queries",
-            "/api/analytics",
-            "/docs",
-            "/redoc"
-        ]
+        "timestamp": datetime.now().isoformat()
     }
 
 @app.get("/api/test")
@@ -168,83 +172,80 @@ async def test_endpoint():
         "message": "Backend connection successful!",
         "timestamp": datetime.now().isoformat(),
         "frontend_connected": True,
-        "cors_enabled": True,
-        "config_loaded": hasattr(settings, 'app_name'),
-        "environment": getattr(settings, 'environment', 'development')
+        "cors_enabled": True
     }
 
-# Placeholder API routes for your frontend
+# Authentication endpoints
+@app.post("/api/auth/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """Login endpoint that returns JWT token."""
+    if form_data.username == TEST_USER["email"] and form_data.password == TEST_USER["password"]:
+        token = jwt.encode(
+            {
+                "sub": form_data.username,
+                "user_id": "test-user-id",
+                "role": TEST_USER["role"],
+                "exp": datetime.utcnow() + timedelta(hours=24)
+            },
+            "secret-key",
+            algorithm="HS256"
+        )
+        return {"access_token": token, "token_type": "bearer"}
+    
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid credentials",
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+
+@app.get("/api/auth/me")
+async def get_current_user():
+    """Get current user endpoint."""
+    return {
+        "id": "test-user-id",
+        "username": TEST_USER["username"],
+        "email": TEST_USER["email"],
+        "role": TEST_USER["role"]
+    }
+
+# Placeholder endpoints
 @app.get("/api/queries")
 async def get_queries():
     """Placeholder for queries endpoint."""
     return {
         "queries": [],
-        "message": "Queries endpoint working (placeholder)",
-        "timestamp": datetime.now().isoformat(),
-        "note": "This will be replaced with actual query functionality"
+        "total": 0,
+        "page": 1,
+        "per_page": 10
     }
 
 @app.post("/api/queries")
 async def create_query():
     """Placeholder for creating queries."""
     return {
-        "message": "Query creation endpoint working (placeholder)",
-        "timestamp": datetime.now().isoformat(),
-        "note": "This will handle natural language query processing"
+        "id": "query-123",
+        "status": "created",
+        "timestamp": datetime.now().isoformat()
     }
 
-@app.get("/api/analytics")
-async def get_analytics():
-    """Placeholder for analytics endpoint."""
+@app.get("/api/analytics/dashboard")
+async def get_dashboard_analytics():
+    """Placeholder for dashboard analytics."""
     return {
-        "analytics": {
-            "inventory": {"status": "placeholder", "data": []},
-            "supplier": {"status": "placeholder", "data": []},
-            "logistics": {"status": "placeholder", "data": []}
+        "inventory": {
+            "total_value": 1500000,
+            "items_count": 350,
+            "low_stock_alerts": 12
         },
-        "message": "Analytics endpoint working (placeholder)",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/api/analytics/inventory")
-async def get_inventory_analytics():
-    """Placeholder for inventory analytics."""
-    return {
-        "inventory_analytics": {
-            "abc_analysis": {"status": "placeholder"},
-            "safety_stock": {"status": "placeholder"},
-            "forecasting": {"status": "placeholder"}
+        "orders": {
+            "pending": 45,
+            "processing": 23,
+            "completed": 156
         },
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/api/visualizations")
-async def get_visualizations():
-    """Placeholder for visualizations endpoint."""
-    return {
-        "visualizations": [],
-        "chart_types": ["bar", "line", "pie", "heatmap", "network"],
-        "message": "Visualizations endpoint working (placeholder)",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# Authentication placeholder endpoints
-@app.post("/api/auth/login")
-async def login():
-    """Placeholder for login endpoint."""
-    return {
-        "message": "Login endpoint (placeholder)",
-        "note": "Authentication will be implemented later",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/api/auth/me")
-async def get_current_user():
-    """Placeholder for current user endpoint."""
-    return {
-        "user": {"id": 1, "username": "demo", "role": "admin"},
-        "message": "User info endpoint (placeholder)",
-        "timestamp": datetime.now().isoformat()
+        "suppliers": {
+            "active": 28,
+            "performance_score": 87.5
+        }
     }
 
 # Error handling
@@ -253,9 +254,8 @@ async def general_exception_handler(request, exc):
     log_error(f"Unhandled exception: {exc}")
     return {
         "error": "Internal server error",
-        "message": str(exc),
-        "timestamp": datetime.now().isoformat(),
-        "environment": getattr(settings, 'environment', 'development')
+        "message": str(exc) if getattr(settings, 'environment', 'development') == 'development' else "An error occurred",
+        "timestamp": datetime.now().isoformat()
     }
 
 if __name__ == "__main__":
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     log_info(f"API Documentation: http://localhost:{port}/docs")
     log_info(f"Health Check: http://localhost:{port}/health")
     log_info(f"Test Endpoint: http://localhost:{port}/api/test")
-    log_info("Note: Running in simplified mode for development")
+    log_info("Test User: test@example.com / testpassword")
     
     # Run the application
     uvicorn.run(

@@ -1,13 +1,14 @@
 from fastapi import Request
 from typing import Optional, Dict, Any
 import json
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.utils.logger import get_logger
 
 # Initialize logger
 logger = get_logger(__name__)
 
-class ClientContextMiddleware:
+class ClientContextMiddleware(BaseHTTPMiddleware):
     """
     Middleware for handling client context resolution.
     
@@ -16,7 +17,7 @@ class ClientContextMiddleware:
     and ensuring proper multi-tenancy.
     """
     
-    async def __call__(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
         # Initialize client context in request state
         request.state.client_id = None
         request.state.connection_id = None
@@ -33,8 +34,6 @@ class ClientContextMiddleware:
         if not request.state.client_id:
             client_id = request.headers.get("X-Client-ID")
             if client_id:
-                # In a real implementation, validate that this client ID exists
-                # and that the API key or token has access to it
                 request.state.client_id = client_id
         
         # 3. From query parameter (lowest priority, mostly for testing)
@@ -50,8 +49,7 @@ class ClientContextMiddleware:
         
         # If we have a client ID, load client settings
         if request.state.client_id:
-            # In a real implementation, you would load these from database or cache
-            # For now, we'll use a simple mapping
+            # Simple mapping for now
             if request.state.client_id == "client-1":
                 request.state.client_settings = {
                     "name": "Acme Corporation",
@@ -88,38 +86,21 @@ class ClientContextMiddleware:
         response = await call_next(request)
         return response
 
-# Helper function to be used in route handlers
+# Helper functions remain the same
 async def get_client_context(request: Request) -> Optional[str]:
-    """
-    Get the client ID from the request context.
-    
-    This helper function can be used in route handlers to get the client ID.
-    """
+    """Get the client ID from the request context."""
     return getattr(request.state, "client_id", None)
 
 async def get_connection_id(request: Request) -> Optional[str]:
-    """
-    Get the connection ID from the request context.
-    
-    This helper function can be used in route handlers to get the connection ID.
-    """
+    """Get the connection ID from the request context."""
     return getattr(request.state, "connection_id", None)
 
 async def get_client_settings(request: Request) -> Optional[Dict[str, Any]]:
-    """
-    Get the client settings from the request context.
-    
-    This helper function can be used in route handlers to get client-specific settings.
-    """
+    """Get the client settings from the request context."""
     return getattr(request.state, "client_settings", None)
 
 async def is_feature_enabled(request: Request, feature_name: str) -> bool:
-    """
-    Check if a feature is enabled for the client.
-    
-    This helper function can be used in route handlers to check if a specific
-    feature is enabled for the client.
-    """
+    """Check if a feature is enabled for the client."""
     settings = await get_client_settings(request)
     if not settings or "features" not in settings:
         return False

@@ -1,10 +1,4 @@
-"""
-Configuration loader.
-
-This module provides functions for loading and accessing application settings.
-"""
-
-import os
+﻿import os
 from typing import List, Dict, Any, Optional, Union
 from pydantic import Field, validator
 from pydantic_settings import BaseSettings
@@ -31,20 +25,21 @@ class Settings(BaseSettings):
     allowed_hosts: List[str] = ["*"]
     cors_origins: List[str] = ["http://localhost:3001", "http://127.0.0.1:3001"]
     
-    # Database settings
-    database_url: str = "postgresql://postgres:123456789@localhost:5432/AI_SC"
+    # Database settings - SINGLE database_url field
+    database_url: str = Field(
+        default="postgresql://postgres:123456789@localhost:5432/AI_SC",
+        env="DATABASE_URL"
+    )
     database_pool_size: int = 5
     database_pool_overflow: int = 10
     
-    # Database individual settings (for database.py)
+    # Database individual settings (for backwards compatibility)
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "123456789"
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
     DB_NAME: str = "AI_SC"
     DB_ECHO: bool = False
-    DATABASE_URL: Optional[str] = Field(None, env="DATABASE_URL")
-    ENVIRONMENT: str = Field("development", env="ENVIRONMENT")
     LOG_SLOW_QUERIES: bool = False
     SLOW_QUERY_THRESHOLD: float = 1.0
     
@@ -105,11 +100,16 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = None
     email_sender: str = "noreply@example.com"
     
+    # API settings
+    api_prefix: str = "/api"
+    
     class Config:
         """Pydantic configuration."""
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        # This is the fix - allow extra fields
+        extra = "ignore"
     
     @validator("environment")
     def validate_environment(cls, v):
@@ -127,12 +127,18 @@ class Settings(BaseSettings):
             raise ValueError(f"log_level must be one of {allowed}")
         return v.upper()
     
-    @validator("database_url")
-    def validate_database_url(cls, v, values):
-        """Validate database URL based on environment."""
-        if values.get("environment") == "production" and "localhost" in v:
-            raise ValueError("Production environment should not use localhost database")
-        return v
+    @validator("database_url", pre=True)
+    def construct_database_url(cls, v, values):
+        """Construct database URL if not provided."""
+        if v and v != "postgresql://postgres:123456789@localhost:5432/AI_SC":
+            return v
+        # Construct from individual settings if available
+        user = values.get("DB_USER", "postgres")
+        password = values.get("DB_PASSWORD", "Ak#312189")
+        host = values.get("DB_HOST", "localhost")
+        port = values.get("DB_PORT", 5432)
+        name = values.get("DB_NAME", "AI_SC")
+        return f"postgresql://{user}:{password}@{host}:{port}/{name}"
     
     @validator("jwt_secret_key")
     def validate_jwt_secret(cls, v, values):
@@ -140,24 +146,6 @@ class Settings(BaseSettings):
         if values.get("environment") == "production" and v == "CHANGE_THIS_IN_PRODUCTION":
             raise ValueError("Production environment requires a secure JWT secret key")
         return v
-    
-    @validator("DATABASE_URL", pre=True)
-    def construct_database_url(cls, v, values):
-        """Construct DATABASE_URL if not provided."""
-        if v:
-            return v
-        # Construct from individual settings
-        user = values.get("DB_USER", "postgres")
-        password = values.get("DB_PASSWORD", "123456789")
-        host = values.get("DB_HOST", "localhost")
-        port = values.get("DB_PORT", 5432)
-        name = values.get("DB_NAME", "AI_SC")
-        return f"postgresql://{user}:{password}@{host}:{port}/{name}"
-    
-    @validator("ENVIRONMENT", pre=True)
-    def sync_environments(cls, v, values):
-        """Keep ENVIRONMENT in sync with environment."""
-        return v or values.get("environment", "development")
 
 @lru_cache()
 def get_settings() -> Settings:
@@ -231,3 +219,5 @@ def get_environment_variables(prefix: str = "APP_") -> Dict[str, str]:
         for k, v in os.environ.items()
         if k.startswith(prefix)
     }
+
+

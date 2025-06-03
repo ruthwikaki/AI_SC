@@ -5,6 +5,7 @@ from jose import JWTError
 from typing import Union, Dict, Any
 import time
 import traceback
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.utils.logger import get_logger
 from app.config import get_settings
@@ -15,7 +16,7 @@ logger = get_logger(__name__)
 # Get settings
 settings = get_settings()
 
-class ErrorHandlerMiddleware:
+class ErrorHandlerMiddleware(BaseHTTPMiddleware):
     """
     Middleware for centralized error handling.
     
@@ -23,7 +24,7 @@ class ErrorHandlerMiddleware:
     logs them, and returns appropriate error responses.
     """
     
-    async def __call__(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
         try:
             # Try to process the request
             return await call_next(request)

@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // CHANGE THIS: Use empty string to let Vite proxy handle the routing
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-
+if (!API_BASE_URL && import.meta.env.VITE_ENVIRONMENT === 'production') {
+  console.error('VITE_API_URL is not set. API calls may fail.');
+}
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
