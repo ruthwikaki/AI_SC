@@ -1,0 +1,6814 @@
+{
+  "tables": {
+    "users": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "email": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "username": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "password_hash": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "first_name": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "last_name": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "role": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": "'user'::character varying",
+          "primary_key": false
+        },
+        "department": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "phone": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "avatar_url": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "is_verified": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "email_verified_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "last_login": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "failed_login_attempts": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "locked_until": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "updated_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "updated_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "user_sessions": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "token_hash": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "refresh_token_hash": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "expires_at": {
+          "type": "TIMESTAMP",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "refresh_expires_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "ip_address": {
+          "type": "INET",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "user_agent": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "device_id": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "revoked_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "password_reset_tokens": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "token_hash": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "expires_at": {
+          "type": "TIMESTAMP",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "used_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "ip_address": {
+          "type": "INET",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "user_preferences": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "theme": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'light'::character varying",
+          "primary_key": false
+        },
+        "language": {
+          "type": "VARCHAR(10)",
+          "nullable": true,
+          "default": "'en'::character varying",
+          "primary_key": false
+        },
+        "timezone": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'UTC'::character varying",
+          "primary_key": false
+        },
+        "date_format": {
+          "type": "VARCHAR(20)",
+          "nullable": true,
+          "default": "'MM/DD/YYYY'::character varying",
+          "primary_key": false
+        },
+        "number_format": {
+          "type": "VARCHAR(20)",
+          "nullable": true,
+          "default": "'en-US'::character varying",
+          "primary_key": false
+        },
+        "default_chart_type": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'bar'::character varying",
+          "primary_key": false
+        },
+        "dashboard_layout": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "notification_preferences": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "ui_preferences": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "audit_logs": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('audit_logs_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "action": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "resource_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "resource_id": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "old_values": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "new_values": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "ip_address": {
+          "type": "INET",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "user_agent": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "roles": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "display_name": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_system": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "role_permissions": {
+      "columns": {
+        "role_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "permission_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "granted_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "granted_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "role_id",
+        "permission_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "granted_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "permission_id",
+          "references_table": "permissions",
+          "references_column": "id"
+        },
+        {
+          "column": "role_id",
+          "references_table": "roles",
+          "references_column": "id"
+        }
+      ]
+    },
+    "permissions": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "resource": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "action": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "display_name": {
+          "type": "VARCHAR(200)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "user_roles": {
+      "columns": {
+        "user_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "role_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "assigned_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "assigned_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "expires_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "user_id",
+        "role_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "assigned_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "role_id",
+          "references_table": "roles",
+          "references_column": "id"
+        },
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "query_results_cache": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "query_hash": {
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "query_text": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "sql_query": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "result_data": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "result_count": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "execution_time_ms": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "expires_at": {
+          "type": "TIMESTAMP",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "query_templates": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "category": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "template_text": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "parameters_schema": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "example_usage": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "tags": {
+          "type": "ARRAY",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "usage_count": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "query_suggestions": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "suggestion_text": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "category": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "context_keywords": {
+          "type": "ARRAY",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "display_order": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "usage_count": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "chart_types": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "display_name": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "component_name": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "default_config": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "supported_data_types": {
+          "type": "ARRAY",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "min_data_points": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "max_data_points": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "charts": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "title": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "chart_type_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "query_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "data_source": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "config": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "filters": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "is_public": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "chart_type_id",
+          "references_table": "chart_types",
+          "references_column": "id"
+        },
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "query_id",
+          "references_table": "natural_language_queries",
+          "references_column": "id"
+        }
+      ]
+    },
+    "saved_charts": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "chart_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_favorite": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "tags": {
+          "type": "ARRAY",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "saved_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "chart_id",
+          "references_table": "charts",
+          "references_column": "id"
+        },
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "dashboards": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "layout_config": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "theme": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'default'::character varying",
+          "primary_key": false
+        },
+        "refresh_interval": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_public": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "is_default": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "tags": {
+          "type": "ARRAY",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "dashboard_charts": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "dashboard_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "chart_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "position": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "config_overrides": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "display_order": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "chart_id",
+          "references_table": "charts",
+          "references_column": "id"
+        },
+        {
+          "column": "dashboard_id",
+          "references_table": "dashboards",
+          "references_column": "id"
+        }
+      ]
+    },
+    "analytics_results": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "analytics_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "parameters": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "result_data": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "summary": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "recommendations": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "execution_time_ms": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": "'completed'::character varying",
+          "primary_key": false
+        },
+        "error_message": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "scheduled_analytics": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "analytics_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "parameters": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "schedule_cron": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "timezone": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'UTC'::character varying",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "last_run_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "next_run_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "notification_config": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "analytics_templates": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "category": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "analytics_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "default_parameters": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "parameter_schema": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "tags": {
+          "type": "ARRAY",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "reports": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "report_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "format": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": "'pdf'::character varying",
+          "primary_key": false
+        },
+        "parameters": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "content": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "file_url": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "file_size_bytes": {
+          "type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": "'pending'::character varying",
+          "primary_key": false
+        },
+        "error_message": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "generated_by": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "generated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "generated_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "report_schedules": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "report_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "parameters": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "schedule_cron": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "timezone": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'UTC'::character varying",
+          "primary_key": false
+        },
+        "format": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'pdf'::character varying",
+          "primary_key": false
+        },
+        "recipients": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "last_generated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "next_run_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "database_connections": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "db_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "host": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "port": {
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "database_name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "username": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "password_encrypted": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "ssl_mode": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'prefer'::character varying",
+          "primary_key": false
+        },
+        "connection_options": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "is_default": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "test_status": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "last_tested_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "schema_mappings": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "connection_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "table_name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "domain_concept": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "mapping_rules": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "confidence_score": {
+          "type": "NUMERIC(3, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_verified": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "verified_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "verified_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "connection_id",
+          "references_table": "database_connections",
+          "references_column": "id"
+        },
+        {
+          "column": "verified_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "table_relationships": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "connection_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "source_table": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "source_column": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "target_table": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "target_column": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "relationship_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "is_inferred": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "confidence_score": {
+          "type": "NUMERIC(3, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "connection_id",
+          "references_table": "database_connections",
+          "references_column": "id"
+        }
+      ]
+    },
+    "sync_jobs": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "connection_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "sync_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": "'pending'::character varying",
+          "primary_key": false
+        },
+        "started_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "completed_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "records_processed": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "records_failed": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "error_message": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "connection_id",
+          "references_table": "database_connections",
+          "references_column": "id"
+        },
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "sync_history": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('sync_history_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "sync_job_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "table_name": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "operation": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "record_count": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "error_details": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "executed_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "sync_job_id",
+          "references_table": "sync_jobs",
+          "references_column": "id"
+        }
+      ]
+    },
+    "suppliers": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "code": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "category": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'active'::character varying",
+          "primary_key": false
+        },
+        "tier": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "1",
+          "primary_key": false
+        },
+        "country": {
+          "type": "VARCHAR(2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "city": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "address": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "contact_name": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "contact_email": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "contact_phone": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "payment_terms": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "lead_time_days": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "minimum_order_value": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "rating": {
+          "type": "NUMERIC(3, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "certifications": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "supplier_tiers": {
+      "columns": {
+        "supplier_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "tier_level": {
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "classification": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "verified": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "verified_date": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "notes": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "supplier_id",
+        "tier_level"
+      ],
+      "foreign_keys": [
+        {
+          "column": "supplier_id",
+          "references_table": "suppliers",
+          "references_column": "id"
+        }
+      ]
+    },
+    "supplier_relationships": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "parent_supplier_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "child_supplier_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "relationship_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "strength": {
+          "type": "NUMERIC(3, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "start_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "end_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "child_supplier_id",
+          "references_table": "suppliers",
+          "references_column": "id"
+        },
+        {
+          "column": "parent_supplier_id",
+          "references_table": "suppliers",
+          "references_column": "id"
+        }
+      ]
+    },
+    "products": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "sku": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "category": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "subcategory": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "unit_of_measure": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "weight_kg": {
+          "type": "NUMERIC(10, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "volume_m3": {
+          "type": "NUMERIC(10, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "unit_cost": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "selling_price": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'active'::character varying",
+          "primary_key": false
+        },
+        "launch_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "discontinue_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "attributes": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "product_materials": {
+      "columns": {
+        "product_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "material_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "quantity": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "unit_of_measure": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_primary": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "notes": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "product_id",
+        "material_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "material_id",
+          "references_table": "materials",
+          "references_column": "id"
+        },
+        {
+          "column": "product_id",
+          "references_table": "products",
+          "references_column": "id"
+        }
+      ]
+    },
+    "materials": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "code": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "type": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "unit_of_measure": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "unit_cost": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "lead_time_days": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "minimum_order_quantity": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_critical": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "specifications": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "inventory": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "product_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "material_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "location_code": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "quantity_on_hand": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": "0",
+          "primary_key": false
+        },
+        "quantity_reserved": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": "0",
+          "primary_key": false
+        },
+        "quantity_available": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "reorder_point": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "reorder_quantity": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "last_counted_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "last_movement_date": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "material_id",
+          "references_table": "materials",
+          "references_column": "id"
+        },
+        {
+          "column": "product_id",
+          "references_table": "products",
+          "references_column": "id"
+        }
+      ]
+    },
+    "inventory_history": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('inventory_history_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "inventory_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "transaction_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "quantity_change": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "quantity_before": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "quantity_after": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "reference_type": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "reference_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "reason": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "performed_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "recorded_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "inventory_id",
+          "references_table": "inventory",
+          "references_column": "id"
+        },
+        {
+          "column": "performed_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "orders": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "order_number": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "order_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "supplier_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": "'draft'::character varying",
+          "primary_key": false
+        },
+        "order_date": {
+          "type": "DATE",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "requested_delivery_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "actual_delivery_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "total_amount": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "currency": {
+          "type": "VARCHAR(3)",
+          "nullable": true,
+          "default": "'USD'::character varying",
+          "primary_key": false
+        },
+        "payment_status": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'pending'::character varying",
+          "primary_key": false
+        },
+        "shipping_address": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "billing_address": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "notes": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "supplier_id",
+          "references_table": "suppliers",
+          "references_column": "id"
+        }
+      ]
+    },
+    "order_items": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "order_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "line_number": {
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "product_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "material_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "quantity": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "unit_price": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "discount_percent": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "tax_percent": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "line_total": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "notes": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "material_id",
+          "references_table": "materials",
+          "references_column": "id"
+        },
+        {
+          "column": "order_id",
+          "references_table": "orders",
+          "references_column": "id"
+        },
+        {
+          "column": "product_id",
+          "references_table": "products",
+          "references_column": "id"
+        }
+      ]
+    },
+    "shipments": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "shipment_number": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "order_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "carrier_name": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "tracking_number": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": "'pending'::character varying",
+          "primary_key": false
+        },
+        "ship_date": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "estimated_delivery_date": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "actual_delivery_date": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "origin_address": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "destination_address": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "shipping_cost": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "weight_kg": {
+          "type": "NUMERIC(10, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "order_id",
+          "references_table": "orders",
+          "references_column": "id"
+        }
+      ]
+    },
+    "shipment_items": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "shipment_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "order_item_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "quantity_shipped": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "notes": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "order_item_id",
+          "references_table": "order_items",
+          "references_column": "id"
+        },
+        {
+          "column": "shipment_id",
+          "references_table": "shipments",
+          "references_column": "id"
+        }
+      ]
+    },
+    "supplier_performance_metrics": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "supplier_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "metric_date": {
+          "type": "DATE",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "on_time_delivery_rate": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "quality_score": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "price_competitiveness": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "response_time_hours": {
+          "type": "NUMERIC(10, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "defect_rate": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "order_accuracy_rate": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "overall_score": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metrics_detail": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "calculated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "supplier_id",
+          "references_table": "suppliers",
+          "references_column": "id"
+        }
+      ]
+    },
+    "inventory_metrics": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "metric_date": {
+          "type": "DATE",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "location_code": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "total_inventory_value": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "inventory_turnover_ratio": {
+          "type": "NUMERIC(10, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "days_of_inventory": {
+          "type": "NUMERIC(10, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "stockout_occurrences": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "overstock_items": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "dead_stock_value": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "carrying_cost": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metrics_detail": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "calculated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "delivery_performance": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "shipment_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "carrier_name": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "route_code": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "scheduled_delivery": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "actual_delivery": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "delivery_variance_hours": {
+          "type": "NUMERIC(10, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "on_time": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "delay_reason": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "customer_satisfaction_score": {
+          "type": "NUMERIC(3, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "cost_variance": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "metadata": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "recorded_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "shipment_id",
+          "references_table": "shipments",
+          "references_column": "id"
+        }
+      ]
+    },
+    "risk_assessments": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "assessment_date": {
+          "type": "DATE",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "supplier_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "risk_category": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "risk_level": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "risk_score": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "impact_score": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "probability_score": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "risk_factors": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "mitigation_actions": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "assessment_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "assessment_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "supplier_id",
+          "references_table": "suppliers",
+          "references_column": "id"
+        }
+      ]
+    },
+    "compliance_checks": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "check_date": {
+          "type": "DATE",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "supplier_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "compliance_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "score": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "findings": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "required_actions": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "due_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "completed_date": {
+          "type": "DATE",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "checked_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "checked_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "supplier_id",
+          "references_table": "suppliers",
+          "references_column": "id"
+        }
+      ]
+    },
+    "abc_analysis_results": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "analysis_date": {
+          "type": "DATE",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "analysis_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "item_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "item_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "category": {
+          "type": "CHAR(1)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "annual_value": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "annual_quantity": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "percentage_of_total": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "cumulative_percentage": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "recommendations": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "forecast_results": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "forecast_date": {
+          "type": "DATE",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "item_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "item_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "forecast_method": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "forecast_horizon_days": {
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "forecasted_values": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "confidence_intervals": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "accuracy_metrics": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "model_parameters": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "safety_stock_calculations": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "calculation_date": {
+          "type": "DATE",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "product_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "material_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "location_code": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "service_level": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "lead_time_days": {
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "demand_mean": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "demand_std_dev": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "lead_time_std_dev": {
+          "type": "NUMERIC(10, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "calculated_safety_stock": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "current_stock": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "recommendation": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "calculation_method": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "parameters": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "material_id",
+          "references_table": "materials",
+          "references_column": "id"
+        },
+        {
+          "column": "product_id",
+          "references_table": "products",
+          "references_column": "id"
+        }
+      ]
+    },
+    "supply_chain_networks": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "network_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "configuration": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "network_nodes": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "network_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "node_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "entity_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "entity_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "tier_level": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "position_x": {
+          "type": "NUMERIC(10, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "position_y": {
+          "type": "NUMERIC(10, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "attributes": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "network_id",
+          "references_table": "supply_chain_networks",
+          "references_column": "id"
+        }
+      ]
+    },
+    "network_edges": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "network_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "source_node_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "target_node_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "edge_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "weight": {
+          "type": "NUMERIC(10, 3)",
+          "nullable": true,
+          "default": "1.0",
+          "primary_key": false
+        },
+        "capacity": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "flow_rate": {
+          "type": "NUMERIC(15, 3)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "attributes": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "network_id",
+          "references_table": "supply_chain_networks",
+          "references_column": "id"
+        },
+        {
+          "column": "source_node_id",
+          "references_table": "network_nodes",
+          "references_column": "id"
+        },
+        {
+          "column": "target_node_id",
+          "references_table": "network_nodes",
+          "references_column": "id"
+        }
+      ]
+    },
+    "bottleneck_analysis": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "network_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "analysis_date": {
+          "type": "TIMESTAMP",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "bottleneck_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "node_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "edge_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "severity_score": {
+          "type": "NUMERIC(5, 2)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "impact_assessment": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "affected_paths": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "mitigation_options": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "edge_id",
+          "references_table": "network_edges",
+          "references_column": "id"
+        },
+        {
+          "column": "network_id",
+          "references_table": "supply_chain_networks",
+          "references_column": "id"
+        },
+        {
+          "column": "node_id",
+          "references_table": "network_nodes",
+          "references_column": "id"
+        }
+      ]
+    },
+    "risk_propagation_scenarios": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "network_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "scenario_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "disruption_source_nodes": {
+          "type": "ARRAY",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "disruption_parameters": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "propagation_model": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "simulation_results": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "network_id",
+          "references_table": "supply_chain_networks",
+          "references_column": "id"
+        }
+      ]
+    },
+    "disruption_impacts": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "scenario_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "affected_node_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "impact_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "impact_level": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "time_to_impact_hours": {
+          "type": "NUMERIC(10, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "recovery_time_hours": {
+          "type": "NUMERIC(10, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "financial_impact": {
+          "type": "NUMERIC(15, 2)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "operational_impact": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "calculated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "affected_node_id",
+          "references_table": "network_nodes",
+          "references_column": "id"
+        },
+        {
+          "column": "scenario_id",
+          "references_table": "risk_propagation_scenarios",
+          "references_column": "id"
+        }
+      ]
+    },
+    "system_settings": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "setting_key": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "setting_value": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "setting_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "category": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_encrypted": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "updated_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "updated_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "feature_flags": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "flag_key": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "display_name": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "description": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "is_enabled": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "rollout_percentage": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0",
+          "primary_key": false
+        },
+        "user_whitelist": {
+          "type": "ARRAY",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "conditions": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "notification_settings": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "notification_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "channel": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "is_enabled": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "frequency": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'immediate'::character varying",
+          "primary_key": false
+        },
+        "conditions": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "email_templates": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "template_key": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "subject": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "body_html": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "body_text": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "variables": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "llm_model_configs": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "model_name": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "model_type": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "api_endpoint": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "api_key_encrypted": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "parameters": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "rate_limits": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "is_default": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "prompt_templates": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "template_key": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "category": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "prompt_text": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "variables": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "primary_key": false
+        },
+        "model_specific_versions": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "version": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "1",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "api_logs": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('api_logs_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "request_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "method": {
+          "type": "VARCHAR(10)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "endpoint": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "request_headers": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "request_body": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "response_status": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "response_body": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "response_time_ms": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "ip_address": {
+          "type": "INET",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "user_agent": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "llm_usage_logs": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('llm_usage_logs_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "model_name": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "prompt_tokens": {
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "completion_tokens": {
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "total_tokens": {
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "cost_estimate": {
+          "type": "NUMERIC(10, 6)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "request_type": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "query_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "latency_ms": {
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "query_id",
+          "references_table": "natural_language_queries",
+          "references_column": "id"
+        },
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "error_logs": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('error_logs_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "error_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "error_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "error_message": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "stack_trace": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "context": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "severity": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "resolved": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false",
+          "primary_key": false
+        },
+        "resolved_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "performance_metrics": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('performance_metrics_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "metric_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "metric_name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "metric_value": {
+          "type": "NUMERIC(20, 6)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "unit": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "tags": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "recorded_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "user_activity_logs": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('user_activity_logs_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "user_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "activity_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "activity_details": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "ip_address": {
+          "type": "INET",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "user_agent": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "session_id": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "data_quality_rules": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "rule_name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "table_name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "column_name": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "rule_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "rule_definition": {
+          "type": "JSONB",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "severity": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'warning'::character varying",
+          "primary_key": false
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true",
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": []
+    },
+    "data_quality_issues": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "rule_id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "table_name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "record_id": {
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "issue_description": {
+          "type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "severity": {
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "status": {
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": "'open'::character varying",
+          "primary_key": false
+        },
+        "resolved_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "resolved_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "resolution_notes": {
+          "type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "detected_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "resolved_by",
+          "references_table": "users",
+          "references_column": "id"
+        },
+        {
+          "column": "rule_id",
+          "references_table": "data_quality_rules",
+          "references_column": "id"
+        }
+      ]
+    },
+    "data_lineage": {
+      "columns": {
+        "id": {
+          "type": "UUID",
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "primary_key": false
+        },
+        "source_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "source_id": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "target_type": {
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "target_id": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "transformation_type": {
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "transformation_details": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "primary_key": false
+        },
+        "created_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "created_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    },
+    "change_history": {
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "nullable": false,
+          "default": "nextval('change_history_id_seq'::regclass)",
+          "primary_key": false
+        },
+        "table_name": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "record_id": {
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "operation": {
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "default": null,
+          "primary_key": false
+        },
+        "changed_fields": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "old_values": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "new_values": {
+          "type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "changed_by": {
+          "type": "UUID",
+          "nullable": true,
+          "default": null,
+          "primary_key": false
+        },
+        "changed_at": {
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "now()",
+          "primary_key": false
+        }
+      },
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "changed_by",
+          "references_table": "users",
+          "references_column": "id"
+        }
+      ]
+    }
+  },
+  "relationships": [
+    {
+      "from_table": "users",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "users",
+      "from_column": "updated_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "user_sessions",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "password_reset_tokens",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "user_preferences",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "audit_logs",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "role_permissions",
+      "from_column": "granted_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "role_permissions",
+      "from_column": "permission_id",
+      "to_table": "permissions",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "role_permissions",
+      "from_column": "role_id",
+      "to_table": "roles",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "user_roles",
+      "from_column": "assigned_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "user_roles",
+      "from_column": "role_id",
+      "to_table": "roles",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "user_roles",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "query_results_cache",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "charts",
+      "from_column": "chart_type_id",
+      "to_table": "chart_types",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "charts",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "charts",
+      "from_column": "query_id",
+      "to_table": "natural_language_queries",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "saved_charts",
+      "from_column": "chart_id",
+      "to_table": "charts",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "saved_charts",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "dashboards",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "dashboard_charts",
+      "from_column": "chart_id",
+      "to_table": "charts",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "dashboard_charts",
+      "from_column": "dashboard_id",
+      "to_table": "dashboards",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "analytics_results",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "scheduled_analytics",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "reports",
+      "from_column": "generated_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "report_schedules",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "database_connections",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "schema_mappings",
+      "from_column": "connection_id",
+      "to_table": "database_connections",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "schema_mappings",
+      "from_column": "verified_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "table_relationships",
+      "from_column": "connection_id",
+      "to_table": "database_connections",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "sync_jobs",
+      "from_column": "connection_id",
+      "to_table": "database_connections",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "sync_jobs",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "sync_history",
+      "from_column": "sync_job_id",
+      "to_table": "sync_jobs",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "supplier_tiers",
+      "from_column": "supplier_id",
+      "to_table": "suppliers",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "supplier_relationships",
+      "from_column": "child_supplier_id",
+      "to_table": "suppliers",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "supplier_relationships",
+      "from_column": "parent_supplier_id",
+      "to_table": "suppliers",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "product_materials",
+      "from_column": "material_id",
+      "to_table": "materials",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "product_materials",
+      "from_column": "product_id",
+      "to_table": "products",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "inventory",
+      "from_column": "material_id",
+      "to_table": "materials",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "inventory",
+      "from_column": "product_id",
+      "to_table": "products",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "inventory_history",
+      "from_column": "inventory_id",
+      "to_table": "inventory",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "inventory_history",
+      "from_column": "performed_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "orders",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "orders",
+      "from_column": "supplier_id",
+      "to_table": "suppliers",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "order_items",
+      "from_column": "material_id",
+      "to_table": "materials",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "order_items",
+      "from_column": "order_id",
+      "to_table": "orders",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "order_items",
+      "from_column": "product_id",
+      "to_table": "products",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "shipments",
+      "from_column": "order_id",
+      "to_table": "orders",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "shipment_items",
+      "from_column": "order_item_id",
+      "to_table": "order_items",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "shipment_items",
+      "from_column": "shipment_id",
+      "to_table": "shipments",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "supplier_performance_metrics",
+      "from_column": "supplier_id",
+      "to_table": "suppliers",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "delivery_performance",
+      "from_column": "shipment_id",
+      "to_table": "shipments",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "risk_assessments",
+      "from_column": "assessment_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "risk_assessments",
+      "from_column": "supplier_id",
+      "to_table": "suppliers",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "compliance_checks",
+      "from_column": "checked_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "compliance_checks",
+      "from_column": "supplier_id",
+      "to_table": "suppliers",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "forecast_results",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "safety_stock_calculations",
+      "from_column": "material_id",
+      "to_table": "materials",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "safety_stock_calculations",
+      "from_column": "product_id",
+      "to_table": "products",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "supply_chain_networks",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "network_nodes",
+      "from_column": "network_id",
+      "to_table": "supply_chain_networks",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "network_edges",
+      "from_column": "network_id",
+      "to_table": "supply_chain_networks",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "network_edges",
+      "from_column": "source_node_id",
+      "to_table": "network_nodes",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "network_edges",
+      "from_column": "target_node_id",
+      "to_table": "network_nodes",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "bottleneck_analysis",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "bottleneck_analysis",
+      "from_column": "edge_id",
+      "to_table": "network_edges",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "bottleneck_analysis",
+      "from_column": "network_id",
+      "to_table": "supply_chain_networks",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "bottleneck_analysis",
+      "from_column": "node_id",
+      "to_table": "network_nodes",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "risk_propagation_scenarios",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "risk_propagation_scenarios",
+      "from_column": "network_id",
+      "to_table": "supply_chain_networks",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "disruption_impacts",
+      "from_column": "affected_node_id",
+      "to_table": "network_nodes",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "disruption_impacts",
+      "from_column": "scenario_id",
+      "to_table": "risk_propagation_scenarios",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "system_settings",
+      "from_column": "updated_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "notification_settings",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "api_logs",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "llm_usage_logs",
+      "from_column": "query_id",
+      "to_table": "natural_language_queries",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "llm_usage_logs",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "error_logs",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "user_activity_logs",
+      "from_column": "user_id",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "data_quality_issues",
+      "from_column": "resolved_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "data_quality_issues",
+      "from_column": "rule_id",
+      "to_table": "data_quality_rules",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "data_lineage",
+      "from_column": "created_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    },
+    {
+      "from_table": "change_history",
+      "from_column": "changed_by",
+      "to_table": "users",
+      "to_column": "id",
+      "relationship_type": "foreign_key"
+    }
+  ],
+  "statistics": {
+    "users": {
+      "row_count": 20,
+      "sample_data": [
+        {
+          "id": "7956cc2f-7398-46e7-bfee-6e9925153d72",
+          "email": "amyblack@example.org",
+          "username": "user_0_lisa06",
+          "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+          "first_name": "Connor",
+          "last_name": "Myers",
+          "role": "user",
+          "department": null,
+          "phone": null,
+          "avatar_url": null,
+          "is_active": true,
+          "is_verified": true,
+          "email_verified_at": null,
+          "last_login": null,
+          "failed_login_attempts": 0,
+          "locked_until": null,
+          "metadata": {},
+          "created_at": "2025-06-03 19:24:39.232267-04:00",
+          "updated_at": "2025-06-03 19:24:39.225575-04:00",
+          "created_by": null,
+          "updated_by": null
+        },
+        {
+          "id": "416866b4-909f-4288-9f30-7738267e2dab",
+          "email": "debbiecarey@example.net",
+          "username": "user_1_michaellarson",
+          "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+          "first_name": "Stephanie",
+          "last_name": "Alexander",
+          "role": "user",
+          "department": null,
+          "phone": null,
+          "avatar_url": null,
+          "is_active": true,
+          "is_verified": true,
+          "email_verified_at": null,
+          "last_login": null,
+          "failed_login_attempts": 0,
+          "locked_until": null,
+          "metadata": {},
+          "created_at": "2025-06-03 19:24:39.234684-04:00",
+          "updated_at": "2025-06-03 19:24:39.225575-04:00",
+          "created_by": null,
+          "updated_by": null
+        },
+        {
+          "id": "d9c5a49d-0ac5-479a-bc1b-57fa66cfd383",
+          "email": "james56@example.org",
+          "username": "user_2_vking",
+          "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+          "first_name": "Daniel",
+          "last_name": "Hernandez",
+          "role": "user",
+          "department": null,
+          "phone": null,
+          "avatar_url": null,
+          "is_active": true,
+          "is_verified": true,
+          "email_verified_at": null,
+          "last_login": null,
+          "failed_login_attempts": 0,
+          "locked_until": null,
+          "metadata": {},
+          "created_at": "2025-06-03 19:24:39.235519-04:00",
+          "updated_at": "2025-06-03 19:24:39.225575-04:00",
+          "created_by": null,
+          "updated_by": null
+        }
+      ]
+    },
+    "user_sessions": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "password_reset_tokens": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "user_preferences": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "audit_logs": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "roles": {
+      "row_count": 5,
+      "sample_data": [
+        {
+          "id": "92bb9088-457a-487a-bd5b-4bce2c80958d",
+          "name": "admin",
+          "display_name": "Administrator",
+          "description": "Full system access",
+          "is_system": true,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00",
+          "updated_at": "2025-05-25 19:42:28.497057-04:00"
+        },
+        {
+          "id": "a78fef0d-bff3-4193-ad3d-b06bf2834772",
+          "name": "analyst",
+          "display_name": "Data Analyst",
+          "description": "Can create queries and analytics",
+          "is_system": true,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00",
+          "updated_at": "2025-05-25 19:42:28.497057-04:00"
+        },
+        {
+          "id": "9c763587-2f0d-4b46-9e77-7f4fac8d3210",
+          "name": "viewer",
+          "display_name": "Viewer",
+          "description": "Read-only access",
+          "is_system": true,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00",
+          "updated_at": "2025-05-25 19:42:28.497057-04:00"
+        }
+      ]
+    },
+    "role_permissions": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "permissions": {
+      "row_count": 13,
+      "sample_data": [
+        {
+          "id": "49b94797-6812-45ab-b321-8b2a1936d86e",
+          "resource": "queries",
+          "action": "create",
+          "display_name": "Create queries",
+          "description": null,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00"
+        },
+        {
+          "id": "ba3d39c6-e7be-46c5-ac0e-85e2d6d54b19",
+          "resource": "queries",
+          "action": "read",
+          "display_name": "View queries",
+          "description": null,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00"
+        },
+        {
+          "id": "1bfad1a3-c162-4c1e-9897-d71e53808177",
+          "resource": "queries",
+          "action": "update",
+          "display_name": "Update queries",
+          "description": null,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00"
+        }
+      ]
+    },
+    "user_roles": {
+      "row_count": 20,
+      "sample_data": [
+        {
+          "user_id": "7956cc2f-7398-46e7-bfee-6e9925153d72",
+          "role_id": "fbb35f93-1ea8-4e28-97b1-4f1afb0b7638",
+          "assigned_at": "2025-06-03 19:24:39.233080-04:00",
+          "assigned_by": null,
+          "expires_at": null
+        },
+        {
+          "user_id": "416866b4-909f-4288-9f30-7738267e2dab",
+          "role_id": "9c763587-2f0d-4b46-9e77-7f4fac8d3210",
+          "assigned_at": "2025-06-03 19:24:39.234987-04:00",
+          "assigned_by": null,
+          "expires_at": null
+        },
+        {
+          "user_id": "d9c5a49d-0ac5-479a-bc1b-57fa66cfd383",
+          "role_id": "a78fef0d-bff3-4193-ad3d-b06bf2834772",
+          "assigned_at": "2025-06-03 19:24:39.235702-04:00",
+          "assigned_by": null,
+          "expires_at": null
+        }
+      ]
+    },
+    "query_results_cache": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "query_templates": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "query_suggestions": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "chart_types": {
+      "row_count": 6,
+      "sample_data": [
+        {
+          "id": "ce0ac6e1-2a02-47f6-b6b5-6f29a6da04cd",
+          "name": "bar",
+          "display_name": "Bar Chart",
+          "description": null,
+          "component_name": "BarChart",
+          "default_config": {},
+          "supported_data_types": [
+            "categorical",
+            "numeric"
+          ],
+          "min_data_points": null,
+          "max_data_points": null,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00"
+        },
+        {
+          "id": "bf5bc213-8f7c-491e-be41-a19d4d631bd6",
+          "name": "line",
+          "display_name": "Line Chart",
+          "description": null,
+          "component_name": "LineChart",
+          "default_config": {},
+          "supported_data_types": [
+            "time-series",
+            "numeric"
+          ],
+          "min_data_points": null,
+          "max_data_points": null,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00"
+        },
+        {
+          "id": "e504677f-0062-4c6d-a614-98c31c3df81d",
+          "name": "pie",
+          "display_name": "Pie Chart",
+          "description": null,
+          "component_name": "PieChart",
+          "default_config": {},
+          "supported_data_types": [
+            "categorical"
+          ],
+          "min_data_points": null,
+          "max_data_points": null,
+          "is_active": true,
+          "created_at": "2025-05-25 19:42:28.497057-04:00"
+        }
+      ]
+    },
+    "charts": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "saved_charts": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "dashboards": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "dashboard_charts": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "analytics_results": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "scheduled_analytics": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "analytics_templates": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "reports": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "report_schedules": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "database_connections": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "schema_mappings": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "table_relationships": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "sync_jobs": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "sync_history": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "suppliers": {
+      "row_count": 20,
+      "sample_data": [
+        {
+          "id": "8c3c7a43-499a-4239-870b-b02de9c453e6",
+          "code": "SUP0001",
+          "name": "Thompson-Smith",
+          "category": "Electronics",
+          "status": "active",
+          "tier": 3,
+          "country": "BN",
+          "city": "Gonzalestown",
+          "address": null,
+          "contact_name": null,
+          "contact_email": null,
+          "contact_phone": null,
+          "payment_terms": null,
+          "lead_time_days": null,
+          "minimum_order_value": null,
+          "rating": "4.70",
+          "certifications": [],
+          "metadata": {},
+          "created_at": "2025-06-03 19:24:39.247405-04:00",
+          "updated_at": "2025-06-03 19:24:39.242048-04:00"
+        },
+        {
+          "id": "17fc78ff-b9f0-47ca-9732-fedfb6cbc642",
+          "code": "SUP0002",
+          "name": "Gutierrez-Martinez",
+          "category": "Raw Materials",
+          "status": "active",
+          "tier": 3,
+          "country": "MW",
+          "city": "Stevenburgh",
+          "address": null,
+          "contact_name": null,
+          "contact_email": null,
+          "contact_phone": null,
+          "payment_terms": null,
+          "lead_time_days": null,
+          "minimum_order_value": null,
+          "rating": "4.30",
+          "certifications": [],
+          "metadata": {},
+          "created_at": "2025-06-03 19:24:39.808078-04:00",
+          "updated_at": "2025-06-03 19:24:39.242048-04:00"
+        },
+        {
+          "id": "27e2eb86-79f0-43c8-9ae9-145d081f2c3d",
+          "code": "SUP0003",
+          "name": "Quinn Inc",
+          "category": "Components",
+          "status": "active",
+          "tier": 2,
+          "country": "LU",
+          "city": "South Michael",
+          "address": null,
+          "contact_name": null,
+          "contact_email": null,
+          "contact_phone": null,
+          "payment_terms": null,
+          "lead_time_days": null,
+          "minimum_order_value": null,
+          "rating": "3.60",
+          "certifications": [],
+          "metadata": {},
+          "created_at": "2025-06-03 19:24:39.808816-04:00",
+          "updated_at": "2025-06-03 19:24:39.242048-04:00"
+        }
+      ]
+    },
+    "supplier_tiers": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "supplier_relationships": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "products": {
+      "row_count": 50,
+      "sample_data": [
+        {
+          "id": "22b736b4-c06c-4350-97f9-2ce14494d717",
+          "sku": "PROD00001",
+          "name": "Measure Technology",
+          "description": "Another cut garden feeling.",
+          "category": "Electronics",
+          "subcategory": null,
+          "unit_of_measure": "EA",
+          "weight_kg": null,
+          "volume_m3": null,
+          "unit_cost": "305.78",
+          "selling_price": "150.77",
+          "status": "active",
+          "launch_date": null,
+          "discontinue_date": null,
+          "attributes": {},
+          "created_at": "2025-06-03 19:24:39.821508-04:00",
+          "updated_at": "2025-06-03 19:24:39.818216-04:00"
+        },
+        {
+          "id": "d4371f90-3dcf-4185-9f15-07cd0672fedf",
+          "sku": "PROD00002",
+          "name": "Stuff Mention",
+          "description": "Tax fine quite something.",
+          "category": "Assemblies",
+          "subcategory": null,
+          "unit_of_measure": "EA",
+          "weight_kg": null,
+          "volume_m3": null,
+          "unit_cost": "422.70",
+          "selling_price": "256.10",
+          "status": "active",
+          "launch_date": null,
+          "discontinue_date": null,
+          "attributes": {},
+          "created_at": "2025-06-03 19:24:39.822763-04:00",
+          "updated_at": "2025-06-03 19:24:39.818216-04:00"
+        },
+        {
+          "id": "60cb71b5-eb74-401a-988f-78aec822c8b7",
+          "sku": "PROD00003",
+          "name": "Newspaper Personal",
+          "description": "Southern public fast me catch room risk everything.",
+          "category": "Components",
+          "subcategory": null,
+          "unit_of_measure": "EA",
+          "weight_kg": null,
+          "volume_m3": null,
+          "unit_cost": "175.66",
+          "selling_price": "23.63",
+          "status": "active",
+          "launch_date": null,
+          "discontinue_date": null,
+          "attributes": {},
+          "created_at": "2025-06-03 19:24:39.823110-04:00",
+          "updated_at": "2025-06-03 19:24:39.818216-04:00"
+        }
+      ]
+    },
+    "product_materials": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "materials": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "inventory": {
+      "row_count": 30,
+      "sample_data": [
+        {
+          "id": "00c93214-f5f7-46b4-a959-9b2c0a640150",
+          "product_id": "22b736b4-c06c-4350-97f9-2ce14494d717",
+          "material_id": null,
+          "location_code": "WH-MAIN",
+          "quantity_on_hand": "382.000",
+          "quantity_reserved": "49.000",
+          "quantity_available": "333.000",
+          "reorder_point": "45.000",
+          "reorder_quantity": "118.000",
+          "last_counted_date": "2025-06-02",
+          "last_movement_date": "2025-05-29 20:00:07.763316-04:00",
+          "metadata": {},
+          "created_at": "2025-06-03 20:00:07.763319-04:00",
+          "updated_at": "2025-06-03 20:00:07.761606-04:00"
+        },
+        {
+          "id": "b1e22f49-1c1f-425a-8c53-e2bf0c1b79ac",
+          "product_id": "d4371f90-3dcf-4185-9f15-07cd0672fedf",
+          "material_id": null,
+          "location_code": "WH-EAST",
+          "quantity_on_hand": "215.000",
+          "quantity_reserved": "34.000",
+          "quantity_available": "181.000",
+          "reorder_point": "78.000",
+          "reorder_quantity": "84.000",
+          "last_counted_date": "2025-05-15",
+          "last_movement_date": "2025-05-31 20:00:07.767381-04:00",
+          "metadata": {},
+          "created_at": "2025-06-03 20:00:07.767383-04:00",
+          "updated_at": "2025-06-03 20:00:07.761606-04:00"
+        },
+        {
+          "id": "1f25e516-d38b-423b-bcbf-13e1d759274e",
+          "product_id": "60cb71b5-eb74-401a-988f-78aec822c8b7",
+          "material_id": null,
+          "location_code": "WH-WEST",
+          "quantity_on_hand": "427.000",
+          "quantity_reserved": "2.000",
+          "quantity_available": "425.000",
+          "reorder_point": "87.000",
+          "reorder_quantity": "184.000",
+          "last_counted_date": "2025-05-31",
+          "last_movement_date": "2025-05-28 20:00:07.767839-04:00",
+          "metadata": {},
+          "created_at": "2025-06-03 20:00:07.767840-04:00",
+          "updated_at": "2025-06-03 20:00:07.761606-04:00"
+        }
+      ]
+    },
+    "inventory_history": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "orders": {
+      "row_count": 50,
+      "sample_data": [
+        {
+          "id": "200bef28-3654-44d5-8cba-05d31f71126b",
+          "order_number": "ORD202500001",
+          "order_type": "purchase",
+          "supplier_id": "8c3c7a43-499a-4239-870b-b02de9c453e6",
+          "status": "approved",
+          "order_date": "2025-03-15",
+          "requested_delivery_date": "2025-03-28",
+          "actual_delivery_date": null,
+          "total_amount": "623.39",
+          "currency": "USD",
+          "payment_status": "pending",
+          "shipping_address": null,
+          "billing_address": null,
+          "notes": null,
+          "metadata": {},
+          "created_by": "09febc68-147e-4d3c-ab99-167470f10f80",
+          "created_at": "2025-06-03 20:00:07.776027-04:00",
+          "updated_at": "2025-06-03 20:00:07.774529-04:00"
+        },
+        {
+          "id": "f5aea56d-27cc-4dda-9ede-ab043e3ef504",
+          "order_number": "ORD202500002",
+          "order_type": "purchase",
+          "supplier_id": "443d1e2b-edb3-480f-aa34-466431c904ea",
+          "status": "approved",
+          "order_date": "2025-02-21",
+          "requested_delivery_date": "2025-02-28",
+          "actual_delivery_date": null,
+          "total_amount": "7536.54",
+          "currency": "USD",
+          "payment_status": "pending",
+          "shipping_address": null,
+          "billing_address": null,
+          "notes": null,
+          "metadata": {},
+          "created_by": "2544c333-1612-4cd4-80c3-8efdd4ea6412",
+          "created_at": "2025-06-03 20:00:07.777941-04:00",
+          "updated_at": "2025-06-03 20:00:07.774529-04:00"
+        },
+        {
+          "id": "221b29b6-aa7d-47b4-b2c1-5172b2de5235",
+          "order_number": "ORD202500003",
+          "order_type": "sales",
+          "supplier_id": "443d1e2b-edb3-480f-aa34-466431c904ea",
+          "status": "approved",
+          "order_date": "2025-03-22",
+          "requested_delivery_date": "2025-03-30",
+          "actual_delivery_date": null,
+          "total_amount": "7779.26",
+          "currency": "USD",
+          "payment_status": "paid",
+          "shipping_address": null,
+          "billing_address": null,
+          "notes": null,
+          "metadata": {},
+          "created_by": "416866b4-909f-4288-9f30-7738267e2dab",
+          "created_at": "2025-06-03 20:00:07.778547-04:00",
+          "updated_at": "2025-06-03 20:00:07.774529-04:00"
+        }
+      ]
+    },
+    "order_items": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "shipments": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "shipment_items": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "supplier_performance_metrics": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "inventory_metrics": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "delivery_performance": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "risk_assessments": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "compliance_checks": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "abc_analysis_results": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "forecast_results": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "safety_stock_calculations": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "supply_chain_networks": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "network_nodes": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "network_edges": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "bottleneck_analysis": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "risk_propagation_scenarios": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "disruption_impacts": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "system_settings": {
+      "row_count": 6,
+      "sample_data": [
+        {
+          "id": "803a53b7-856c-4129-ba3d-a85f9ef9440a",
+          "setting_key": "app.name",
+          "setting_value": "Supply Chain Analytics",
+          "setting_type": "string",
+          "category": "general",
+          "description": null,
+          "is_encrypted": false,
+          "updated_by": null,
+          "updated_at": "2025-05-25 19:42:28.497057-04:00"
+        },
+        {
+          "id": "fe17a7a8-051a-40eb-8147-2588f200b504",
+          "setting_key": "app.version",
+          "setting_value": "1.0.0",
+          "setting_type": "string",
+          "category": "general",
+          "description": null,
+          "is_encrypted": false,
+          "updated_by": null,
+          "updated_at": "2025-05-25 19:42:28.497057-04:00"
+        },
+        {
+          "id": "839a0b0b-9fb3-4b24-a0e7-b8c1ff882066",
+          "setting_key": "auth.jwt_expiry",
+          "setting_value": "86400",
+          "setting_type": "integer",
+          "category": "security",
+          "description": null,
+          "is_encrypted": false,
+          "updated_by": null,
+          "updated_at": "2025-05-25 19:42:28.497057-04:00"
+        }
+      ]
+    },
+    "feature_flags": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "notification_settings": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "email_templates": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "llm_model_configs": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "prompt_templates": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "api_logs": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "llm_usage_logs": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "error_logs": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "performance_metrics": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "user_activity_logs": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "data_quality_rules": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "data_quality_issues": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "data_lineage": {
+      "row_count": 0,
+      "sample_data": []
+    },
+    "change_history": {
+      "row_count": 0,
+      "sample_data": []
+    }
+  },
+  "discovered_at": "2025-06-05T13:17:56.979571"
+}

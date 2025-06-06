@@ -12,26 +12,27 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, INET, JSONB
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+from app.models.base import Base
 
 # Association tables
 role_permissions = Table(
     'role_permissions',
-    # Base.metadata,`n    Column('permission_id', UUID(as_uuid=True), ForeignKey('permissions.id', ondelete='CASCADE'), primary_key=True),
+    Base.metadata,
+    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
+    Column('permission_id', UUID(as_uuid=True), ForeignKey('permissions.id', ondelete='CASCADE'), primary_key=True),
     Column('granted_at', DateTime(timezone=True), default=datetime.utcnow),
     Column('granted_by', UUID(as_uuid=True), ForeignKey('users.id'))
 )
 
 user_roles = Table(
     'user_roles',
-    # Base.metadata,`n    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
+    Base.metadata,
+    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
     Column('assigned_at', DateTime(timezone=True), default=datetime.utcnow),
-    Column('assigned_by', UUID(as_uuid=True), ForeignKey('users.id')),
-    Column('expires_at', DateTime(timezone=True))
+    Column('assigned_by', UUID(as_uuid=True), ForeignKey('users.id'))
 )
-
 
 class User(Base):
     """User model for authentication and profile management"""
@@ -250,25 +251,3 @@ class AuditLog(Base):
     
     def __repr__(self):
         return f"<AuditLog(id={self.id}, action={self.action}, resource_type={self.resource_type})>"
-
-
-# Helper classes for type hints
-class RolePermission:
-    """Type hint class for role_permissions association"""
-    role_id: UUID
-    permission_id: UUID
-    granted_at: datetime
-    granted_by: UUID
-
-
-class UserRole:
-    """Type hint class for user_roles association"""
-    user_id: UUID
-    role_id: UUID
-    assigned_at: datetime
-    assigned_by: UUID
-    expires_at: Optional[datetime]
-
-
-
-

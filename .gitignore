@@ -16,3 +16,13 @@ yarn-error.log*
 .DS_Store
 .vscode/
 
+# Model files
+backend/models/
+*.gguf
+*.bin
+*.safetensors
+*.pkl
+*.onnx
+
+# Model configuration
+.env.models

@@ -28,7 +28,7 @@ def init_alembic():
         # Replace the database URL
         content = content.replace(
             "sqlalchemy.url = driver://user:pass@localhost/dbname",
-            "sqlalchemy.url = postgresql://postgres:123456789@localhost:5432/AI_SC"
+            "sqlalchemy.url = postgresql://postgres:123456789@localhost:5432/Supplychain_AI"
         )
         
         with open(alembic_ini, 'w') as f:

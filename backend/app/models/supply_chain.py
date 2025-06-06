@@ -1,5 +1,7 @@
 """
 Supply chain core business data models
+from app.models.base import Base
+
 """
 
 from datetime import datetime, date
@@ -14,9 +16,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
 
 
 class Supplier(Base):
@@ -40,7 +40,7 @@ class Supplier(Base):
     minimum_order_value = Column(DECIMAL(15, 2))
     rating = Column(DECIMAL(3, 2))
     certifications = Column(JSONB, default=list)
-    metadata = Column(JSONB, default={})
+    query_metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -107,7 +107,7 @@ class SupplierRelationship(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     is_active = Column(Boolean, default=True)
-    metadata = Column(JSONB, default={})
+    query_metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -231,7 +231,7 @@ class Inventory(Base):
     reorder_quantity = Column(DECIMAL(15, 3))
     last_counted_date = Column(Date)
     last_movement_date = Column(DateTime(timezone=True))
-    metadata = Column(JSONB, default={})
+    query_metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -311,7 +311,7 @@ class Order(Base):
     shipping_address = Column(Text)
     billing_address = Column(Text)
     notes = Column(Text)
-    metadata = Column(JSONB, default={})
+    query_metadata = Column(JSONB, default={})
     created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -410,7 +410,7 @@ class Shipment(Base):
     destination_address = Column(Text)
     shipping_cost = Column(DECIMAL(15, 2))
     weight_kg = Column(DECIMAL(10, 3))
-    metadata = Column(JSONB, default={})
+    query_metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     

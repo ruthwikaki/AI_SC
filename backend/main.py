@@ -1,280 +1,410 @@
 ﻿"""
-Application entry point.
-This module serves as the main entry point for the FastAPI application.
+True AI Backend - Uses LLM for everything, no patterns
 """
 
 import os
-import sys
+import warnings
+warnings.filterwarnings("ignore")
+
 import uvicorn
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
+import httpx
+from sqlalchemy import create_engine, text, inspect
+from sqlalchemy.orm import sessionmaker, Session
+from typing import Dict, Any, Optional, List
+import json
 import jwt
+import hashlib
+from pydantic import BaseModel
+import re
+import time
 
-# Add current directory to path for imports
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, current_dir)
+# For visualization
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import numpy as np
+from io import BytesIO
+import base64
 
-# Import config with better error handling
-try:
-    from config import get_settings
-    settings = get_settings()
-    print("Configuration loaded successfully")
-except ImportError as e:
-    print(f"WARNING: Could not import config: {str(e)}")
-    # Fallback settings
-    class FallbackSettings:
-        app_name = "Supply Chain LLM API"
-        api_version = "1.0.0"
-        environment = "development"
-        host = "0.0.0.0"
-        port = 8000
-        uvicorn_workers = 1
-        cors_origins = ["http://localhost:3001", "http://127.0.0.1:3001"]
-        database_url = "postgresql://postgres:123456789@localhost:5432/AI_SC"
-    
-    settings = FallbackSettings()
-except Exception as e:
-    print(f"WARNING: Config error: {str(e)}")
-    # Use fallback settings
-    class FallbackSettings:
-        app_name = "Supply Chain LLM API"
-        api_version = "1.0.0"
-        environment = "development"
-        host = "0.0.0.0"
-        port = 8000
-        uvicorn_workers = 1
-        cors_origins = ["http://localhost:3001", "http://127.0.0.1:3001"]
-        database_url = "postgresql://postgres:123456789@localhost:5432/AI_SC"
-    
-    settings = FallbackSettings()
+# Database setup
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:123456789@localhost:5432/Supplychain_AI")
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Simple logger for now (instead of complex logger setup)
-def log_info(message):
-    print(f"[INFO] {datetime.now().isoformat()} - {message}")
+# Security
+SECRET_KEY = "your-secret-key"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
-def log_error(message):
-    print(f"[ERROR] {datetime.now().isoformat()} - {message}")
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# Test user for development
-TEST_USER = {
-    "email": "test@example.com",
-    "username": "testuser",
-    "password": "testpassword",
-    "role": "user"
+# Auth
+class User(BaseModel):
+    username: str
+    email: str
+
+fake_users_db = {
+    "test@example.com": {
+        "username": "test@example.com",
+        "email": "test@example.com",
+        "hashed_password": hashlib.sha256("testpassword".encode()).hexdigest(),
+    }
 }
 
-# Define startup and shutdown context
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Lifecycle context manager for FastAPI.
-    This handles startup and shutdown events.
-    """
-    # ===== Startup =====
-    log_info(f"Starting {getattr(settings, 'app_name', 'Supply Chain LLM API')}")
-    log_info(f"Version: {getattr(settings, 'api_version', '1.0.0')}")
-    log_info(f"Environment: {getattr(settings, 'environment', 'development')}")
-    
-    log_info("Application startup complete (simplified mode)")
-    
-    yield
-    
-    # ===== Shutdown =====
-    log_info("Shutting down application")
-    log_info("Application shutdown complete")
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    to_encode.update({"exp": datetime.utcnow() + timedelta(hours=24)})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
 
-# Create the main application
-app = FastAPI(
-    title=getattr(settings, 'app_name', 'Supply Chain LLM API'),
-    description="API for the Supply Chain LLM SaaS platform",
-    version=getattr(settings, 'api_version', '1.0.0'),
-    lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        username = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401)
+        return User(username=username, email=username)
+    except:
+        raise HTTPException(status_code=401)
 
-# Configure CORS
-cors_origins = getattr(settings, 'cors_origins', [
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:3000",
-    "*"
-])
+# Pure AI - No patterns, no hardcoding
+class PureAI:
+    def __init__(self):
+        self.base_url = "http://localhost:11434"
+        self.model = "deepseek-coder-v2:16b-lite-instruct-q4_0"
+        self.schema_info = ""
+        
+    def discover_schema(self, db_session):
+        """Discover database schema dynamically"""
+        inspector = inspect(engine)
+        schema_parts = ["DATABASE SCHEMA:\n"]
+        
+        # Get all tables with details
+        for table_name in inspector.get_table_names():
+            if table_name.startswith('pg_'):
+                continue
+                
+            # Table info
+            schema_parts.append(f"\nTABLE: {table_name}")
+            
+            # Columns
+            columns = inspector.get_columns(table_name)
+            schema_parts.append("Columns:")
+            for col in columns:
+                schema_parts.append(f"  - {col['name']}: {col['type']}")
+            
+            # Foreign keys - CRUCIAL for joins
+            fks = inspector.get_foreign_keys(table_name)
+            if fks:
+                schema_parts.append("Foreign Keys:")
+                for fk in fks:
+                    schema_parts.append(f"  - {fk['constrained_columns'][0]} -> {fk['referred_table']}.{fk['referred_columns'][0]}")
+            
+            # Sample data to understand content
+            try:
+                result = db_session.execute(text(f"SELECT * FROM {table_name} LIMIT 1"))
+                row = result.fetchone()
+                if row:
+                    schema_parts.append("Sample row:")
+                    for i, col in enumerate(columns[:3]):  # First 3 columns
+                        schema_parts.append(f"  - {col['name']}: {row[i]}")
+            except:
+                pass
+        
+        # Key relationships summary
+        schema_parts.append("\n\nKEY RELATIONSHIPS:")
+        schema_parts.append("- Products and Suppliers are connected through: products -> order_items -> orders -> suppliers")
+        schema_parts.append("- Products and Inventory: products.id = inventory.product_id")
+        schema_parts.append("- Orders and Order Items: orders.id = order_items.order_id")
+        
+        self.schema_info = "\n".join(schema_parts)
+        print(f"✅ Schema discovered: {len(inspector.get_table_names())} tables")
+    
+    async def generate_sql(self, question: str, include_viz: bool = False) -> Dict[str, Any]:
+        """Let AI generate SQL based on question and schema"""
+        
+        # Build prompt
+        prompt = f"""{self.schema_info}
+
+User Question: {question}
+
+Generate a PostgreSQL query to answer this question. Important rules:
+1. Use the exact table and column names from the schema above
+2. When joining products with suppliers, use the path: products -> order_items -> orders -> suppliers
+3. Use appropriate JOINs based on the foreign keys shown
+4. For aggregations, use COUNT, SUM, AVG as needed
+5. For "top N", use ORDER BY and LIMIT
+6. For grouping, use GROUP BY
+7. Always use lowercase for identifiers
+
+{f'''
+Also determine if this needs a visualization. If yes, specify:
+- chart_type: bar, pie, line, scatter
+- x_column: which column for x-axis
+- y_column: which column for y-axis
+''' if include_viz else ''}
+
+Respond in this format:
+SQL: <your query>
+{f'NEEDS_VIZ: true/false' if include_viz else ''}
+{f'CHART_TYPE: <type>' if include_viz else ''}
+{f'X_COLUMN: <column>' if include_viz else ''}
+{f'Y_COLUMN: <column>' if include_viz else ''}
+"""
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/generate",
+                    json={
+                        "model": self.model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "temperature": 0.1,
+                        "num_predict": 1000
+                    }
+                )
+                
+                if response.status_code == 200:
+                    ai_response = response.json().get("response", "")
+                    
+                    # Extract SQL
+                    sql_match = re.search(r'SQL:\s*(.+?)(?:NEEDS_VIZ:|$)', ai_response, re.DOTALL)
+                    if sql_match:
+                        sql = sql_match.group(1).strip()
+                        
+                        # Clean SQL
+                        sql = sql.replace('```sql', '').replace('```', '').strip()
+                        if not sql.endswith(';'):
+                            sql += ';'
+                        
+                        result = {"sql": sql, "success": True}
+                        
+                        # Check for visualization
+                        if include_viz and 'NEEDS_VIZ: true' in ai_response:
+                            chart_match = re.search(r'CHART_TYPE:\s*(\w+)', ai_response)
+                            x_match = re.search(r'X_COLUMN:\s*(\w+)', ai_response)
+                            y_match = re.search(r'Y_COLUMN:\s*(\w+)', ai_response)
+                            
+                            if chart_match:
+                                result['needs_viz'] = True
+                                result['chart_type'] = chart_match.group(1)
+                                result['x_column'] = x_match.group(1) if x_match else None
+                                result['y_column'] = y_match.group(1) if y_match else None
+                        
+                        return result
+                    
+        except Exception as e:
+            print(f"AI Error: {e}")
+        
+        return {"success": False, "error": "Failed to generate SQL"}
+    
+    def create_visualization(self, data: List[Dict], chart_type: str, x_col: str = None, y_col: str = None) -> str:
+        """Create visualization based on AI's suggestion"""
+        try:
+            df = pd.DataFrame(data)
+            
+            if df.empty:
+                return None
+            
+            plt.figure(figsize=(10, 6))
+            
+            # Auto-detect columns if not specified
+            if not x_col and len(df.columns) > 0:
+                x_col = df.columns[0]
+            if not y_col and len(df.columns) > 1:
+                y_col = df.columns[1]
+            
+            # Create chart based on type
+            if chart_type == 'bar':
+                plt.bar(df[x_col], df[y_col])
+                plt.xticks(rotation=45, ha='right')
+                plt.xlabel(x_col)
+                plt.ylabel(y_col)
+                
+            elif chart_type == 'pie':
+                plt.pie(df[y_col], labels=df[x_col], autopct='%1.1f%%')
+                
+            elif chart_type == 'line':
+                plt.plot(df[x_col], df[y_col], marker='o')
+                plt.xticks(rotation=45, ha='right')
+                plt.xlabel(x_col)
+                plt.ylabel(y_col)
+                
+            elif chart_type == 'scatter':
+                plt.scatter(df[x_col], df[y_col])
+                plt.xlabel(x_col)
+                plt.ylabel(y_col)
+            
+            else:  # Default bar chart
+                if len(df) > 20:
+                    df = df.head(20)
+                plt.bar(range(len(df)), df.iloc[:, 1])
+                plt.xticks(range(len(df)), df.iloc[:, 0], rotation=45, ha='right')
+            
+            plt.tight_layout()
+            
+            # Convert to base64
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+            buffer.seek(0)
+            image_base64 = base64.b64encode(buffer.getvalue()).decode()
+            plt.close()
+            
+            return image_base64
+            
+        except Exception as e:
+            print(f"Visualization error: {e}")
+            return None
+
+# Create app
+app = FastAPI(title="True AI - No Hardcoding")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Root route
-@app.get("/")
-async def root():
-    """Root route that provides API information."""
-    return {
-        "app": getattr(settings, 'app_name', 'Supply Chain LLM API'),
-        "version": getattr(settings, 'api_version', '1.0.0'),
-        "environment": getattr(settings, 'environment', 'development'),
-        "docs_url": "/docs",
-        "api_prefix": "/api",
-        "status": "running",
-        "timestamp": datetime.now().isoformat()
-    }
+# Global AI
+ai = PureAI()
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    # Try database connection
-    db_status = "not configured"
-    try:
-        from sqlalchemy import create_engine, text
-        engine = create_engine(getattr(settings, 'database_url', ''))
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-            db_status = "connected"
-    except:
-        db_status = "disconnected"
+@app.on_event("startup")
+async def startup():
+    print("\n" + "="*60)
+    print("🤖 TRUE AI - NO PATTERNS, NO HARDCODING")
+    print("="*60)
     
-    return {
-        "status": "healthy",
-        "version": getattr(settings, 'api_version', '1.0.0'),
-        "environment": getattr(settings, 'environment', 'development'),
-        "timestamp": datetime.now().isoformat(),
-        "services": {
-            "api": "running",
-            "database": db_status,
-            "llm": "not configured",
-            "cache": "not configured"
-        }
-    }
+    db = SessionLocal()
+    try:
+        ai.discover_schema(db)
+        print("✅ Ready for any query!")
+        print("="*60 + "\n")
+    finally:
+        db.close()
 
-# API Routes
-@app.get("/api/status")
-async def api_status():
-    """API status endpoint."""
-    return {
-        "api": "running",
-        "version": getattr(settings, 'api_version', '1.0.0'),
-        "environment": getattr(settings, 'environment', 'development'),
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/api/test")
-async def test_endpoint():
-    """Test endpoint for frontend connection."""
-    return {
-        "message": "Backend connection successful!",
-        "timestamp": datetime.now().isoformat(),
-        "frontend_connected": True,
-        "cors_enabled": True
-    }
-
-# Authentication endpoints
+# Auth endpoints
 @app.post("/api/auth/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    """Login endpoint that returns JWT token."""
-    if form_data.username == TEST_USER["email"] and form_data.password == TEST_USER["password"]:
-        token = jwt.encode(
-            {
-                "sub": form_data.username,
-                "user_id": "test-user-id",
-                "role": TEST_USER["role"],
-                "exp": datetime.utcnow() + timedelta(hours=24)
-            },
-            "secret-key",
-            algorithm="HS256"
-        )
-        return {"access_token": token, "token_type": "bearer"}
+    user = fake_users_db.get(form_data.username)
+    if not user or hashlib.sha256(form_data.password.encode()).hexdigest() != user["hashed_password"]:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
     
-    raise HTTPException(
-        status_code=401,
-        detail="Invalid credentials",
-        headers={"WWW-Authenticate": "Bearer"}
-    )
+    return {
+        "access_token": create_access_token(data={"sub": user["username"]}),
+        "token_type": "bearer",
+        "user": {"email": user["email"], "username": user["username"]}
+    }
 
 @app.get("/api/auth/me")
-async def get_current_user():
-    """Get current user endpoint."""
-    return {
-        "id": "test-user-id",
-        "username": TEST_USER["username"],
-        "email": TEST_USER["email"],
-        "role": TEST_USER["role"]
-    }
+async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
-# Placeholder endpoints
-@app.get("/api/queries")
-async def get_queries():
-    """Placeholder for queries endpoint."""
-    return {
-        "queries": [],
-        "total": 0,
-        "page": 1,
-        "per_page": 10
-    }
-
-@app.post("/api/queries")
-async def create_query():
-    """Placeholder for creating queries."""
-    return {
-        "id": "query-123",
-        "status": "created",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/api/analytics/dashboard")
-async def get_dashboard_analytics():
-    """Placeholder for dashboard analytics."""
-    return {
-        "inventory": {
-            "total_value": 1500000,
-            "items_count": 350,
-            "low_stock_alerts": 12
-        },
-        "orders": {
-            "pending": 45,
-            "processing": 23,
-            "completed": 156
-        },
-        "suppliers": {
-            "active": 28,
-            "performance_score": 87.5
+# Main query endpoint - Pure AI
+@app.post("/api/queries/execute")
+async def execute_query(
+    request: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Execute any query using pure AI"""
+    query = request.get("query", "").strip()
+    
+    if not query:
+        return {"success": False, "error": "No query provided"}
+    
+    print(f"\n📝 Query: {query}")
+    
+    # Check if visualization is requested
+    viz_words = ['chart', 'graph', 'plot', 'visualize', 'diagram']
+    needs_viz = any(word in query.lower() for word in viz_words)
+    
+    # Generate SQL using AI
+    result = await ai.generate_sql(query, include_viz=needs_viz)
+    
+    if not result.get("success"):
+        return result
+    
+    sql = result.get("sql")
+    print(f"🔍 Generated SQL: {sql}")
+    
+    # Execute SQL
+    try:
+        db_result = db.execute(text(sql))
+        rows = db_result.fetchall()
+        columns = list(db_result.keys())
+        data = [dict(zip(columns, row)) for row in rows]
+        
+        response = {
+            "success": True,
+            "data": data,
+            "columns": columns,
+            "row_count": len(data),
+            "sql": sql
         }
+        
+        # Create visualization if needed
+        if result.get("needs_viz") and len(data) > 0:
+            viz = ai.create_visualization(
+                data, 
+                result.get("chart_type", "bar"),
+                result.get("x_column"),
+                result.get("y_column")
+            )
+            if viz:
+                response["visualization"] = viz
+                response["intent"] = {"main_intent": "visualization"}
+        
+        return response
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Database error: {str(e)}",
+            "sql": sql
+        }
+
+@app.get("/api/queries/suggestions")
+async def get_suggestions(current_user: User = Depends(get_current_user)):
+    """AI-generated suggestions based on schema"""
+    # These are just examples - the AI handles any query
+    return {
+        "suggestions": [
+            "which suppliers provide products in electronics category",
+            "show total inventory value",
+            "create a pie chart of order status distribution",
+            "find products below reorder point",
+            "show supplier performance metrics",
+            "analyze order trends by month",
+            "which products are most profitable",
+            "show suppliers with highest ratings",
+            "visualize inventory levels by category",
+            "calculate average order processing time"
+        ]
     }
 
-# Error handling
-@app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    log_error(f"Unhandled exception: {exc}")
+@app.get("/api/queries/saved")
+async def get_saved_queries(current_user: User = Depends(get_current_user)):
+    return {"queries": []}
+
+@app.get("/")
+async def root():
     return {
-        "error": "Internal server error",
-        "message": str(exc) if getattr(settings, 'environment', 'development') == 'development' else "An error occurred",
-        "timestamp": datetime.now().isoformat()
+        "name": "True AI Backend",
+        "status": "No patterns, no hardcoding - pure AI",
+        "model": ai.model
     }
 
 if __name__ == "__main__":
-    # Get port from settings or environment
-    port = getattr(settings, 'port', int(os.environ.get("PORT", 8000)))
-    
-    log_info("Starting Supply Chain LLM Backend...")
-    log_info(f"API Server: http://localhost:{port}")
-    log_info(f"API Documentation: http://localhost:{port}/docs")
-    log_info(f"Health Check: http://localhost:{port}/health")
-    log_info(f"Test Endpoint: http://localhost:{port}/api/test")
-    log_info("Test User: test@example.com / testpassword")
-    
-    # Run the application
-    uvicorn.run(
-        "main:app",
-        host=getattr(settings, 'host', '0.0.0.0'),
-        port=port,
-        reload=getattr(settings, 'environment', 'development') == "development",
-        workers=getattr(settings, 'uvicorn_workers', 1),
-        log_level="info"
-    )
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

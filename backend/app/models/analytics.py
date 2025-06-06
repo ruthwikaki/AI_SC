@@ -1,5 +1,7 @@
 """
 Analytics and reporting database models
+from app.models.base import Base
+
 """
 
 from datetime import datetime, date
@@ -13,9 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
 
 
 class AnalyticsResult(Base):
@@ -233,7 +233,7 @@ class DeliveryPerformance(Base):
     delay_reason = Column(String(255))
     customer_satisfaction_score = Column(DECIMAL(3, 2))
     cost_variance = Column(DECIMAL(15, 2))
-    metadata = Column(JSONB, default={})
+    query_metadata = Column(JSONB, default={})
     recorded_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships

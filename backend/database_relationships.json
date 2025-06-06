@@ -1,0 +1,518 @@
+{
+  "relationships": [
+    {
+      "description": "users.created_by \u2192 users.id",
+      "from_table": "users",
+      "to_table": "users",
+      "join_condition": "users.created_by = users.id"
+    },
+    {
+      "description": "users.updated_by \u2192 users.id",
+      "from_table": "users",
+      "to_table": "users",
+      "join_condition": "users.updated_by = users.id"
+    },
+    {
+      "description": "user_sessions.user_id \u2192 users.id",
+      "from_table": "user_sessions",
+      "to_table": "users",
+      "join_condition": "user_sessions.user_id = users.id"
+    },
+    {
+      "description": "password_reset_tokens.user_id \u2192 users.id",
+      "from_table": "password_reset_tokens",
+      "to_table": "users",
+      "join_condition": "password_reset_tokens.user_id = users.id"
+    },
+    {
+      "description": "user_preferences.user_id \u2192 users.id",
+      "from_table": "user_preferences",
+      "to_table": "users",
+      "join_condition": "user_preferences.user_id = users.id"
+    },
+    {
+      "description": "audit_logs.user_id \u2192 users.id",
+      "from_table": "audit_logs",
+      "to_table": "users",
+      "join_condition": "audit_logs.user_id = users.id"
+    },
+    {
+      "description": "role_permissions.granted_by \u2192 users.id",
+      "from_table": "role_permissions",
+      "to_table": "users",
+      "join_condition": "role_permissions.granted_by = users.id"
+    },
+    {
+      "description": "role_permissions.permission_id \u2192 permissions.id",
+      "from_table": "role_permissions",
+      "to_table": "permissions",
+      "join_condition": "role_permissions.permission_id = permissions.id"
+    },
+    {
+      "description": "role_permissions.role_id \u2192 roles.id",
+      "from_table": "role_permissions",
+      "to_table": "roles",
+      "join_condition": "role_permissions.role_id = roles.id"
+    },
+    {
+      "description": "user_roles.assigned_by \u2192 users.id",
+      "from_table": "user_roles",
+      "to_table": "users",
+      "join_condition": "user_roles.assigned_by = users.id"
+    },
+    {
+      "description": "user_roles.role_id \u2192 roles.id",
+      "from_table": "user_roles",
+      "to_table": "roles",
+      "join_condition": "user_roles.role_id = roles.id"
+    },
+    {
+      "description": "user_roles.user_id \u2192 users.id",
+      "from_table": "user_roles",
+      "to_table": "users",
+      "join_condition": "user_roles.user_id = users.id"
+    },
+    {
+      "description": "query_results_cache.user_id \u2192 users.id",
+      "from_table": "query_results_cache",
+      "to_table": "users",
+      "join_condition": "query_results_cache.user_id = users.id"
+    },
+    {
+      "description": "charts.chart_type_id \u2192 chart_types.id",
+      "from_table": "charts",
+      "to_table": "chart_types",
+      "join_condition": "charts.chart_type_id = chart_types.id"
+    },
+    {
+      "description": "charts.created_by \u2192 users.id",
+      "from_table": "charts",
+      "to_table": "users",
+      "join_condition": "charts.created_by = users.id"
+    },
+    {
+      "description": "charts.query_id \u2192 natural_language_queries.id",
+      "from_table": "charts",
+      "to_table": "natural_language_queries",
+      "join_condition": "charts.query_id = natural_language_queries.id"
+    },
+    {
+      "description": "saved_charts.chart_id \u2192 charts.id",
+      "from_table": "saved_charts",
+      "to_table": "charts",
+      "join_condition": "saved_charts.chart_id = charts.id"
+    },
+    {
+      "description": "saved_charts.user_id \u2192 users.id",
+      "from_table": "saved_charts",
+      "to_table": "users",
+      "join_condition": "saved_charts.user_id = users.id"
+    },
+    {
+      "description": "dashboards.created_by \u2192 users.id",
+      "from_table": "dashboards",
+      "to_table": "users",
+      "join_condition": "dashboards.created_by = users.id"
+    },
+    {
+      "description": "dashboard_charts.chart_id \u2192 charts.id",
+      "from_table": "dashboard_charts",
+      "to_table": "charts",
+      "join_condition": "dashboard_charts.chart_id = charts.id"
+    },
+    {
+      "description": "dashboard_charts.dashboard_id \u2192 dashboards.id",
+      "from_table": "dashboard_charts",
+      "to_table": "dashboards",
+      "join_condition": "dashboard_charts.dashboard_id = dashboards.id"
+    },
+    {
+      "description": "analytics_results.created_by \u2192 users.id",
+      "from_table": "analytics_results",
+      "to_table": "users",
+      "join_condition": "analytics_results.created_by = users.id"
+    },
+    {
+      "description": "scheduled_analytics.created_by \u2192 users.id",
+      "from_table": "scheduled_analytics",
+      "to_table": "users",
+      "join_condition": "scheduled_analytics.created_by = users.id"
+    },
+    {
+      "description": "reports.generated_by \u2192 users.id",
+      "from_table": "reports",
+      "to_table": "users",
+      "join_condition": "reports.generated_by = users.id"
+    },
+    {
+      "description": "report_schedules.created_by \u2192 users.id",
+      "from_table": "report_schedules",
+      "to_table": "users",
+      "join_condition": "report_schedules.created_by = users.id"
+    },
+    {
+      "description": "database_connections.created_by \u2192 users.id",
+      "from_table": "database_connections",
+      "to_table": "users",
+      "join_condition": "database_connections.created_by = users.id"
+    },
+    {
+      "description": "schema_mappings.connection_id \u2192 database_connections.id",
+      "from_table": "schema_mappings",
+      "to_table": "database_connections",
+      "join_condition": "schema_mappings.connection_id = database_connections.id"
+    },
+    {
+      "description": "schema_mappings.verified_by \u2192 users.id",
+      "from_table": "schema_mappings",
+      "to_table": "users",
+      "join_condition": "schema_mappings.verified_by = users.id"
+    },
+    {
+      "description": "table_relationships.connection_id \u2192 database_connections.id",
+      "from_table": "table_relationships",
+      "to_table": "database_connections",
+      "join_condition": "table_relationships.connection_id = database_connections.id"
+    },
+    {
+      "description": "sync_jobs.connection_id \u2192 database_connections.id",
+      "from_table": "sync_jobs",
+      "to_table": "database_connections",
+      "join_condition": "sync_jobs.connection_id = database_connections.id"
+    },
+    {
+      "description": "sync_jobs.created_by \u2192 users.id",
+      "from_table": "sync_jobs",
+      "to_table": "users",
+      "join_condition": "sync_jobs.created_by = users.id"
+    },
+    {
+      "description": "sync_history.sync_job_id \u2192 sync_jobs.id",
+      "from_table": "sync_history",
+      "to_table": "sync_jobs",
+      "join_condition": "sync_history.sync_job_id = sync_jobs.id"
+    },
+    {
+      "description": "supplier_tiers.supplier_id \u2192 suppliers.id",
+      "from_table": "supplier_tiers",
+      "to_table": "suppliers",
+      "join_condition": "supplier_tiers.supplier_id = suppliers.id"
+    },
+    {
+      "description": "supplier_relationships.child_supplier_id \u2192 suppliers.id",
+      "from_table": "supplier_relationships",
+      "to_table": "suppliers",
+      "join_condition": "supplier_relationships.child_supplier_id = suppliers.id"
+    },
+    {
+      "description": "supplier_relationships.parent_supplier_id \u2192 suppliers.id",
+      "from_table": "supplier_relationships",
+      "to_table": "suppliers",
+      "join_condition": "supplier_relationships.parent_supplier_id = suppliers.id"
+    },
+    {
+      "description": "product_materials.material_id \u2192 materials.id",
+      "from_table": "product_materials",
+      "to_table": "materials",
+      "join_condition": "product_materials.material_id = materials.id"
+    },
+    {
+      "description": "product_materials.product_id \u2192 products.id",
+      "from_table": "product_materials",
+      "to_table": "products",
+      "join_condition": "product_materials.product_id = products.id"
+    },
+    {
+      "description": "inventory.material_id \u2192 materials.id",
+      "from_table": "inventory",
+      "to_table": "materials",
+      "join_condition": "inventory.material_id = materials.id"
+    },
+    {
+      "description": "inventory.product_id \u2192 products.id",
+      "from_table": "inventory",
+      "to_table": "products",
+      "join_condition": "inventory.product_id = products.id"
+    },
+    {
+      "description": "inventory_history.inventory_id \u2192 inventory.id",
+      "from_table": "inventory_history",
+      "to_table": "inventory",
+      "join_condition": "inventory_history.inventory_id = inventory.id"
+    },
+    {
+      "description": "inventory_history.performed_by \u2192 users.id",
+      "from_table": "inventory_history",
+      "to_table": "users",
+      "join_condition": "inventory_history.performed_by = users.id"
+    },
+    {
+      "description": "orders.created_by \u2192 users.id",
+      "from_table": "orders",
+      "to_table": "users",
+      "join_condition": "orders.created_by = users.id"
+    },
+    {
+      "description": "orders.supplier_id \u2192 suppliers.id",
+      "from_table": "orders",
+      "to_table": "suppliers",
+      "join_condition": "orders.supplier_id = suppliers.id"
+    },
+    {
+      "description": "order_items.material_id \u2192 materials.id",
+      "from_table": "order_items",
+      "to_table": "materials",
+      "join_condition": "order_items.material_id = materials.id"
+    },
+    {
+      "description": "order_items.order_id \u2192 orders.id",
+      "from_table": "order_items",
+      "to_table": "orders",
+      "join_condition": "order_items.order_id = orders.id"
+    },
+    {
+      "description": "order_items.product_id \u2192 products.id",
+      "from_table": "order_items",
+      "to_table": "products",
+      "join_condition": "order_items.product_id = products.id"
+    },
+    {
+      "description": "shipments.order_id \u2192 orders.id",
+      "from_table": "shipments",
+      "to_table": "orders",
+      "join_condition": "shipments.order_id = orders.id"
+    },
+    {
+      "description": "shipment_items.order_item_id \u2192 order_items.id",
+      "from_table": "shipment_items",
+      "to_table": "order_items",
+      "join_condition": "shipment_items.order_item_id = order_items.id"
+    },
+    {
+      "description": "shipment_items.shipment_id \u2192 shipments.id",
+      "from_table": "shipment_items",
+      "to_table": "shipments",
+      "join_condition": "shipment_items.shipment_id = shipments.id"
+    },
+    {
+      "description": "supplier_performance_metrics.supplier_id \u2192 suppliers.id",
+      "from_table": "supplier_performance_metrics",
+      "to_table": "suppliers",
+      "join_condition": "supplier_performance_metrics.supplier_id = suppliers.id"
+    },
+    {
+      "description": "delivery_performance.shipment_id \u2192 shipments.id",
+      "from_table": "delivery_performance",
+      "to_table": "shipments",
+      "join_condition": "delivery_performance.shipment_id = shipments.id"
+    },
+    {
+      "description": "risk_assessments.assessment_by \u2192 users.id",
+      "from_table": "risk_assessments",
+      "to_table": "users",
+      "join_condition": "risk_assessments.assessment_by = users.id"
+    },
+    {
+      "description": "risk_assessments.supplier_id \u2192 suppliers.id",
+      "from_table": "risk_assessments",
+      "to_table": "suppliers",
+      "join_condition": "risk_assessments.supplier_id = suppliers.id"
+    },
+    {
+      "description": "compliance_checks.checked_by \u2192 users.id",
+      "from_table": "compliance_checks",
+      "to_table": "users",
+      "join_condition": "compliance_checks.checked_by = users.id"
+    },
+    {
+      "description": "compliance_checks.supplier_id \u2192 suppliers.id",
+      "from_table": "compliance_checks",
+      "to_table": "suppliers",
+      "join_condition": "compliance_checks.supplier_id = suppliers.id"
+    },
+    {
+      "description": "forecast_results.created_by \u2192 users.id",
+      "from_table": "forecast_results",
+      "to_table": "users",
+      "join_condition": "forecast_results.created_by = users.id"
+    },
+    {
+      "description": "safety_stock_calculations.material_id \u2192 materials.id",
+      "from_table": "safety_stock_calculations",
+      "to_table": "materials",
+      "join_condition": "safety_stock_calculations.material_id = materials.id"
+    },
+    {
+      "description": "safety_stock_calculations.product_id \u2192 products.id",
+      "from_table": "safety_stock_calculations",
+      "to_table": "products",
+      "join_condition": "safety_stock_calculations.product_id = products.id"
+    },
+    {
+      "description": "supply_chain_networks.created_by \u2192 users.id",
+      "from_table": "supply_chain_networks",
+      "to_table": "users",
+      "join_condition": "supply_chain_networks.created_by = users.id"
+    },
+    {
+      "description": "network_nodes.network_id \u2192 supply_chain_networks.id",
+      "from_table": "network_nodes",
+      "to_table": "supply_chain_networks",
+      "join_condition": "network_nodes.network_id = supply_chain_networks.id"
+    },
+    {
+      "description": "network_edges.network_id \u2192 supply_chain_networks.id",
+      "from_table": "network_edges",
+      "to_table": "supply_chain_networks",
+      "join_condition": "network_edges.network_id = supply_chain_networks.id"
+    },
+    {
+      "description": "network_edges.source_node_id \u2192 network_nodes.id",
+      "from_table": "network_edges",
+      "to_table": "network_nodes",
+      "join_condition": "network_edges.source_node_id = network_nodes.id"
+    },
+    {
+      "description": "network_edges.target_node_id \u2192 network_nodes.id",
+      "from_table": "network_edges",
+      "to_table": "network_nodes",
+      "join_condition": "network_edges.target_node_id = network_nodes.id"
+    },
+    {
+      "description": "bottleneck_analysis.created_by \u2192 users.id",
+      "from_table": "bottleneck_analysis",
+      "to_table": "users",
+      "join_condition": "bottleneck_analysis.created_by = users.id"
+    },
+    {
+      "description": "bottleneck_analysis.edge_id \u2192 network_edges.id",
+      "from_table": "bottleneck_analysis",
+      "to_table": "network_edges",
+      "join_condition": "bottleneck_analysis.edge_id = network_edges.id"
+    },
+    {
+      "description": "bottleneck_analysis.network_id \u2192 supply_chain_networks.id",
+      "from_table": "bottleneck_analysis",
+      "to_table": "supply_chain_networks",
+      "join_condition": "bottleneck_analysis.network_id = supply_chain_networks.id"
+    },
+    {
+      "description": "bottleneck_analysis.node_id \u2192 network_nodes.id",
+      "from_table": "bottleneck_analysis",
+      "to_table": "network_nodes",
+      "join_condition": "bottleneck_analysis.node_id = network_nodes.id"
+    },
+    {
+      "description": "risk_propagation_scenarios.created_by \u2192 users.id",
+      "from_table": "risk_propagation_scenarios",
+      "to_table": "users",
+      "join_condition": "risk_propagation_scenarios.created_by = users.id"
+    },
+    {
+      "description": "risk_propagation_scenarios.network_id \u2192 supply_chain_networks.id",
+      "from_table": "risk_propagation_scenarios",
+      "to_table": "supply_chain_networks",
+      "join_condition": "risk_propagation_scenarios.network_id = supply_chain_networks.id"
+    },
+    {
+      "description": "disruption_impacts.affected_node_id \u2192 network_nodes.id",
+      "from_table": "disruption_impacts",
+      "to_table": "network_nodes",
+      "join_condition": "disruption_impacts.affected_node_id = network_nodes.id"
+    },
+    {
+      "description": "disruption_impacts.scenario_id \u2192 risk_propagation_scenarios.id",
+      "from_table": "disruption_impacts",
+      "to_table": "risk_propagation_scenarios",
+      "join_condition": "disruption_impacts.scenario_id = risk_propagation_scenarios.id"
+    },
+    {
+      "description": "system_settings.updated_by \u2192 users.id",
+      "from_table": "system_settings",
+      "to_table": "users",
+      "join_condition": "system_settings.updated_by = users.id"
+    },
+    {
+      "description": "notification_settings.user_id \u2192 users.id",
+      "from_table": "notification_settings",
+      "to_table": "users",
+      "join_condition": "notification_settings.user_id = users.id"
+    },
+    {
+      "description": "api_logs.user_id \u2192 users.id",
+      "from_table": "api_logs",
+      "to_table": "users",
+      "join_condition": "api_logs.user_id = users.id"
+    },
+    {
+      "description": "llm_usage_logs.query_id \u2192 natural_language_queries.id",
+      "from_table": "llm_usage_logs",
+      "to_table": "natural_language_queries",
+      "join_condition": "llm_usage_logs.query_id = natural_language_queries.id"
+    },
+    {
+      "description": "llm_usage_logs.user_id \u2192 users.id",
+      "from_table": "llm_usage_logs",
+      "to_table": "users",
+      "join_condition": "llm_usage_logs.user_id = users.id"
+    },
+    {
+      "description": "error_logs.user_id \u2192 users.id",
+      "from_table": "error_logs",
+      "to_table": "users",
+      "join_condition": "error_logs.user_id = users.id"
+    },
+    {
+      "description": "user_activity_logs.user_id \u2192 users.id",
+      "from_table": "user_activity_logs",
+      "to_table": "users",
+      "join_condition": "user_activity_logs.user_id = users.id"
+    },
+    {
+      "description": "data_quality_issues.resolved_by \u2192 users.id",
+      "from_table": "data_quality_issues",
+      "to_table": "users",
+      "join_condition": "data_quality_issues.resolved_by = users.id"
+    },
+    {
+      "description": "data_quality_issues.rule_id \u2192 data_quality_rules.id",
+      "from_table": "data_quality_issues",
+      "to_table": "data_quality_rules",
+      "join_condition": "data_quality_issues.rule_id = data_quality_rules.id"
+    },
+    {
+      "description": "data_lineage.created_by \u2192 users.id",
+      "from_table": "data_lineage",
+      "to_table": "users",
+      "join_condition": "data_lineage.created_by = users.id"
+    },
+    {
+      "description": "change_history.changed_by \u2192 users.id",
+      "from_table": "change_history",
+      "to_table": "users",
+      "join_condition": "change_history.changed_by = users.id"
+    }
+  ],
+  "teaching_examples": [
+    {
+      "question": "show me all table names in the database",
+      "sql": "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;",
+      "explanation": "Use information_schema.tables with table_name column (NOT tablename)"
+    },
+    {
+      "question": "show supplier ratings",
+      "sql": "SELECT name, rating FROM suppliers ORDER BY rating DESC;",
+      "explanation": "Suppliers have 'rating' column directly"
+    },
+    {
+      "question": "count products per supplier",
+      "sql": "SELECT s.name, s.rating, COUNT(DISTINCT o.product_id) as product_count\n                     FROM suppliers s\n                     LEFT JOIN orders o ON s.id = o.supplier_id\n                     GROUP BY s.id, s.name, s.rating\n                     ORDER BY product_count DESC;",
+      "explanation": "Products connect to suppliers through orders table"
+    },
+    {
+      "question": "show products with low inventory",
+      "sql": "SELECT p.id, p.name, p.sku, i.quantity_on_hand, i.reorder_point\n                         FROM products p\n                         JOIN inventory i ON i.product_id = p.id\n                         WHERE i.quantity_on_hand < i.reorder_point\n                         ORDER BY i.quantity_on_hand ASC;",
+      "explanation": "Join products and inventory using i.product_id = p.id"
+    }
+  ]
+}

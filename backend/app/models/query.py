@@ -1,4 +1,4 @@
-"""
+﻿"""
 Query-related database models
 """
 
@@ -13,9 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
 
 
 class NaturalLanguageQuery(Base):
@@ -35,7 +33,7 @@ class NaturalLanguageQuery(Base):
     model_used = Column(String(100))
     tokens_used = Column(Integer)
     confidence_score = Column(DECIMAL(3, 2))
-    metadata = Column(JSONB, default={})
+    query_metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
     
     # Relationships
@@ -190,3 +188,6 @@ class QuerySuggestion(Base):
         
         # Check if any keyword matches
         return any(keyword in context_lower for keyword in keywords_lower)
+from app.models.base import Base
+from app.models.base import Base
+

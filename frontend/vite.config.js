@@ -15,10 +15,37 @@ export default defineConfig({
     hmr: { overlay: false },
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',  // Fixed: Changed from 8080 to 8000
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response:', proxyRes.statusCode, req.url);
+          });
+        },
+      },
+      '/queries': {
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       },
+      '/auth': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/analytics': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      }
     },
   },
 
@@ -55,5 +82,19 @@ export default defineConfig({
       'react-router-dom',
       'axios',
     ],
+  },
+
+  // Build options
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          utils: ['axios', 'dayjs'],
+        },
+      },
+    },
   },
 });

@@ -24,8 +24,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Query', href: '/query', icon: QuestionMarkCircleIcon },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
     { name: 'Multi-Tier View', href: '/multi-tier', icon: CubeTransparentIcon },
-    { name: 'Database Explorer', href: '/database', icon: CircleStackIcon },
-    { name: 'Reports', href: '/reports', icon: DocumentTextIcon },
+    //{ name: 'Database Explorer', href: '/database', icon: CircleStackIcon },
+    //{ name: 'Reports', href: '/reports', icon: DocumentTextIcon },
     { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
   ];
 

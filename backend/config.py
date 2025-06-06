@@ -9,6 +9,10 @@ import dotenv
 # Load environment variables from .env file if present
 dotenv.load_dotenv()
 
+# Also load model paths if available
+if os.path.exists('.env.models'):
+    dotenv.load_dotenv('.env.models')
+
 class Settings(BaseSettings):
     """Application settings."""
     
@@ -27,7 +31,7 @@ class Settings(BaseSettings):
     
     # Database settings - SINGLE database_url field
     database_url: str = Field(
-        default="postgresql://postgres:123456789@localhost:5432/AI_SC",
+        default="postgresql://postgres:123456789@localhost:5432/Supplychain_AI",
         env="DATABASE_URL"
     )
     database_pool_size: int = 5
@@ -130,14 +134,14 @@ class Settings(BaseSettings):
     @validator("database_url", pre=True)
     def construct_database_url(cls, v, values):
         """Construct database URL if not provided."""
-        if v and v != "postgresql://postgres:123456789@localhost:5432/AI_SC":
+        if v and v != "postgresql://postgres:123456789@localhost:5432/Supplychain_AI":
             return v
         # Construct from individual settings if available
         user = values.get("DB_USER", "postgres")
-        password = values.get("DB_PASSWORD", "Ak#312189")
+        password = values.get("DB_PASSWORD", "123456789")
         host = values.get("DB_HOST", "localhost")
         port = values.get("DB_PORT", 5432)
-        name = values.get("DB_NAME", "AI_SC")
+        name = values.get("DB_NAME", "Supplychain_AI")
         return f"postgresql://{user}:{password}@{host}:{port}/{name}"
     
     @validator("jwt_secret_key")
@@ -219,5 +223,6 @@ def get_environment_variables(prefix: str = "APP_") -> Dict[str, str]:
         for k, v in os.environ.items()
         if k.startswith(prefix)
     }
+
 
 
