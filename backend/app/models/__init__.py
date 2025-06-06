@@ -5,7 +5,7 @@ Exports all database models for easy importing
 
 from .user import (
     User, UserSession, PasswordResetToken, UserPreference,
-    Role, Permission, RolePermission, UserRole, AuditLog
+    #Role, Permission, RolePermission, UserRole, AuditLog
 )
 
 from .query import (
