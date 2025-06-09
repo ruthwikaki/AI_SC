@@ -49,7 +49,7 @@ export default defineConfig({
     },
   },
 
-  // Path aliases
+  // Path aliases - Added missing '@' alias
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -59,6 +59,7 @@ export default defineConfig({
       '@services': path.resolve(__dirname, './src/services'),
       '@utils': path.resolve(__dirname, './src/utils'),
       '@assets': path.resolve(__dirname, './src/assets'),
+      '@config': path.resolve(__dirname, './src/config'),
     },
   },
 
@@ -74,13 +75,21 @@ export default defineConfig({
     postcss: './postcss.config.js',
   },
 
-  // Dependency optimization
+  // Dependency optimization - Added missing dependencies
   optimizeDeps: {
     include: [
       'react',
       'react-dom',
       'react-router-dom',
       'axios',
+      'recharts',
+      'react-grid-layout',
+      'leaflet',
+      'react-leaflet',
+      'lucide-react',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
     ],
   },
 
@@ -93,6 +102,9 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           utils: ['axios', 'dayjs'],
+          charts: ['recharts'],
+          maps: ['leaflet', 'react-leaflet'],
+          ui: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tabs'],
         },
       },
     },

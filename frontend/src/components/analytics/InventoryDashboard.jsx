@@ -1,405 +1,398 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ChartViewer from '../visualization/ChartViewer';
-import Loading from '../common/Loading';
-import {
-  ArrowPathIcon,
-  FunnelIcon,
-  ArrowDownTrayIcon,
-  PlusCircleIcon
-} from '@heroicons/react/24/outline';
+﻿// frontend/src/components/analytics/InventoryDashboard.jsx
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Download, AlertCircle, TrendingUp, Package } from 'lucide-react';
+import { analytics } from '../../services/api';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const InventoryDashboard = () => {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [inventoryData, setInventoryData] = useState(null);
-  const [dateRange, setDateRange] = useState('30d'); // Default to last 30 days
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Analysis states - all from backend
+  const [safetyStock, setSafetyStock] = useState(null);
+  const [abcAnalysis, setAbcAnalysis] = useState(null);
+  const [forecast, setForecast] = useState(null);
+  
+  // Form states
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [forecastPeriod, setForecastPeriod] = useState(30);
+  const [serviceLevel, setServiceLevel] = useState(0.95);
+  const [leadTimeDays, setLeadTimeDays] = useState(7);
+  const [products, setProducts] = useState([]);
+
+  // Chart colors
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
   useEffect(() => {
-    fetchInventoryData();
-    // Get available categories for filtering
-    fetchCategories();
-  }, [dateRange, selectedCategories]);
+    fetchProducts();
+  }, []);
 
-  const fetchInventoryData = async () => {
-    setIsLoading(true);
+  const fetchProducts = async () => {
     try {
-      // In a real implementation, this would call your API
-      // Example: const response = await api.get('/analytics/inventory', { params: { dateRange, categories: selectedCategories } });
-      
-      // Simulated API response
-      const mockData = getMockInventoryData(dateRange, selectedCategories);
-      setInventoryData(mockData);
-    } catch (error) {
-      console.error('Error fetching inventory data:', error);
+      const response = await analytics.inventory.getProducts();
+      // Fix: Extract the products array from the response
+      setProducts(response.data.products || []);
+    } catch (err) {
+      console.error('Failed to fetch products:', err);
+      setError(err.response?.data?.detail || 'Failed to fetch products');
+      setProducts([]); // Set empty array on error
+    }
+  };
+
+  const calculateSafetyStock = async () => {
+    if (!selectedProduct) {
+      setError('Please select a product');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await analytics.inventory.calculateSafetyStock({
+        product_id: selectedProduct,
+        service_level: serviceLevel,
+        lead_time_days: leadTimeDays
+      });
+      setSafetyStock(response.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to calculate safety stock');
+      console.error(err);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const fetchCategories = async () => {
+  const performABCAnalysis = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      // Simulated categories
-      setCategories(['Raw Materials', 'Work in Progress', 'Finished Goods', 'MRO Supplies']);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
+      const response = await analytics.inventory.performABCAnalysis({
+        value_threshold_a: 0.8,
+        value_threshold_b: 0.15
+      });
+      setAbcAnalysis(response.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to perform ABC analysis');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
+  const generateForecast = async () => {
+    if (!selectedProduct) {
+      setError('Please select a product');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await analytics.inventory.generateForecast({
+        product_id: selectedProduct,
+        periods: forecastPeriod,
+        method: 'auto'
+      });
+      setForecast(response.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to generate forecast');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleCategoryFilter = (category) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category) 
-        : [...prev, category]
-    );
+  const exportData = async (type) => {
+    try {
+      const response = await analytics.inventory.export(type);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `inventory_${type}_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to export data');
+    }
   };
 
-  const handleExportDashboard = () => {
-    // Implementation for exporting the entire dashboard
-    alert('Exporting dashboard...');
+  // Helper function to prepare chart data
+  const prepareABCChartData = () => {
+    if (!abcAnalysis) return [];
+    return [
+      { name: 'Category A', value: abcAnalysis.category_a?.count || 0, percentage: abcAnalysis.category_a?.percentage || 0 },
+      { name: 'Category B', value: abcAnalysis.category_b?.count || 0, percentage: abcAnalysis.category_b?.percentage || 0 },
+      { name: 'Category C', value: abcAnalysis.category_c?.count || 0, percentage: abcAnalysis.category_c?.percentage || 0 }
+    ];
   };
-
-  const navigateToABCAnalysis = () => {
-    navigate('/analytics/inventory/abc-analysis');
-  };
-
-  const navigateToSafetyStock = () => {
-    navigate('/analytics/inventory/safety-stock');
-  };
-
-  const navigateToForecast = () => {
-    navigate('/analytics/inventory/forecast');
-  };
-
-  // Mock data generator function
-  const getMockInventoryData = (range, categories) => {
-    // Generate appropriate mock data based on selected date range and categories
-    return {
-      summary: {
-        totalItems: 1245,
-        totalValue: 3782000,
-        lowStockItems: 28,
-        excessStockItems: 35
-      },
-      stockLevelTrend: {
-        type: 'line',
-        title: 'Inventory Levels Over Time',
-        data: [
-          { date: '2023-01-01', value: 3500000 },
-          { date: '2023-02-01', value: 3650000 },
-          { date: '2023-03-01', value: 3720000 },
-          { date: '2023-04-01', value: 3800000 },
-          { date: '2023-05-01', value: 3782000 }
-        ],
-        config: {
-          xKey: 'date',
-          yKey: 'value',
-          curve: 'curveMonotoneX',
-          showArea: true,
-          valueFormatter: (value) => `$${(value / 1000000).toFixed(2)}M`
-        }
-      },
-      inventoryByCategory: {
-        type: 'pie',
-        title: 'Inventory Distribution by Category',
-        data: [
-          { name: 'Raw Materials', value: 1250000 },
-          { name: 'Work in Progress', value: 850000 },
-          { name: 'Finished Goods', value: 1420000 },
-          { name: 'MRO Supplies', value: 262000 }
-        ],
-        config: {
-          nameKey: 'name',
-          valueKey: 'value',
-          innerRadius: 0.6,
-          valueFormatter: (value) => `$${(value / 1000).toFixed(0)}K`
-        }
-      },
-      topLowStockItems: {
-        type: 'bar',
-        title: 'Top 10 Low Stock Items',
-        data: [
-          { name: 'Product A', value: 15 },
-          { name: 'Product B', value: 22 },
-          { name: 'Product C', value: 28 },
-          { name: 'Product D', value: 30 },
-          { name: 'Product E', value: 35 }
-        ],
-        config: {
-          xKey: 'name',
-          yKey: 'value',
-          horizontal: true,
-          color: '#ef4444'
-        }
-      },
-      abcAnalysis: {
-        type: 'bar',
-        title: 'ABC Analysis',
-        data: [
-          { category: 'A (High Value)', items: 187, value: 2725000 },
-          { category: 'B (Medium Value)', items: 458, value: 853000 },
-          { category: 'C (Low Value)', items: 600, value: 204000 }
-        ],
-        config: {
-          xKey: 'category',
-          yKey: 'value',
-          showValues: true,
-          valueFormatter: (value) => `$${(value / 1000).toFixed(0)}K`
-        }
-      }
-    };
-  };
-
-  if (isLoading) {
-    return <Loading type="card" message="Loading inventory analytics..." />;
-  }
 
   return (
-    <div className="bg-gray-50 min-h-full">
-      {/* Dashboard Header */}
-      <div className="bg-white shadow-sm px-4 py-4 flex flex-wrap justify-between items-center">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-800">Inventory Analytics</h1>
-          <p className="text-sm text-gray-500 mt-1">Monitor and optimize your inventory levels</p>
-        </div>
-        
-        <div className="flex items-center space-x-3 mt-3 sm:mt-0">
-          <div className="relative">
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <FunnelIcon className="-ml-1 mr-2 h-4 w-4" />
-              Filter
-            </button>
+    <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Controls Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Analysis Controls</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Select Product</label>
+              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products && products.length > 0 ? (
+                    products.map((product) => (
+                      <SelectItem key={product.id} value={product.id.toString()}>
+                        {product.name} (SKU: {product.sku})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>
+                      No products available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
             
-            {filterOpen && (
-              <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                <div className="py-1 px-3">
-                  <div className="mb-2">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Range</h4>
-                    <div className="mt-1 space-y-1">
-                      {['7d', '30d', '90d', '1y'].map(range => (
-                        <label key={range} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="dateRange"
-                            value={range}
-                            checked={dateRange === range}
-                            onChange={() => handleDateRangeChange(range)}
-                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">
-                            {range === '7d' ? 'Last 7 days' : 
-                             range === '30d' ? 'Last 30 days' : 
-                             range === '90d' ? 'Last 90 days' : 'Last year'}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Categories</h4>
-                    <div className="mt-1 space-y-1">
-                      {categories.map(category => (
-                        <label key={category} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedCategories.includes(category)}
-                            onChange={() => toggleCategoryFilter(category)}
-                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">{category}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      onClick={() => setFilterOpen(false)}
-                      className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Forecast Period (days)</label>
+              <Input
+                type="number"
+                value={forecastPeriod}
+                onChange={(e) => setForecastPeriod(parseInt(e.target.value) || 30)}
+                min="1"
+                max="365"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Service Level</label>
+              <Input
+                type="number"
+                value={serviceLevel}
+                onChange={(e) => setServiceLevel(parseFloat(e.target.value) || 0.95)}
+                min="0.5"
+                max="0.99"
+                step="0.01"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Lead Time (days)</label>
+              <Input
+                type="number"
+                value={leadTimeDays}
+                onChange={(e) => setLeadTimeDays(parseInt(e.target.value) || 7)}
+                min="1"
+                max="90"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <Button onClick={calculateSafetyStock} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Calculate Safety Stock
+            </Button>
+            <Button onClick={performABCAnalysis} variant="outline" disabled={loading}>
+              ABC Analysis
+            </Button>
+            <Button onClick={generateForecast} variant="outline" disabled={loading}>
+              Generate Forecast
+            </Button>
+            <Button onClick={() => exportData('all')} variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Export All Data
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Safety Stock Results */}
+      {safetyStock && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Safety Stock Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded">
+                <p className="text-sm text-gray-600">Recommended Safety Stock</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {Math.round(safetyStock.safety_stock_quantity)} units
+                </p>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded">
+                <p className="text-sm text-gray-600">Reorder Point</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {Math.round(safetyStock.reorder_point)} units
+                </p>
+              </div>
+              <div className="text-center p-4 bg-orange-50 rounded">
+                <p className="text-sm text-gray-600">Service Level</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {(safetyStock.service_level * 100).toFixed(0)}%
+                </p>
+              </div>
+            </div>
+            {safetyStock.confidence_interval && (
+              <div className="mt-4 p-3 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">
+                  Confidence Interval: {Math.round(safetyStock.confidence_interval.lower)} - {Math.round(safetyStock.confidence_interval.upper)} units
+                </p>
               </div>
             )}
-          </div>
-          
-          <button
-            onClick={fetchInventoryData}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4" />
-            Refresh
-          </button>
-          
-          <button
-            onClick={handleExportDashboard}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <ArrowDownTrayIcon className="-ml-1 mr-2 h-4 w-4" />
-            Export
-          </button>
-        </div>
-      </div>
-      
-      {/* Dashboard Content */}
-      <div className="container mx-auto px-4 py-6">
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ABC Analysis Results */}
+      {abcAnalysis && (
+        <Card>
+          <CardHeader>
+            <CardTitle>ABC Analysis Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Inventory Items</p>
-                <p className="text-2xl font-bold text-gray-900">{inventoryData.summary.totalItems.toLocaleString()}</p>
+                <h3 className="text-sm font-medium mb-2">Distribution</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={prepareABCChartData()}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percentage }) => `${name}: ${percentage.toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {prepareABCChartData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-              <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
+              
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Inventory Value</p>
-                <p className="text-2xl font-bold text-gray-900">${(inventoryData.summary.totalValue / 1000000).toFixed(2)}M</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Low Stock Items</p>
-                <p className="text-2xl font-bold text-gray-900">{inventoryData.summary.lowStockItems}</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Excess Stock Items</p>
-                <p className="text-2xl font-bold text-gray-900">{inventoryData.summary.excessStockItems}</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <ChartViewer chartData={inventoryData.stockLevelTrend} />
-          <ChartViewer chartData={inventoryData.inventoryByCategory} />
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <ChartViewer chartData={inventoryData.topLowStockItems} />
-          <ChartViewer chartData={inventoryData.abcAnalysis} />
-        </div>
-        
-        {/* Advanced Analytics Section */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-800">Advanced Inventory Analysis</h2>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div 
-              onClick={navigateToABCAnalysis}
-              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition"
-            >
-              <div className="flex items-center mb-3">
-                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                  </svg>
+                <h3 className="text-sm font-medium mb-2">Category Details</h3>
+                <div className="space-y-3">
+                  {['category_a', 'category_b', 'category_c'].map((category, idx) => {
+                    const data = abcAnalysis[category];
+                    if (!data) return null;
+                    const categoryName = category.split('_')[1].toUpperCase();
+                    const bgColors = ['bg-blue-50', 'bg-green-50', 'bg-yellow-50'];
+                    
+                    return (
+                      <div key={category} className={`p-3 ${bgColors[idx]} rounded`}>
+                        <p className="font-medium">Category {categoryName}</p>
+                        <p className="text-sm text-gray-600">
+                          {data.count} items ({data.percentage.toFixed(1)}%)
+                        </p>
+                        <p className="text-sm">
+                          Value: ${data.total_value.toLocaleString()}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-                <h3 className="text-md font-medium text-gray-800">ABC Analysis</h3>
-              </div>
-              <p className="text-sm text-gray-600">Categorize inventory by value to optimize management strategies.</p>
-              <div className="mt-3 flex items-center text-indigo-600 text-sm font-medium">
-                <span>Run analysis</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Forecast Results */}
+      {forecast && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Demand Forecast</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={forecast.forecast_data || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="historical" 
+                  stroke="#8884d8" 
+                  name="Historical Demand"
+                  strokeWidth={2}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="forecast" 
+                  stroke="#82ca9d" 
+                  name="Forecasted Demand"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                />
+                {forecast.confidence_interval && (
+                  <>
+                    <Line 
+                      type="monotone" 
+                      dataKey="upper_bound" 
+                      stroke="#ff7300" 
+                      name="Upper Bound"
+                      strokeWidth={1}
+                      strokeDasharray="3 3"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="lower_bound" 
+                      stroke="#ff7300" 
+                      name="Lower Bound"
+                      strokeWidth={1}
+                      strokeDasharray="3 3"
+                    />
+                  </>
+                )}
+              </LineChart>
+            </ResponsiveContainer>
             
-            <div 
-              onClick={navigateToSafetyStock}
-              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition"
-            >
-              <div className="flex items-center mb-3">
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <h3 className="text-md font-medium text-gray-800">Safety Stock Calculator</h3>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">Forecast Method</p>
+                <p className="font-medium">{forecast.method || 'Auto-selected'}</p>
               </div>
-              <p className="text-sm text-gray-600">Calculate optimal safety stock levels to prevent stockouts.</p>
-              <div className="mt-3 flex items-center text-indigo-600 text-sm font-medium">
-                <span>Calculate</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+              <div className="text-center p-3 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">Accuracy (MAPE)</p>
+                <p className="font-medium">{forecast.accuracy?.toFixed(2) || 'N/A'}%</p>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">Confidence Level</p>
+                <p className="font-medium">{forecast.confidence_level || 95}%</p>
               </div>
             </div>
-            
-            <div 
-              onClick={navigateToForecast}
-              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition"
-            >
-              <div className="flex items-center mb-3">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                </div>
-                <h3 className="text-md font-medium text-gray-800">Demand Forecast</h3>
-              </div>
-              <p className="text-sm text-gray-600">Predict future demand to optimize purchasing and production.</p>
-              <div className="mt-3 flex items-center text-indigo-600 text-sm font-medium">
-                <span>Generate forecast</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
 
 export default InventoryDashboard;
-

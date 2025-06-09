@@ -1,423 +1,472 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ChartViewer from '../visualization/ChartViewer';
-import Loading from '../common/Loading';
-import {
-  ArrowPathIcon,
-  FunnelIcon,
-  ArrowDownTrayIcon,
-  ArrowTopRightOnSquareIcon
-} from '@heroicons/react/24/outline';
+﻿// frontend/src/components/analytics/SupplierDashboard.jsx
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, AlertCircle, CheckCircle, XCircle, AlertTriangle, Download } from 'lucide-react';
+import api from '../../services/api';
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const SupplierDashboard = () => {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [supplierData, setSupplierData] = useState(null);
-  const [timeFrame, setTimeFrame] = useState('last90days');
-  const [supplierCategory, setSupplierCategory] = useState('all');
-  const [filterOpen, setFilterOpen] = useState(false);
+const SupplierDashboard = ({ data }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Analysis states
+  const [supplierScorecard, setSupplierScorecard] = useState(null);
+  const [riskAnalysis, setRiskAnalysis] = useState(null);
+  const [complianceCheck, setComplianceCheck] = useState(null);
+  
+  // Form states
+  const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [analysisType, setAnalysisType] = useState('scorecard');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [suppliers, setSuppliers] = useState([]);
 
   useEffect(() => {
-    fetchSupplierData();
-  }, [timeFrame, supplierCategory]);
+    fetchSuppliers();
+  }, []);
 
-  const fetchSupplierData = async () => {
-    setIsLoading(true);
+  const fetchSuppliers = async () => {
     try {
-      // In a real implementation, this would call your API
-      // Example: const response = await api.get('/analytics/supplier', { params: { timeFrame, category: supplierCategory } });
-      
-      // Simulated API response with mock data
-      const mockData = getMockSupplierData(timeFrame, supplierCategory);
-      setSupplierData(mockData);
-    } catch (error) {
-      console.error('Error fetching supplier data:', error);
-    } finally {
-      setTimeout(() => setIsLoading(false), 800); // Simulated loading delay
+      const response = await api.get('/api/analytics/supplier/list');
+      // Fix: Extract the suppliers array from the response
+      setSuppliers(response.data.suppliers || []);
+    } catch (err) {
+      console.error('Failed to fetch suppliers:', err);
+      setSuppliers([]); // Set empty array on error
     }
   };
 
-  const handleViewSupplierDetails = (supplierId) => {
-    navigate(`/suppliers/${supplierId}`);
+  const generateScorecard = async () => {
+    if (!selectedSupplier) {
+      setError('Please select a supplier');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.post('/api/analytics/supplier/scorecard', {
+        supplier_id: selectedSupplier,
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+        metrics: ['quality', 'delivery', 'cost', 'responsiveness', 'compliance']
+      });
+      setSupplierScorecard(response.data);
+    } catch (err) {
+      setError('Failed to generate scorecard');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExportDashboard = () => {
-    // Implementation for exporting the entire dashboard
-    alert('Exporting supplier dashboard...');
+  const analyzeRisk = async () => {
+    if (!selectedSupplier) {
+      setError('Please select a supplier');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.post('/api/analytics/supplier/risk-analysis', {
+        supplier_id: selectedSupplier,
+        risk_factors: ['financial', 'operational', 'geopolitical', 'environmental', 'quality']
+      });
+      setRiskAnalysis(response.data);
+    } catch (err) {
+      setError('Failed to analyze supplier risk');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Mock data generator function
-  const getMockSupplierData = (timeFrame, category) => {
-    return {
-      summary: {
-        totalSuppliers: 87,
-        activeSuppliers: 81,
-        onTimeDelivery: 93.4,
-        qualityScore: 92.7,
-        riskScore: 12.3
-      },
-      performanceTrend: {
-        type: 'line',
-        title: 'Supplier Performance Trend',
-        data: [
-          { date: '2023-01-01', onTime: 92.1, quality: 91.5, responsiveness: 89.2 },
-          { date: '2023-02-01', onTime: 92.5, quality: 92.0, responsiveness: 90.1 },
-          { date: '2023-03-01', onTime: 93.0, quality: 92.2, responsiveness: 90.5 },
-          { date: '2023-04-01', onTime: 93.2, quality: 92.5, responsiveness: 91.0 },
-          { date: '2023-05-01', onTime: 93.4, quality: 92.7, responsiveness: 91.2 }
-        ],
-        config: {
-          xKey: 'date',
-          multiSeries: true,
-          series: [
-            { name: 'On-Time Delivery', dataKey: 'onTime', color: '#4f46e5' },
-            { name: 'Quality Score', dataKey: 'quality', color: '#10b981' },
-            { name: 'Responsiveness', dataKey: 'responsiveness', color: '#f59e0b' }
-          ],
-          valueFormatter: (value) => `${value}%`
-        }
-      },
-      suppliersByCategory: {
-        type: 'pie',
-        title: 'Suppliers by Category',
-        data: [
-          { name: 'Raw Materials', value: 32 },
-          { name: 'Components', value: 28 },
-          { name: 'Packaging', value: 15 },
-          { name: 'Services', value: 12 }
-        ],
-        config: {
-          nameKey: 'name',
-          valueKey: 'value',
-          showPercentages: true
-        }
-      },
-      topSuppliers: {
-        type: 'bar',
-        title: 'Top 5 Suppliers by Performance Score',
-        data: [
-          { name: 'Supplier A', score: 97.8 },
-          { name: 'Supplier B', score: 96.5 },
-          { name: 'Supplier C', score: 95.9 },
-          { name: 'Supplier D', score: 95.2 },
-          { name: 'Supplier E', score: 94.8 }
-        ],
-        config: {
-          xKey: 'name',
-          yKey: 'score',
-          horizontal: true,
-          color: '#10b981',
-          valueFormatter: (value) => `${value}%`
-        }
-      },
-      supplierRisk: {
-        type: 'heatmap',
-        title: 'Supplier Risk Analysis',
-        data: [
-          { x: 'Low', y: 'Financial', value: 15 },
-          { x: 'Medium', y: 'Financial', value: 8 },
-          { x: 'High', y: 'Financial', value: 4 },
-          { x: 'Low', y: 'Operational', value: 12 },
-          { x: 'Medium', y: 'Operational', value: 6 },
-          { x: 'High', y: 'Operational', value: 2 },
-          { x: 'Low', y: 'Compliance', value: 18 },
-          { x: 'Medium', y: 'Compliance', value: 5 },
-          { x: 'High', y: 'Compliance', value: 1 },
-          { x: 'Low', y: 'Geographical', value: 10 },
-          { x: 'Medium', y: 'Geographical', value: 7 },
-          { x: 'High', y: 'Geographical', value: 3 }
-        ],
-        config: {
-          xKey: 'x',
-          yKey: 'y',
-          valueKey: 'value',
-          colorScheme: 'interpolateReds'
-        }
-      },
-      supplierList: [
-        { id: 1, name: 'Acme Supplies', category: 'Raw Materials', onTimeDelivery: 97.8, qualityScore: 96.5, riskScore: 'Low' },
-        { id: 2, name: 'Globex Components', category: 'Components', onTimeDelivery: 93.2, qualityScore: 95.1, riskScore: 'Low' },
-        { id: 3, name: 'Quality Packaging Co', category: 'Packaging', onTimeDelivery: 94.5, qualityScore: 91.8, riskScore: 'Medium' },
-        { id: 4, name: 'TechPro Solutions', category: 'Components', onTimeDelivery: 96.7, qualityScore: 94.3, riskScore: 'Low' },
-        { id: 5, name: 'Global Logistics', category: 'Services', onTimeDelivery: 89.5, qualityScore: 88.2, riskScore: 'Medium' }
-      ]
+  const checkCompliance = async () => {
+    if (!selectedSupplier) {
+      setError('Please select a supplier');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.post('/api/analytics/supplier/compliance-check', {
+        supplier_id: selectedSupplier,
+        compliance_areas: ['certifications', 'quality_standards', 'environmental', 'labor_practices']
+      });
+      setComplianceCheck(response.data);
+    } catch (err) {
+      setError('Failed to check compliance');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportSupplierReport = async () => {
+    if (!selectedSupplier) return;
+    
+    try {
+      const response = await api.get(`/api/analytics/supplier/export/${selectedSupplier}`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `supplier_report_${selectedSupplier}_${Date.now()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+    } catch (err) {
+      setError('Failed to export report');
+    }
+  };
+
+  const getRiskBadge = (level) => {
+    const variants = {
+      low: { color: 'green', icon: CheckCircle },
+      medium: { color: 'yellow', icon: AlertTriangle },
+      high: { color: 'red', icon: XCircle }
     };
+    const variant = variants[level] || variants.medium;
+    const Icon = variant.icon;
+    
+    return (
+      <Badge variant={level === 'low' ? 'default' : level === 'medium' ? 'secondary' : 'destructive'}>
+        <Icon className="h-3 w-3 mr-1" />
+        {level.toUpperCase()}
+      </Badge>
+    );
   };
-
-  if (isLoading) {
-    return <Loading type="card" message="Loading supplier analytics..." />;
-  }
 
   return (
-    <div className="bg-gray-50 min-h-full">
-      {/* Dashboard Header */}
-      <div className="bg-white shadow-sm px-4 py-4 flex flex-wrap justify-between items-center">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-800">Supplier Analytics</h1>
-          <p className="text-sm text-gray-500 mt-1">Track and evaluate supplier performance</p>
-        </div>
-        
-        <div className="flex items-center space-x-3 mt-3 sm:mt-0">
-          <div className="relative">
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <FunnelIcon className="-ml-1 mr-2 h-4 w-4" />
-              Filter
-            </button>
+    <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Controls Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Supplier Analysis Controls</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Select Supplier</label>
+              <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers && suppliers.length > 0 ? (
+                    suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                        {supplier.name} ({supplier.location})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>
+                      No suppliers available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
             
-            {filterOpen && (
-              <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                <div className="py-1 px-3">
-                  <div className="mb-2">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Time Frame</h4>
-                    <div className="mt-1 space-y-1">
-                      {[
-                        { id: 'last30days', label: 'Last 30 Days' },
-                        { id: 'last90days', label: 'Last 90 Days' },
-                        { id: 'last6months', label: 'Last 6 Months' },
-                        { id: 'last12months', label: 'Last 12 Months' }
-                      ].map(option => (
-                        <label key={option.id} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="timeFrame"
-                            value={option.id}
-                            checked={timeFrame === option.id}
-                            onChange={() => setTimeFrame(option.id)}
-                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+            <div>
+              <label className="text-sm font-medium mb-2 block">Start Date</label>
+              <Input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">End Date</label>
+              <Input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <Button onClick={generateScorecard} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Generate Scorecard
+            </Button>
+            <Button onClick={analyzeRisk} variant="outline" disabled={loading}>
+              Risk Analysis
+            </Button>
+            <Button onClick={checkCompliance} variant="outline" disabled={loading}>
+              Check Compliance
+            </Button>
+            <Button onClick={exportSupplierReport} variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Export Report
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Supplier List Overview */}
+      {suppliers && suppliers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Supplier Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left pb-2">Supplier</th>
+                    <th className="text-left pb-2">Category</th>
+                    <th className="text-left pb-2">Rating</th>
+                    <th className="text-right pb-2">Total Orders</th>
+                    <th className="text-right pb-2">Business Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suppliers.slice(0, 5).map((supplier) => (
+                    <tr key={supplier.id} className="border-b">
+                      <td className="py-2">{supplier.name}</td>
+                      <td className="py-2">{supplier.category}</td>
+                      <td className="py-2">
+                        <span className="font-medium">{supplier.rating}/5</span>
+                      </td>
+                      <td className="py-2 text-right">{supplier.total_orders}</td>
+                      <td className="py-2 text-right">${supplier.total_business.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Supplier Scorecard */}
+      {supplierScorecard && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Supplier Performance Scorecard</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium mb-4">Overall Performance</h3>
+                <div className="text-center mb-4">
+                  <div className="text-5xl font-bold text-blue-600">
+                    {supplierScorecard.overall_score?.toFixed(1) || '0'}
+                  </div>
+                  <p className="text-sm text-gray-600">Out of 100</p>
+                  <Badge className="mt-2" variant={
+                    supplierScorecard.overall_score >= 80 ? 'default' :
+                    supplierScorecard.overall_score >= 60 ? 'secondary' : 'destructive'
+                  }>
+                    {supplierScorecard.overall_score >= 80 ? 'Excellent' :
+                     supplierScorecard.overall_score >= 60 ? 'Good' : 'Needs Improvement'}
+                  </Badge>
+                </div>
+
+                <div className="space-y-3">
+                  {supplierScorecard.metrics && Object.entries(supplierScorecard.metrics).map(([metric, score]) => (
+                    <div key={metric} className="flex items-center justify-between">
+                      <span className="text-sm capitalize">{metric.replace('_', ' ')}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ width: `${score}%` }}
                           />
-                          <span className="ml-2 text-sm text-gray-700">{option.label}</span>
-                        </label>
-                      ))}
+                        </div>
+                        <span className="text-sm font-medium w-12 text-right">{score}%</span>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Supplier Category</h4>
-                    <div className="mt-1 space-y-1">
-                      {[
-                        { id: 'all', label: 'All Categories' },
-                        { id: 'rawMaterials', label: 'Raw Materials' },
-                        { id: 'components', label: 'Components' },
-                        { id: 'packaging', label: 'Packaging' },
-                        { id: 'services', label: 'Services' }
-                      ].map(option => (
-                        <label key={option.id} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="supplierCategory"
-                            value={option.id}
-                            checked={supplierCategory === option.id}
-                            onChange={() => setSupplierCategory(option.id)}
-                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">{option.label}</span>
-                        </label>
-                      ))}
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium mb-4">Performance Radar</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RadarChart data={supplierScorecard.metrics ? Object.entries(supplierScorecard.metrics).map(([metric, score]) => ({
+                    metric: metric.charAt(0).toUpperCase() + metric.slice(1).replace('_', ' '),
+                    score
+                  })) : []}>
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="metric" />
+                    <PolarRadiusAxis domain={[0, 100]} />
+                    <Radar name="Score" dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-medium mb-4">Historical Performance</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={supplierScorecard.historical_data || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="overall" stroke="#3b82f6" name="Overall Score" strokeWidth={2} />
+                  <Line type="monotone" dataKey="quality" stroke="#10b981" name="Quality" />
+                  <Line type="monotone" dataKey="delivery" stroke="#f59e0b" name="Delivery" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Risk Analysis */}
+      {riskAnalysis && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Supplier Risk Assessment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="text-center p-6 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600 mb-2">Overall Risk Level</p>
+                {getRiskBadge(riskAnalysis.overall_risk_level || 'medium')}
+                <p className="text-3xl font-bold mt-2">{riskAnalysis.risk_score || '0'}/100</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded">
+                <p className="text-sm font-medium mb-3">Risk Factors</p>
+                <div className="space-y-2">
+                  {riskAnalysis.risk_factors && Object.entries(riskAnalysis.risk_factors).map(([factor, data]) => (
+                    <div key={factor} className="flex items-center justify-between">
+                      <span className="text-sm capitalize">{factor.replace('_', ' ')}</span>
+                      {getRiskBadge(data.level)}
                     </div>
-                  </div>
-                  
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      onClick={() => setFilterOpen(false)}
-                      className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
-                    >
-                      Apply
-                    </button>
-                  </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium mb-4">Risk Factor Analysis</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={riskAnalysis.risk_factors ? Object.entries(riskAnalysis.risk_factors).map(([factor, data]) => ({
+                  factor: factor.charAt(0).toUpperCase() + factor.slice(1).replace('_', ' '),
+                  score: data.score,
+                  threshold: 50
+                })) : []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="factor" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Bar dataKey="score" fill="#ef4444" />
+                  <Bar dataKey="threshold" fill="#fbbf24" opacity={0.3} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {riskAnalysis.mitigation_strategies && riskAnalysis.mitigation_strategies.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-sm font-medium mb-3">Recommended Mitigation Strategies</h3>
+                <div className="space-y-2">
+                  {riskAnalysis.mitigation_strategies.map((strategy, idx) => (
+                    <div key={idx} className="flex items-start gap-2 p-3 bg-blue-50 rounded">
+                      <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                      <p className="text-sm">{strategy}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
-          </div>
-          
-          <button
-            onClick={fetchSupplierData}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4" />
-            Refresh
-          </button>
-          
-          <button
-            onClick={handleExportDashboard}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <ArrowDownTrayIcon className="-ml-1 mr-2 h-4 w-4" />
-            Export
-          </button>
-        </div>
-      </div>
-      
-      {/* Dashboard Content */}
-      <div className="container mx-auto px-4 py-6">
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-6">
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Suppliers</p>
-                <p className="text-2xl font-bold text-gray-900">{supplierData.summary.totalSuppliers}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Compliance Check */}
+      {complianceCheck && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Compliance Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium">Overall Compliance</h3>
+                <Badge variant={complianceCheck.is_compliant ? 'default' : 'destructive'}>
+                  {complianceCheck.is_compliant ? 'COMPLIANT' : 'NON-COMPLIANT'}
+                </Badge>
               </div>
-              <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full ${complianceCheck.compliance_score >= 80 ? 'bg-green-600' : 'bg-yellow-600'}`}
+                  style={{ width: `${complianceCheck.compliance_score || 0}%` }}
+                />
               </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Compliance Score: {complianceCheck.compliance_score || 0}%
+              </p>
             </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Active Suppliers</p>
-                <p className="text-2xl font-bold text-gray-900">{supplierData.summary.activeSuppliers}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {Math.round(supplierData.summary.activeSuppliers / supplierData.summary.totalSuppliers * 100)}% of total
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+
+            <div className="space-y-4">
+              {complianceCheck.compliance_areas && Object.entries(complianceCheck.compliance_areas).map(([area, data]) => (
+                <div key={area} className="border rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium capitalize">{area.replace('_', ' ')}</h4>
+                    {data.status === 'compliant' ? (
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    ) : data.status === 'partial' ? (
+                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">{data.description}</p>
+                  {data.missing_requirements && data.missing_requirements.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium text-red-600">Missing Requirements:</p>
+                      <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
+                        {data.missing_requirements.map((req, idx) => (
+                          <li key={idx}>{req}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">On-Time Delivery</p>
-                <p className="text-2xl font-bold text-gray-900">{supplierData.summary.onTimeDelivery}%</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Quality Score</p>
-                <p className="text-2xl font-bold text-gray-900">{supplierData.summary.qualityScore}%</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-5">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Risk Score</p>
-                <p className="text-2xl font-bold text-gray-900">{supplierData.summary.riskScore}%</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {supplierData.summary.riskScore < 15 ? 'Low Risk' : supplierData.summary.riskScore < 30 ? 'Medium Risk' : 'High Risk'}
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <ChartViewer chartData={supplierData.performanceTrend} />
-          <ChartViewer chartData={supplierData.suppliersByCategory} />
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <ChartViewer chartData={supplierData.topSuppliers} />
-          <ChartViewer chartData={supplierData.supplierRisk} />
-        </div>
-        
-        {/* Top Suppliers Table */}
-        <div className="bg-white shadow rounded-lg mb-6">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-800">Top Suppliers</h2>
-            <a href="/suppliers" className="text-sm text-indigo-600 hover:text-indigo-900">View all suppliers</a>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Supplier Name
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    On-Time Delivery
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Quality Score
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Risk Rating
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {supplierData.supplierList.map((supplier) => (
-                  <tr key={supplier.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{supplier.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{supplier.category}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm ${supplier.onTimeDelivery >= 95 ? 'text-green-600' : supplier.onTimeDelivery >= 90 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {supplier.onTimeDelivery}%
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm ${supplier.qualityScore >= 95 ? 'text-green-600' : supplier.qualityScore >= 90 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {supplier.qualityScore}%
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${supplier.riskScore === 'Low' ? 'bg-green-100 text-green-800' : 
-                          supplier.riskScore === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-red-100 text-red-800'}`}>
-                        {supplier.riskScore}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleViewSupplierDetails(supplier.id)}
-                        className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"
-                      >
-                        View Details
-                        <ArrowTopRightOnSquareIcon className="ml-1 h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+
+            {complianceCheck.expiring_certifications && complianceCheck.expiring_certifications.length > 0 && (
+              <Alert className="mt-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Expiring Certifications:</strong>
+                  <ul className="list-disc list-inside mt-2">
+                    {complianceCheck.expiring_certifications.map((cert, idx) => (
+                      <li key={idx}>
+                        {cert.name} - Expires: {new Date(cert.expiry_date).toLocaleDateString()}
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
 
 export default SupplierDashboard;
-

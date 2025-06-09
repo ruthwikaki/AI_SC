@@ -29,7 +29,14 @@ class Settings(BaseSettings):
     port: int = 8000
     uvicorn_workers: int = 1
     allowed_hosts: List[str] = ["*"]
-    cors_origins: List[str] = ["*"]
+    cors_origins: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:3002",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002"
+    ]
     
     # Database settings - FIXED: Using Field with validation_alias for env mapping
     database_url: str = Field(

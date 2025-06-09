@@ -12,7 +12,8 @@ import {
   ShieldCheckIcon,
   DocumentTextIcon,
   CircleStackIcon,
-  XMarkIcon
+  XMarkIcon,
+  ArrowTrendingUpIcon  // Add this for Forecasting
 } from '@heroicons/react/24/outline';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -23,6 +24,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Query', href: '/query', icon: QuestionMarkCircleIcon },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
+    { name: 'Forecasting', href: '/forecasting', icon: ArrowTrendingUpIcon },  // Add this line
     { name: 'Multi-Tier View', href: '/multi-tier', icon: CubeTransparentIcon },
     //{ name: 'Database Explorer', href: '/database', icon: CircleStackIcon },
     //{ name: 'Reports', href: '/reports', icon: DocumentTextIcon },

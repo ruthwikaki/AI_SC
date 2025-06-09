@@ -31,11 +31,23 @@ const authService = {
       formData.append('username', email);
       formData.append('password', password);
       
+      // DEBUG: Log what we're sending
+      console.log('Login attempt with:', {
+        username: email,
+        password: password,
+        formDataString: formData.toString(),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }
+      });
+      
       const response = await api.post('/api/auth/token', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
+      
+      console.log('Login response:', response.data);
       
       if (response.data.access_token) {
         const storage = rememberMe ? localStorage : sessionStorage;
@@ -60,6 +72,11 @@ const authService = {
       
       throw new Error('Login failed');
     } catch (error) {
+      console.error('Login error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       throw error;
     }
   },

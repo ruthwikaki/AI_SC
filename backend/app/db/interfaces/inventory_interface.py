@@ -1,5 +1,5 @@
 from typing import Dict, List, Any, Optional, Union, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import uuid
 import json
 
@@ -27,6 +27,191 @@ class InventoryInterface:
         """
         self.client_id = client_id
         self.connection_id = connection_id
+    
+    async def get_total_items(self) -> int:
+        """Get total number of inventory items"""
+        try:
+            connector = await get_connector_for_client(self.client_id, self.connection_id)
+            mappings = await get_domain_mappings(self.client_id)
+            
+            inventory_table = self._find_table_by_concept(mappings, "inventory")
+            if not inventory_table:
+                logger.warning(f"No inventory table mapping found for client {self.client_id}")
+                return 0
+            
+            inventory_columns = self._get_columns_for_table(mappings, inventory_table, "inventory")
+            product_col = inventory_columns.get("product", "product_id")
+            
+            query = f"""
+                SELECT COUNT(DISTINCT {product_col}) as total
+                FROM {inventory_table}
+                WHERE {product_col} IS NOT NULL
+            """
+            result = await connector.execute_query(query, {})
+            return result["data"][0]["total"] if result["data"] else 0
+            
+        except Exception as e:
+            logger.error(f"Error getting total items: {str(e)}")
+            return 0
+        finally:
+            if locals().get("connector"):
+                await connector.close()
+    
+    async def get_inventory_value(self) -> Dict[str, Any]:
+        """Get total inventory value"""
+        try:
+            connector = await get_connector_for_client(self.client_id, self.connection_id)
+            mappings = await get_domain_mappings(self.client_id)
+            
+            inventory_table = self._find_table_by_concept(mappings, "inventory")
+            product_table = self._find_table_by_concept(mappings, "product")
+            
+            if not inventory_table:
+                logger.warning(f"No inventory table mapping found for client {self.client_id}")
+                return {"total_value": 0}
+            
+            inventory_columns = self._get_columns_for_table(mappings, inventory_table, "inventory")
+            quantity_col = inventory_columns.get("quantity", "quantity")
+            product_id_col = inventory_columns.get("product", "product_id")
+            
+            if product_table:
+                product_columns = self._get_columns_for_table(mappings, product_table, "product")
+                cost_col = product_columns.get("cost", product_columns.get("price", "unit_price"))
+                
+                query = f"""
+                    SELECT SUM(i.{quantity_col} * p.{cost_col}) as total_value
+                    FROM {inventory_table} i
+                    JOIN {product_table} p ON i.{product_id_col} = p.id
+                    WHERE i.{quantity_col} > 0
+                """
+            else:
+                # Fallback if no product table
+                query = f"""
+                    SELECT SUM({quantity_col} * 100) as total_value
+                    FROM {inventory_table}
+                    WHERE {quantity_col} > 0
+                """
+            
+            result = await connector.execute_query(query, {})
+            total_value = result["data"][0]["total_value"] if result["data"] and result["data"][0]["total_value"] else 0
+            
+            return {"total_value": float(total_value)}
+            
+        except Exception as e:
+            logger.error(f"Error getting inventory value: {str(e)}")
+            return {"total_value": 0}
+        finally:
+            if locals().get("connector"):
+                await connector.close()
+    
+    async def get_low_stock_items(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get items below reorder point or safety stock"""
+        try:
+            connector = await get_connector_for_client(self.client_id, self.connection_id)
+            mappings = await get_domain_mappings(self.client_id)
+            
+            inventory_table = self._find_table_by_concept(mappings, "inventory")
+            product_table = self._find_table_by_concept(mappings, "product")
+            
+            if not inventory_table:
+                logger.warning(f"No inventory table mapping found for client {self.client_id}")
+                return []
+            
+            inventory_columns = self._get_columns_for_table(mappings, inventory_table, "inventory")
+            quantity_col = inventory_columns.get("quantity", "quantity")
+            product_id_col = inventory_columns.get("product", "product_id")
+            reorder_col = inventory_columns.get("reorder_point", "reorder_point")
+            safety_col = inventory_columns.get("safety_stock", "safety_stock")
+            
+            # Check which columns exist
+            try:
+                schema = await connector.get_table_schema(inventory_table)
+                column_names = [col["name"].lower() for col in schema.get("columns", [])]
+                
+                has_reorder = reorder_col.lower() in column_names
+                has_safety = safety_col.lower() in column_names
+            except:
+                has_reorder = True
+                has_safety = False
+            
+            # Build query based on available columns
+            if has_reorder:
+                threshold_col = reorder_col
+                condition = f"i.{quantity_col} < i.{threshold_col}"
+            elif has_safety:
+                threshold_col = safety_col
+                condition = f"i.{quantity_col} < i.{threshold_col}"
+            else:
+                # Use a fixed threshold if no reorder/safety columns
+                threshold_col = "50"  # Default threshold
+                condition = f"i.{quantity_col} < {threshold_col}"
+            
+            if product_table:
+                product_columns = self._get_columns_for_table(mappings, product_table, "product")
+                name_col = product_columns.get("name", "name")
+                
+                query = f"""
+                    SELECT 
+                        i.{product_id_col} as product_id,
+                        p.{name_col} as product_name,
+                        i.{quantity_col} as current_stock,
+                        {"i." + threshold_col if has_reorder or has_safety else threshold_col} as reorder_point
+                    FROM {inventory_table} i
+                    JOIN {product_table} p ON i.{product_id_col} = p.id
+                    WHERE {condition}
+                    ORDER BY i.{quantity_col} ASC
+                    LIMIT {limit}
+                """
+            else:
+                query = f"""
+                    SELECT 
+                        {product_id_col} as product_id,
+                        {product_id_col} as product_name,
+                        {quantity_col} as current_stock,
+                        {"" + threshold_col if has_reorder or has_safety else threshold_col} as reorder_point
+                    FROM {inventory_table} i
+                    WHERE {condition}
+                    ORDER BY {quantity_col} ASC
+                    LIMIT {limit}
+                """
+            
+            result = await connector.execute_query(query, {})
+            return result["data"]
+            
+        except Exception as e:
+            logger.error(f"Error getting low stock items: {str(e)}")
+            return []
+        finally:
+            if locals().get("connector"):
+                await connector.close()
+    
+    async def get_inventory_trend(self, start_date: date, end_date: date) -> List[Dict[str, Any]]:
+        """Get inventory value trend over time"""
+        try:
+            # For now, return mock trend data
+            # In production, this would query a historical inventory tracking table
+            current_value = (await self.get_inventory_value())["total_value"]
+            
+            trend_data = []
+            days_diff = (end_date - start_date).days
+            
+            for i in range(6):
+                date_point = end_date - timedelta(days=i * (days_diff // 6))
+                # Simulate some variation in the trend
+                variation = 1 - (i * 0.02)  # 2% decrease per period going back
+                value = current_value * variation
+                
+                trend_data.append({
+                    "date": date_point.isoformat(),
+                    "value": value
+                })
+            
+            trend_data.reverse()  # Order from oldest to newest
+            return trend_data
+            
+        except Exception as e:
+            logger.error(f"Error getting inventory trend: {str(e)}")
+            return []
     
     async def get_inventory_levels(
         self,
@@ -494,149 +679,6 @@ class InventoryInterface:
         except Exception as e:
             logger.error(f"Error adjusting inventory quantity: {str(e)}")
             return False
-        finally:
-            if locals().get("connector"):
-                await connector.close()
-    
-    async def get_low_stock_items(
-        self, 
-        threshold: Optional[float] = None,
-        warehouse_ids: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Get items with inventory below threshold or safety stock.
-        
-        Args:
-            threshold: Optional manual threshold (if not provided, uses safety stock)
-            warehouse_ids: Optional list of warehouse IDs to filter by
-            
-        Returns:
-            List of low stock items
-        """
-        try:
-            # Get inventory levels with below safety stock flag
-            items, _ = await self.get_inventory_levels(
-                warehouse_ids=warehouse_ids,
-                below_safety_stock=(threshold is None),
-                page=1,
-                page_size=1000  # Larger limit for low stock items
-            )
-            
-            # If using manual threshold, filter the results
-            if threshold is not None and items:
-                # Get domain mappings
-                mappings = await get_domain_mappings(self.client_id)
-                
-                # Find inventory table
-                inventory_table = self._find_table_by_concept(mappings, "inventory")
-                
-                if inventory_table:
-                    # Get columns
-                    inventory_columns = self._get_columns_for_table(mappings, inventory_table, "inventory")
-                    quantity_col = inventory_columns.get("quantity", "quantity")
-                    
-                    # Filter items below threshold
-                    items = [item for item in items if item.get(quantity_col, 0) < threshold]
-            
-            return items
-            
-        except Exception as e:
-            logger.error(f"Error retrieving low stock items: {str(e)}")
-            return []
-    
-    async def get_inventory_value(
-        self,
-        warehouse_ids: Optional[List[str]] = None,
-        as_of_date: Optional[datetime] = None
-    ) -> Dict[str, Any]:
-        """
-        Calculate total inventory value.
-        
-        Args:
-            warehouse_ids: Optional list of warehouse IDs to filter by
-            as_of_date: Optional date to calculate value as of
-            
-        Returns:
-            Dictionary with total value and breakdown
-        """
-        try:
-            # Get connector
-            connector = await get_connector_for_client(self.client_id, self.connection_id)
-            
-            # Get domain mappings
-            mappings = await get_domain_mappings(self.client_id)
-            
-            # Find inventory, product tables
-            inventory_table = self._find_table_by_concept(mappings, "inventory")
-            product_table = self._find_table_by_concept(mappings, "product")
-            
-            if not inventory_table or not product_table:
-                logger.warning(f"Missing table mappings for client {self.client_id}")
-                return {"total_value": 0, "breakdown": []}
-            
-            # Get columns
-            inventory_columns = self._get_columns_for_table(mappings, inventory_table, "inventory")
-            product_columns = self._get_columns_for_table(mappings, product_table, "product")
-            
-            # Get column names
-            product_id_col = inventory_columns.get("product", "product_id")
-            quantity_col = inventory_columns.get("quantity", "quantity")
-            warehouse_id_col = inventory_columns.get("location", "warehouse_id")
-            
-            product_cost_col = product_columns.get("cost", "cost")
-            product_name_col = product_columns.get("name", "name")
-            
-            # Build query
-            query = f"""
-            SELECT 
-                p.{product_name_col} as product_name,
-                i.{product_id_col} as product_id,
-                i.{warehouse_id_col} as warehouse_id,
-                i.{quantity_col} as quantity,
-                p.{product_cost_col} as unit_cost,
-                (i.{quantity_col} * p.{product_cost_col}) as total_value
-            FROM {inventory_table} i
-            JOIN {product_table} p ON i.{product_id_col} = p.id
-            """
-            
-            params = {}
-            where_clauses = []
-            
-            # Add warehouse filter if requested
-            if warehouse_ids:
-                placeholders = []
-                for i, wh_id in enumerate(warehouse_ids):
-                    param_name = f"warehouse_{i}"
-                    placeholders.append(f":{param_name}")
-                    params[param_name] = wh_id
-                
-                where_clauses.append(f"i.{warehouse_id_col} IN ({', '.join(placeholders)})")
-            
-            # Add as_of_date filter if provided
-            if as_of_date:
-                # This would require historical inventory tracking
-                # For now, we'll just show current inventory
-                pass
-            
-            # Add where clause if needed
-            if where_clauses:
-                query += " WHERE " + " AND ".join(where_clauses)
-            
-            # Execute query
-            result = await connector.execute_query(query, params)
-            
-            # Calculate total value
-            total_value = sum(item.get("total_value", 0) for item in result["data"])
-            
-            return {
-                "total_value": total_value,
-                "breakdown": result["data"],
-                "as_of_date": as_of_date.isoformat() if as_of_date else datetime.now().isoformat()
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating inventory value: {str(e)}")
-            return {"total_value": 0, "breakdown": []}
         finally:
             if locals().get("connector"):
                 await connector.close()

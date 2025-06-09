@@ -22,6 +22,7 @@ import Sidebar from './components/common/Sidebar';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import Loading from './components/common/Loading';
 
+import Forecasting from './pages/Forecasting';
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -178,6 +179,13 @@ function App() {
                   </Link>
                 </div>
               </div>
+            } />
+            <Route path="/forecasting/*" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Forecasting />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
             } />
           </Routes>
         </AuthProvider>
