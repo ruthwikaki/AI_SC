@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
@@ -33,6 +33,9 @@ logger = get_logger(__name__)
 
 # Router
 router = APIRouter(
+
+# Include reference data routes
+router.include_router(reference_router)
     prefix="/analytics",
     tags=["analytics"],
     dependencies=[Depends(get_current_active_user)],
@@ -1221,3 +1224,190 @@ async def custom_analysis(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error performing custom analysis: {str(e)}"
         )
+
+@router.get("/products/{product_id}/forecast")
+async def get_product_forecast(
+    product_id: str,
+    time_frame: str = Query(default="last_quarter"),
+    forecast_periods: int = Query(default=12, ge=1, le=36),
+    method: str = Query(default="exponential_smoothing"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get forecast for a specific product"""
+    analytics_repo = AnalyticsRepository(db)
+    
+    try:
+        # Get product details
+        product = db.query(Product).filter(Product.product_id == product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Get historical data for the product
+        historical_data = analytics_repo.get_product_demand_history(
+            product_id=product_id,
+            time_frame=time_frame
+        )
+        
+        # Run forecast
+        forecast_engine = ForecastEngine(analytics_repo)
+        forecast_result = forecast_engine.generate_forecast(
+            historical_data=historical_data,
+            method=method,
+            periods=forecast_periods
+        )
+        
+        return {
+            "product": {
+                "id": product.product_id,
+                "name": product.product_name,
+                "category": product.category,
+                "current_stock": product.current_stock
+            },
+            "forecast": forecast_result,
+            "generated_at": datetime.utcnow()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating product forecast: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/forecast/batch")
+async def batch_product_forecast(
+    product_ids: List[str],
+    request: ForecastRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Run forecast for multiple products"""
+    analytics_repo = AnalyticsRepository(db)
+    forecast_engine = ForecastEngine(analytics_repo)
+    
+    results = []
+    for product_id in product_ids[:50]:  # Limit to 50 products
+        try:
+            product = db.query(Product).filter(Product.product_id == product_id).first()
+            if not product:
+                continue
+                
+            historical_data = analytics_repo.get_product_demand_history(
+                product_id=product_id,
+                time_frame=request.time_frame
+            )
+            
+            forecast_result = forecast_engine.generate_forecast(
+                historical_data=historical_data,
+                method=request.method,
+                periods=request.forecast_periods
+            )
+            
+            results.append({
+                "product_id": product_id,
+                "product_name": product.product_name,
+                "category": product.category,
+                "forecast": forecast_result
+            })
+            
+        except Exception as e:
+            logger.error(f"Error forecasting product {product_id}: {e}")
+            
+    return {
+        "products": results,
+        "count": len(results),
+        "request": request,
+        "generated_at": datetime.utcnow()
+    }
+
+
+@router.get("/products/{product_id}/forecast")
+async def get_product_forecast(
+    product_id: str,
+    time_frame: str = Query(default="last_quarter"),
+    forecast_periods: int = Query(default=12, ge=1, le=36),
+    method: str = Query(default="exponential_smoothing"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get forecast for a specific product"""
+    analytics_repo = AnalyticsRepository(db)
+    
+    try:
+        # Get product details
+        product = db.query(Product).filter(Product.product_id == product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Get historical data for the product
+        historical_data = analytics_repo.get_product_demand_history(
+            product_id=product_id,
+            time_frame=time_frame
+        )
+        
+        # Run forecast
+        forecast_engine = ForecastEngine(analytics_repo)
+        forecast_result = forecast_engine.generate_forecast(
+            historical_data=historical_data,
+            method=method,
+            periods=forecast_periods
+        )
+        
+        return {
+            "product": {
+                "id": product.product_id,
+                "name": product.product_name,
+                "category": product.category,
+                "current_stock": product.current_stock
+            },
+            "forecast": forecast_result,
+            "generated_at": datetime.utcnow()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating product forecast: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/forecast/batch")
+async def batch_product_forecast(
+    product_ids: List[str],
+    request: ForecastRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Run forecast for multiple products"""
+    analytics_repo = AnalyticsRepository(db)
+    forecast_engine = ForecastEngine(analytics_repo)
+    
+    results = []
+    for product_id in product_ids[:50]:  # Limit to 50 products
+        try:
+            product = db.query(Product).filter(Product.product_id == product_id).first()
+            if not product:
+                continue
+                
+            historical_data = analytics_repo.get_product_demand_history(
+                product_id=product_id,
+                time_frame=request.time_frame
+            )
+            
+            forecast_result = forecast_engine.generate_forecast(
+                historical_data=historical_data,
+                method=request.method,
+                periods=request.forecast_periods
+            )
+            
+            results.append({
+                "product_id": product_id,
+                "product_name": product.product_name,
+                "category": product.category,
+                "forecast": forecast_result
+            })
+            
+        except Exception as e:
+            logger.error(f"Error forecasting product {product_id}: {e}")
+            
+    return {
+        "products": results,
+        "count": len(results),
+        "request": request,
+        "generated_at": datetime.utcnow()
+    }

@@ -23,6 +23,8 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import Loading from './components/common/Loading';
 
 import Forecasting from './pages/Forecasting';
+
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -81,7 +83,12 @@ const AuthenticatedLayout = ({ children }) => {
 function App() {
   return (
     <ErrorBoundary>
-      <Router>
+      <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
         <AuthProvider>
           <Routes>
             {/* Public Routes */}
@@ -179,6 +186,13 @@ function App() {
                   </Link>
                 </div>
               </div>
+            } />
+            <Route path="/forecasting/*" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Forecasting />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
             } />
             <Route path="/forecasting/*" element={
               <ProtectedRoute>

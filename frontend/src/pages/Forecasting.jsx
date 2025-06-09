@@ -6,7 +6,7 @@ import ForecastResults from '../components/forecasting/ForecastResults';
 import ForecastComparison from '../components/forecasting/ForecastComparison';
 import SeasonalityAnalysis from '../components/forecasting/SeasonalityAnalysis';
 import { useForecast } from '../hooks/forecasting/useForecast';
-import { FORECAST_METHODS, TIME_FRAMES } from '../services/forecasting';
+import { TIME_FRAMES } from '../services/forecasting';
 
 const Forecasting = () => {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ const Forecasting = () => {
     try {
       const results = await runForecast({
         ...params,
-        forecast_type: type,
+        forecast_type: type
       });
       setForecastResults(results);
       setActiveTab(type);
@@ -33,7 +33,7 @@ const Forecasting = () => {
     { id: 'inventory', name: 'Inventory Forecast', path: '/forecasting/inventory' },
     { id: 'sales', name: 'Sales Forecast', path: '/forecasting/sales' },
     { id: 'comparison', name: 'Model Comparison', path: '/forecasting/comparison' },
-    { id: 'settings', name: 'Settings', path: '/forecasting/settings' },
+    { id: 'settings', name: 'Settings', path: '/forecasting/settings' }
   ];
 
   return (
@@ -129,3 +129,5 @@ const Forecasting = () => {
 };
 
 export default Forecasting;
+
+

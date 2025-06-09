@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { getAvailableModels } from '../../services/forecasting';
+import { getForecastMethods } from '../../services/forecasting';
 
 export const useForecastModels = () => {
   const [models, setModels] = useState([]);
@@ -10,7 +10,7 @@ export const useForecastModels = () => {
     const fetchModels = async () => {
       try {
         setLoading(true);
-        const data = await getAvailableModels();
+        const data = await getForecastMethods();
         setModels(data);
       } catch (err) {
         setError(err.message);
@@ -24,3 +24,4 @@ export const useForecastModels = () => {
 
   return { models, loading, error };
 };
+

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, status
+﻿from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
@@ -10,7 +10,7 @@ import logging
 from sqlalchemy import text
 from sqlalchemy import create_engine
 
-from app.api.routes import auth, queries, visualizations, database, analytics, admin
+from app.api.routes import auth, queries, visualizations, database, analytics, admin, reference_data
 from app.api.middleware.auth import JWTAuthMiddleware, AdminOnlyMiddleware
 from app.api.middleware.error_handler import ErrorHandlerMiddleware
 from app.api.middleware.rate_limit import RateLimitMiddleware

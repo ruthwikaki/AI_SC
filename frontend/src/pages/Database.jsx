@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { MagnifyingGlassIcon, TableCellsIcon, CircleStackIcon } from '@heroicons/react/24/outline';
 
 const Database = () => {
@@ -12,7 +12,7 @@ const Database = () => {
     { name: 'inventory', count: 3456, lastUpdated: '2025-06-01' },
     { name: 'orders', count: 9012, lastUpdated: '2025-05-31' },
     { name: 'shipments', count: 4567, lastUpdated: '2025-05-31' },
-    { name: 'warehouses', count: 89, lastUpdated: '2025-05-30' },
+    { name: 'warehouses', count: 89, lastUpdated: '2025-05-30' }
   ];
 
   const filteredTables = tables.filter(table => 

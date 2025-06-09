@@ -1,246 +1,205 @@
 ﻿// frontend/src/services/forecasting.js
 import api from './api';
 
-// Forecast Methods (matching your backend enum)
-export const FORECAST_METHODS = {
-  MOVING_AVERAGE: 'moving_average',
-  EXPONENTIAL_SMOOTHING: 'exponential_smoothing',
-  ARIMA: 'arima',
-  SARIMA: 'sarima',
-  PROPHET: 'prophet',
-  LSTM: 'lstm',
-};
-
-// Time Frames (matching your backend enum)
+// Time frame options
 export const TIME_FRAMES = {
   LAST_WEEK: 'last_week',
   LAST_MONTH: 'last_month',
   LAST_QUARTER: 'last_quarter',
   LAST_YEAR: 'last_year',
-  CUSTOM: 'custom',
   YEAR_TO_DATE: 'year_to_date',
+  CUSTOM: 'custom'
 };
 
-// Get forecast data using your existing endpoint
-export const getForecastData = async (params = {}) => {
-  const defaultParams = {
-    forecast_periods: 12,
-    period_type: 'month',
-    method: FORECAST_METHODS.EXPONENTIAL_SMOOTHING,
-    include_confidence_intervals: true,
-    confidence_level: 0.95,
-    time_frame: TIME_FRAMES.LAST_MONTH,
-  };
-
-  const response = await api.post('/api/analytics/inventory/forecast', {
-    ...defaultParams,
-    ...params,
-  });
-  
-  return response.data;
+// Fetch forecast methods dynamically from backend
+export const getForecastMethods = async () => {
+  try {
+    const response = await api.get('/api/reference/forecast-methods');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching forecast methods:', error);
+    return [];
+  }
 };
 
-// Get available forecast models (we'll define them client-side since your backend uses an enum)
-export const getAvailableModels = async () => {
-  // Return the models your backend supports
-  return [
-    {
-      id: FORECAST_METHODS.MOVING_AVERAGE,
-      name: 'Moving Average',
-      description: 'Simple moving average forecast',
-      parameters: {
-        window: { type: 'number', default: 3, min: 1, max: 12 },
-      },
-    },
-    {
-      id: FORECAST_METHODS.EXPONENTIAL_SMOOTHING,
-      name: 'Exponential Smoothing',
-      description: 'Exponential smoothing with configurable alpha',
-      parameters: {
-        alpha: { type: 'number', default: 0.3, min: 0.01, max: 0.99, step: 0.01 },
-      },
-    },
-    {
-      id: FORECAST_METHODS.ARIMA,
-      name: 'ARIMA',
-      description: 'AutoRegressive Integrated Moving Average',
-      parameters: {
-        p: { type: 'number', default: 1, min: 0, max: 5 },
-        d: { type: 'number', default: 1, min: 0, max: 2 },
-        q: { type: 'number', default: 1, min: 0, max: 5 },
-      },
-    },
-    {
-      id: FORECAST_METHODS.SARIMA,
-      name: 'Seasonal ARIMA',
-      description: 'ARIMA with seasonal components',
-      parameters: {
-        p: { type: 'number', default: 1, min: 0, max: 5 },
-        d: { type: 'number', default: 1, min: 0, max: 2 },
-        q: { type: 'number', default: 1, min: 0, max: 5 },
-        seasonal_period: { type: 'number', default: 12, min: 1, max: 52 },
-      },
-    },
-    {
-      id: FORECAST_METHODS.PROPHET,
-      name: 'Prophet',
-      description: 'Facebook Prophet for time series forecasting',
-      parameters: {
-        changepoint_prior_scale: { type: 'number', default: 0.05, min: 0.001, max: 0.5, step: 0.001 },
-        seasonality_mode: { type: 'select', options: ['additive', 'multiplicative'], default: 'additive' },
-      },
-    },
-    {
-      id: FORECAST_METHODS.LSTM,
-      name: 'LSTM Neural Network',
-      description: 'Long Short-Term Memory neural network',
-      parameters: {
-        sequence_length: { type: 'number', default: 30, min: 10, max: 100 },
-        epochs: { type: 'number', default: 100, min: 50, max: 500 },
-      },
-    },
-  ];
+// Get warehouses from backend
+export const getWarehouses = async () => {
+  try {
+    const response = await api.get('/api/reference/warehouses');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching warehouses:', error);
+    return [];
+  }
 };
 
-// Get time series data for a specific product or category
-export const getTimeSeriesData = async (params = {}) => {
-  // Use your existing inventory interface to get historical data
-  // This might need to be adjusted based on your actual endpoints
-  const response = await api.get('/api/analytics/inventory/products', {
-    params: {
-      ...params,
-      include_history: true,
-    },
-  });
-  
-  return response.data;
+// Get regions from backend
+export const getRegions = async () => {
+  try {
+    const response = await api.get('/api/reference/regions');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching regions:', error);
+    return [];
+  }
 };
 
-// Get forecast configuration (stored in user preferences)
-export const getForecastConfig = async () => {
-  const response = await api.get('/api/analytics/dashboard/preferences');
-  return response.data.preferences.forecast_config || {};
+// Get product categories with statistics
+export const getProductCategories = async () => {
+  try {
+    const response = await api.get('/api/reference/product-categories');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product categories:', error);
+    return [];
+  }
 };
 
-// Save forecast configuration
-export const saveForecastConfig = async (config) => {
-  const currentPrefs = await api.get('/api/analytics/dashboard/preferences');
-  const response = await api.post('/api/analytics/dashboard/preferences', {
-    ...currentPrefs.data.preferences,
-    forecast_config: config,
-  });
-  return response.data;
-};
-
-// Run forecast with specific parameters
+// Main forecast function
 export const runForecast = async (params) => {
-  const response = await api.post('/api/analytics/inventory/forecast', params);
-  return response.data;
+  try {
+    const response = await api.post('/api/analytics/inventory/forecast', {
+      request_parameters: {
+        method: params.method,
+        time_frame: params.time_frame,
+        forecast_periods: params.forecast_periods,
+        period_type: params.period_type || 'month',
+        confidence_level: params.confidence_level || 0.95,
+        include_anomaly_detection: params.include_anomaly_detection || true,
+        include_insights: params.include_insights || true,
+        filters: {
+          product_category: params.product_category,
+          warehouse_id: params.warehouse_id,
+          region: params.region,
+          supplier_id: params.supplier_id,
+        }
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error running forecast:', error);
+    throw error;
+  }
+};
+
+// Get forecast data with filters
+export const getForecastData = async (params = {}) => {
+  try {
+    const response = await api.get('/api/analytics/inventory/forecast', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching forecast data:', error);
+    throw error;
+  }
 };
 
 // Compare multiple forecast models
 export const compareModels = async (models, params) => {
-  // Run forecasts for each model in parallel
-  const forecastPromises = models.map(model => 
-    runForecast({
-      ...params,
-      method: model,
-    })
-  );
-  
-  const results = await Promise.all(forecastPromises);
-  
-  // Combine results for comparison
-  return {
-    models: models.map((model, index) => ({
-      id: model,
-      name: getModelName(model),
-      results: results[index],
-    })),
-    comparison_date: new Date().toISOString(),
-  };
-};
-
-// Export forecast results
-export const exportForecast = async (forecastData, format = 'csv') => {
-  // Create export data
-  const exportData = {
-    forecast_data: forecastData,
-    format: format,
-  };
-  
-  // Use your existing export endpoint
-  const response = await api.post('/api/analytics/inventory/export/forecast', exportData, {
-    responseType: 'blob',
-  });
-  
-  // Create download link
-  const url = window.URL.createObjectURL(new Blob([response.data]));
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', `forecast_${new Date().toISOString()}.${format}`);
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  
-  return response.data;
-};
-
-// Get specific forecast types (demand, inventory, sales)
-export const getDemandForecast = async (params = {}) => {
-  return runForecast({
-    ...params,
-    forecast_type: 'demand',
-  });
-};
-
-export const getInventoryForecast = async (params = {}) => {
-  return runForecast({
-    ...params,
-    forecast_type: 'inventory',
-  });
-};
-
-export const getSalesForecast = async (params = {}) => {
-  return runForecast({
-    ...params,
-    forecast_type: 'sales',
-  });
-};
-
-// Helper function to get model display name
-const getModelName = (modelId) => {
-  const modelMap = {
-    [FORECAST_METHODS.MOVING_AVERAGE]: 'Moving Average',
-    [FORECAST_METHODS.EXPONENTIAL_SMOOTHING]: 'Exponential Smoothing',
-    [FORECAST_METHODS.ARIMA]: 'ARIMA',
-    [FORECAST_METHODS.SARIMA]: 'Seasonal ARIMA',
-    [FORECAST_METHODS.PROPHET]: 'Prophet',
-    [FORECAST_METHODS.LSTM]: 'LSTM Neural Network',
-  };
-  return modelMap[modelId] || modelId;
-};
-
-// Get forecast accuracy metrics
-export const getForecastAccuracy = async (forecastId) => {
-  // This would need a backend endpoint to calculate accuracy
-  // For now, we'll calculate it client-side if we have the data
-  const forecast = await getForecastData({ forecast_id: forecastId });
-  
-  if (forecast.historical_data && forecast.results) {
-    // Calculate metrics using the helper functions
-    const actual = forecast.historical_data.map(d => d.value);
-    const predicted = forecast.results.forecast.map(f => f.value);
+  try {
+    const promises = models.map(model => 
+      runForecast({ ...params, method: model })
+    );
+    
+    const results = await Promise.all(promises);
     
     return {
-      mape: calculateMAPE(actual.slice(-predicted.length), predicted),
-      mae: calculateMAE(actual.slice(-predicted.length), predicted),
-      rmse: calculateRMSE(actual.slice(-predicted.length), predicted),
+      models: models.map((model, index) => ({
+        id: model,
+        results: results[index]
+      }))
     };
+  } catch (error) {
+    console.error('Error comparing models:', error);
+    throw error;
   }
-  
-  return null;
 };
 
-// Import the helper functions from forecastHelpers
-import { calculateMAPE, calculateMAE, calculateRMSE } from '../utils/forecasting/forecastHelpers';
+// Get historical forecast performance
+export const getForecastPerformance = async (params = {}) => {
+  try {
+    const response = await api.get('/api/analytics/forecast/performance', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching forecast performance:', error);
+    throw error;
+  }
+};
+
+// Save forecast configuration
+export const saveForecastConfig = async (config) => {
+  try {
+    const response = await api.post('/api/analytics/dashboard/preferences', {
+      preference_type: 'forecast_config',
+      preferences: config
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error saving forecast config:', error);
+    throw error;
+  }
+};
+
+// Get forecast configuration
+export const getForecastConfig = async () => {
+  try {
+    const response = await api.get('/api/analytics/dashboard/preferences', {
+      params: { preference_type: 'forecast_config' }
+    });
+    return response.data.preferences || {};
+  } catch (error) {
+    console.error('Error fetching forecast config:', error);
+    return {};
+  }
+};
+
+// Export forecast data
+export const exportForecast = async (data, format = 'csv') => {
+  try {
+    const response = await api.post('/api/analytics/export', {
+      data,
+      format,
+      type: 'forecast'
+    }, {
+      responseType: 'blob'
+    });
+    
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `forecast_${new Date().toISOString()}.${format}`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    
+    return true;
+  } catch (error) {
+    console.error('Error exporting forecast:', error);
+    throw error;
+  }
+};
+
+// Get product-level forecast data
+export const getProductForecast = async (productId, params = {}) => {
+  try {
+    const response = await api.get(`/api/analytics/products/${productId}/forecast`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product forecast:', error);
+    throw error;
+  }
+};
+
+// Batch forecast for multiple products
+export const batchProductForecast = async (productIds, params = {}) => {
+  try {
+    const response = await api.post('/api/analytics/forecast/batch', {
+      product_ids: productIds,
+      ...params
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error running batch forecast:', error);
+    throw error;
+  }
+};

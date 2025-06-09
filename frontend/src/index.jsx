@@ -1,4 +1,5 @@
-import React from 'react';
+﻿import React from 'react';
+import './config/agGridSetup';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css'; // Make sure this file exists, if not, create it
