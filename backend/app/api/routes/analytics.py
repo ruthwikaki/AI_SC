@@ -1411,3 +1411,38 @@ async def batch_product_forecast(
         "request": request,
         "generated_at": datetime.utcnow()
     }
+
+
+@router.get("/dashboard/preferences")
+async def get_dashboard_preferences(
+    preference_type: str = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get user dashboard preferences"""
+    try:
+        query = db.query(DashboardPreference).filter(
+            DashboardPreference.user_id == current_user.id
+        )
+        
+        if preference_type:
+            query = query.filter(DashboardPreference.preference_type == preference_type)
+            
+        preference = query.first()
+        
+        if preference:
+            return {
+                "preference_type": preference.preference_type,
+                "preferences": preference.preferences
+            }
+        
+        # Return empty preferences if not found
+        return {
+            "preference_type": preference_type,
+            "preferences": {}
+        }
+    except Exception as e:
+        return {
+            "preference_type": preference_type,
+            "preferences": {}
+        }

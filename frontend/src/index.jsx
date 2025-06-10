@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import './config/agGridSetup';
+import './config/chartSetup'; // Setup Chart.js
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css'; // Make sure this file exists, if not, create it
@@ -9,3 +10,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 );
+
