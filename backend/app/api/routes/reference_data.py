@@ -1,335 +1,387 @@
 ﻿# backend/app/api/routes/reference_data.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import List, Dict, Any
+from sqlalchemy import func, distinct
+from datetime import datetime, timedelta
+from uuid import UUID
+
 from app.db.database import get_db
-from app.models.supply_chain import Product, Category, Supplier, Order
-from app.schemas.analytics import ReferenceDataResponse
-import logging
+from app.api.middleware.auth import get_current_user
+from app.models.user import User
+from app.models.supply_chain import Product, Supplier, Warehouse, Order, Inventory
+from app.models.extended_models import ForecastModel
+from app.utils.logger import logger
 
-logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/api/reference", tags=["reference_data"])
-
-@router.get("/warehouses")
-async def get_warehouses(db: Session = Depends(get_db)):
-    """Get all warehouse locations from database"""
-    try:
-        # First try to get from warehouses table
-        query = text("""
-        SELECT DISTINCT 
-            warehouse_id as id,
-            warehouse_name as name,
-            location,
-            region
-        FROM warehouses
-        WHERE active = true
-        ORDER BY warehouse_name
-        """)
-        result = db.execute(query).fetchall()
-        
-        if result:
-            return [dict(row._mapping) for row in result]
-    except Exception as e:
-        logger.warning(f"Warehouses table not found, trying alternative: {e}")
-    
-    # Fallback to inventory or orders table
-    try:
-        query = text("""
-        SELECT DISTINCT 
-            warehouse_id as id,
-            COALESCE(warehouse_name, warehouse_id) as name,
-            COALESCE(location, 'Unknown') as location
-        FROM inventory
-        WHERE warehouse_id IS NOT NULL
-        ORDER BY warehouse_id
-        """)
-        result = db.execute(query).fetchall()
-        
-        if result:
-            return [dict(row._mapping) for row in result]
-        
-        # If still no data, try orders table
-        query = text("""
-        SELECT DISTINCT 
-            ship_from_warehouse as id,
-            ship_from_warehouse as name,
-            'Distribution Center' as location
-        FROM orders
-        WHERE ship_from_warehouse IS NOT NULL
-        ORDER BY ship_from_warehouse
-        """)
-        result = db.execute(query).fetchall()
-        return [dict(row._mapping) for row in result] if result else []
-        
-    except Exception as e:
-        logger.error(f"Error fetching warehouses: {e}")
-        return []
-
-@router.get("/regions")
-async def get_regions(db: Session = Depends(get_db)):
-    """Get all sales regions from database"""
-    try:
-        # Try regions table first
-        query = text("""
-        SELECT DISTINCT 
-            region_id as id,
-            region_name as name,
-            country,
-            timezone
-        FROM regions
-        WHERE active = true
-        ORDER BY region_name
-        """)
-        result = db.execute(query).fetchall()
-        
-        if result:
-            return [dict(row._mapping) for row in result]
-    except Exception as e:
-        logger.warning(f"Regions table not found, trying alternative: {e}")
-    
-    # Fallback to customers or orders
-    try:
-        query = text("""
-        SELECT DISTINCT 
-            COALESCE(region, shipping_region, billing_region) as id,
-            COALESCE(region, shipping_region, billing_region) as name
-        FROM orders
-        WHERE COALESCE(region, shipping_region, billing_region) IS NOT NULL
-        
-        UNION
-        
-        SELECT DISTINCT
-            region as id,
-            region as name
-        FROM customers
-        WHERE region IS NOT NULL
-        
-        ORDER BY name
-        """)
-        result = db.execute(query).fetchall()
-        return [dict(row._mapping) for row in result] if result else []
-        
-    except Exception as e:
-        logger.error(f"Error fetching regions: {e}")
-        return []
-
-@router.get("/product-categories")
-async def get_product_categories(db: Session = Depends(get_db)):
-    """Get all product categories with statistics"""
-    try:
-        # Main query to get categories with stats
-        query = text("""
-        WITH category_stats AS (
-            SELECT 
-                COALESCE(c.category_name, p.category, 'Uncategorized') as name,
-                COUNT(DISTINCT p.product_id) as product_count,
-                COALESCE(SUM(i.quantity * p.unit_price), 0) as total_value,
-                COALESCE(SUM(i.quantity), 0) as total_quantity
-            FROM products p
-            LEFT JOIN categories c ON p.category_id = c.category_id
-            LEFT JOIN inventory i ON p.product_id = i.product_id
-            GROUP BY COALESCE(c.category_name, p.category, 'Uncategorized')
-        ),
-        total_values AS (
-            SELECT SUM(total_value) as grand_total FROM category_stats
-        )
-        SELECT 
-            cs.name,
-            cs.product_count,
-            cs.total_value as value,
-            CASE 
-                WHEN tv.grand_total > 0 
-                THEN ROUND((cs.total_value / tv.grand_total * 100)::numeric, 1)
-                ELSE 0 
-            END as percentage
-        FROM category_stats cs
-        CROSS JOIN total_values tv
-        WHERE cs.product_count > 0
-        ORDER BY cs.total_value DESC
-        """)
-        
-        categories = db.execute(query).fetchall()
-        result = []
-        
-        for cat in categories:
-            cat_dict = dict(cat._mapping)
-            
-            # Get ABC distribution for this category
-            try:
-                abc_query = text("""
-                SELECT 
-                    COALESCE(abc_classification, 'C') as abc_category,
-                    COUNT(*) as count
-                FROM products
-                WHERE COALESCE(category, 'Uncategorized') = :category
-                GROUP BY COALESCE(abc_classification, 'C')
-                """)
-                abc_result = db.execute(abc_query, {"category": cat_dict['name']}).fetchall()
-                
-                abc_dict = {'A': 0, 'B': 0, 'C': 0}
-                for row in abc_result:
-                    abc_dict[row.abc_category] = row.count
-                
-                cat_dict['abc_distribution'] = abc_dict
-            except:
-                cat_dict['abc_distribution'] = {'A': 0, 'B': 0, 'C': 0}
-            
-            result.append(cat_dict)
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error fetching product categories: {e}")
-        # Return empty list instead of error
-        return []
+router = APIRouter(prefix="/reference", tags=["reference-data"])
 
 @router.get("/forecast-methods")
-async def get_available_forecast_methods():
-    """Get available forecast methods from the system"""
+async def get_forecast_methods(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get available forecast methods with their configurations"""
     try:
-        from app.analytics.inventory_optimization.forecast_engine import ForecastEngine
+        methods = db.query(ForecastModel).filter(
+            ForecastModel.is_active == True
+        ).all()
         
-        methods = []
-        method_info = {
-            "moving_average": {
-                "name": "Moving Average",
-                "description": "Simple average of recent periods, best for stable demand",
-                "best_for": "Stable, predictable products",
-                "accuracy": "Medium",
-                "complexity": "Low"
-            },
-            "exponential_smoothing": {
-                "name": "Exponential Smoothing",
-                "description": "Weights recent data more heavily, good for trends",
-                "best_for": "Products with mild trends",
-                "accuracy": "Medium-High",
-                "complexity": "Low"
-            },
-            "holt_winters": {
-                "name": "Holt-Winters",
-                "description": "Captures both trend and seasonality",
-                "best_for": "Seasonal products with trends",
-                "accuracy": "High",
-                "complexity": "Medium"
-            },
-            "arima": {
-                "name": "ARIMA",
-                "description": "Advanced time series model for complex patterns",
-                "best_for": "Complex demand patterns",
-                "accuracy": "High",
-                "complexity": "High"
-            },
-            "sarima": {
-                "name": "SARIMA",
-                "description": "ARIMA with seasonal components",
-                "best_for": "Highly seasonal products",
-                "accuracy": "Very High",
-                "complexity": "High"
-            },
-            "prophet": {
-                "name": "Prophet",
-                "description": "Facebook's algorithm for holiday effects and changepoints",
-                "best_for": "Products affected by holidays/events",
-                "accuracy": "High",
-                "complexity": "Medium"
-            },
-            "lstm": {
-                "name": "LSTM Neural Network",
-                "description": "Deep learning for complex non-linear patterns",
-                "best_for": "High-variability items",
-                "accuracy": "Very High",
-                "complexity": "Very High"
-            },
-            "ensemble": {
-                "name": "Ensemble",
-                "description": "Combines multiple models for best accuracy",
-                "best_for": "Critical high-value products",
-                "accuracy": "Highest",
-                "complexity": "Very High"
-            }
-        }
+        if not methods:
+            # Return default methods if none in database
+            return [
+                {
+                    "id": "arima",
+                    "name": "ARIMA",
+                    "display_name": "Auto-Regressive Integrated Moving Average",
+                    "description": "Statistical model for time series forecasting",
+                    "accuracy_score": 0.85,
+                    "best_for": ["seasonal_data", "trending_data"],
+                    "parameters": {
+                        "p": {"default": 1, "min": 0, "max": 5},
+                        "d": {"default": 1, "min": 0, "max": 2},
+                        "q": {"default": 1, "min": 0, "max": 5}
+                    }
+                },
+                {
+                    "id": "exponential_smoothing",
+                    "name": "Exponential Smoothing",
+                    "display_name": "Holt-Winters Exponential Smoothing",
+                    "description": "Weighted average forecasting with trend and seasonality",
+                    "accuracy_score": 0.82,
+                    "best_for": ["stable_demand", "short_term"],
+                    "parameters": {
+                        "alpha": {"default": 0.3, "min": 0, "max": 1},
+                        "beta": {"default": 0.1, "min": 0, "max": 1},
+                        "gamma": {"default": 0.1, "min": 0, "max": 1}
+                    }
+                },
+                {
+                    "id": "prophet",
+                    "name": "Prophet",
+                    "display_name": "Facebook Prophet",
+                    "description": "Robust forecasting for data with strong seasonal patterns",
+                    "accuracy_score": 0.88,
+                    "best_for": ["multiple_seasonality", "holidays", "missing_data"],
+                    "parameters": {
+                        "changepoint_prior_scale": {"default": 0.05, "min": 0.001, "max": 0.5},
+                        "seasonality_prior_scale": {"default": 10, "min": 0.01, "max": 10}
+                    }
+                },
+                {
+                    "id": "lstm",
+                    "name": "LSTM",
+                    "display_name": "Long Short-Term Memory Neural Network",
+                    "description": "Deep learning model for complex patterns",
+                    "accuracy_score": 0.90,
+                    "best_for": ["complex_patterns", "large_datasets", "non_linear"],
+                    "parameters": {
+                        "epochs": {"default": 50, "min": 10, "max": 200},
+                        "batch_size": {"default": 32, "min": 16, "max": 128},
+                        "hidden_units": {"default": 50, "min": 10, "max": 200}
+                    }
+                },
+                {
+                    "id": "ensemble",
+                    "name": "Ensemble",
+                    "display_name": "Ensemble Method",
+                    "description": "Combines multiple models for better accuracy",
+                    "accuracy_score": 0.92,
+                    "best_for": ["high_accuracy", "critical_forecasts"],
+                    "parameters": {
+                        "models": {"default": ["arima", "prophet", "lstm"], "options": ["arima", "prophet", "lstm", "exponential_smoothing"]},
+                        "weights": {"default": "auto", "options": ["auto", "equal", "custom"]}
+                    }
+                }
+            ]
         
-        # Get methods from ForecastEngine
-        for method_id in ForecastEngine.METHODS:
-            if method_id in method_info:
-                methods.append({
-                    "id": method_id,
-                    **method_info[method_id]
-                })
-        
-        return methods
-        
-    except Exception as e:
-        logger.error(f"Error getting forecast methods: {e}")
-        # Return default methods if ForecastEngine not available
         return [
             {
-                "id": "exponential_smoothing",
-                "name": "Exponential Smoothing",
-                "description": "Standard forecasting method",
-                "best_for": "General use",
-                "accuracy": "Medium",
-                "complexity": "Low"
+                "id": str(method.id),
+                "name": method.name,
+                "display_name": method.display_name,
+                "description": method.description,
+                "accuracy_score": method.average_accuracy,
+                "best_for": method.best_use_cases.split(',') if method.best_use_cases else [],
+                "parameters": method.default_parameters
             }
+            for method in methods
         ]
+    except Exception as e:
+        logger.error(f"Error fetching forecast methods: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/warehouses")
+async def get_warehouses(
+    include_stats: bool = Query(False, description="Include warehouse statistics"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of warehouses with optional statistics"""
+    try:
+        warehouses = db.query(Warehouse).filter(
+            Warehouse.is_active == True
+        ).all()
+        
+        result = []
+        for warehouse in warehouses:
+            warehouse_data = {
+                "id": str(warehouse.id),
+                "name": warehouse.name,
+                "code": warehouse.code,
+                "location": warehouse.location,
+                "capacity": warehouse.capacity,
+                "type": warehouse.warehouse_type,
+                "region": warehouse.region
+            }
+            
+            if include_stats:
+                # Get current inventory stats
+                inventory_stats = db.query(
+                    func.count(distinct(Inventory.product_id)).label('product_count'),
+                    func.sum(Inventory.quantity).label('total_quantity'),
+                    func.sum(Inventory.quantity * Inventory.unit_cost).label('total_value')
+                ).filter(
+                    Inventory.warehouse_id == warehouse.id
+                ).first()
+                
+                warehouse_data['stats'] = {
+                    'product_count': inventory_stats.product_count or 0,
+                    'total_quantity': float(inventory_stats.total_quantity or 0),
+                    'total_value': float(inventory_stats.total_value or 0),
+                    'utilization': (float(inventory_stats.total_quantity or 0) / warehouse.capacity * 100) if warehouse.capacity > 0 else 0
+                }
+            
+            result.append(warehouse_data)
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching warehouses: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/regions")
+async def get_regions(
+    include_metrics: bool = Query(False, description="Include regional metrics"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of regions with optional metrics"""
+    try:
+        # Get unique regions from warehouses
+        regions = db.query(distinct(Warehouse.region)).filter(
+            Warehouse.region.isnot(None)
+        ).all()
+        
+        result = []
+        for (region,) in regions:
+            region_data = {
+                "id": region.lower().replace(' ', '_'),
+                "name": region,
+                "display_name": region.title()
+            }
+            
+            if include_metrics:
+                # Get warehouses in region
+                warehouse_count = db.query(func.count(Warehouse.id)).filter(
+                    Warehouse.region == region
+                ).scalar()
+                
+                # Get order metrics for region
+                order_metrics = db.query(
+                    func.count(Order.id).label('order_count'),
+                    func.sum(Order.total_amount).label('total_revenue')
+                ).join(
+                    Warehouse, Order.warehouse_id == Warehouse.id
+                ).filter(
+                    Warehouse.region == region,
+                    Order.created_at >= datetime.utcnow() - timedelta(days=30)
+                ).first()
+                
+                region_data['metrics'] = {
+                    'warehouse_count': warehouse_count,
+                    'monthly_orders': order_metrics.order_count or 0,
+                    'monthly_revenue': float(order_metrics.total_revenue or 0)
+                }
+            
+            result.append(region_data)
+        
+        # Sort by name
+        result.sort(key=lambda x: x['name'])
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching regions: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/product-categories")
+async def get_product_categories(
+    include_stats: bool = Query(True, description="Include category statistics"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get product categories with statistics"""
+    try:
+        # Get unique categories
+        categories = db.query(distinct(Product.category)).filter(
+            Product.category.isnot(None)
+        ).all()
+        
+        result = []
+        for (category,) in categories:
+            category_data = {
+                "id": category.lower().replace(' ', '_'),
+                "name": category,
+                "display_name": category.title()
+            }
+            
+            if include_stats:
+                # Get product count
+                product_count = db.query(func.count(Product.id)).filter(
+                    Product.category == category,
+                    Product.is_active == True
+                ).scalar()
+                
+                # Get inventory stats
+                inventory_stats = db.query(
+                    func.sum(Inventory.quantity).label('total_stock'),
+                    func.sum(Inventory.quantity * Inventory.unit_cost).label('total_value'),
+                    func.avg(Inventory.quantity).label('avg_stock_per_warehouse')
+                ).join(
+                    Product, Inventory.product_id == Product.id
+                ).filter(
+                    Product.category == category
+                ).first()
+                
+                # Get order stats for last 30 days
+                order_stats = db.query(
+                    func.count(distinct(Order.id)).label('order_count'),
+                    func.sum(Order.quantity).label('total_ordered')
+                ).join(
+                    Product, Order.product_id == Product.id
+                ).filter(
+                    Product.category == category,
+                    Order.created_at >= datetime.utcnow() - timedelta(days=30)
+                ).first()
+                
+                category_data['stats'] = {
+                    'product_count': product_count,
+                    'total_stock': float(inventory_stats.total_stock or 0),
+                    'total_value': float(inventory_stats.total_value or 0),
+                    'avg_stock_per_warehouse': float(inventory_stats.avg_stock_per_warehouse or 0),
+                    'monthly_orders': order_stats.order_count or 0,
+                    'monthly_quantity_ordered': float(order_stats.total_ordered or 0)
+                }
+            
+            result.append(category_data)
+        
+        # Sort by total value descending
+        if include_stats:
+            result.sort(key=lambda x: x['stats']['total_value'], reverse=True)
+        else:
+            result.sort(key=lambda x: x['name'])
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching product categories: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/suppliers")
-async def get_suppliers(db: Session = Depends(get_db)):
-    """Get all active suppliers"""
+async def get_suppliers_list(
+    category: Optional[str] = Query(None, description="Filter by product category"),
+    region: Optional[str] = Query(None, description="Filter by region"),
+    include_metrics: bool = Query(False, description="Include supplier metrics"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get suppliers list with optional filters and metrics"""
     try:
-        query = text("""
-        SELECT 
-            supplier_id as id,
-            supplier_name as name,
-            COALESCE(country, region, 'Unknown') as location,
-            COALESCE(rating, 0) as rating
-        FROM suppliers
-        WHERE active = true
-        ORDER BY supplier_name
-        """)
-        result = db.execute(query).fetchall()
-        return [dict(row._mapping) for row in result] if result else []
+        query = db.query(Supplier).filter(Supplier.status == 'active')
+        
+        # Apply filters
+        if category:
+            # Filter suppliers that supply products in this category
+            query = query.join(Product, Supplier.products).filter(
+                Product.category == category
+            ).distinct()
+        
+        if region:
+            query = query.filter(Supplier.region == region)
+        
+        suppliers = query.all()
+        
+        result = []
+        for supplier in suppliers:
+            supplier_data = {
+                "id": str(supplier.id),
+                "name": supplier.name,
+                "code": supplier.code,
+                "contact_person": supplier.contact_person,
+                "email": supplier.email,
+                "phone": supplier.phone,
+                "region": supplier.region,
+                "rating": supplier.rating
+            }
+            
+            if include_metrics:
+                # Get supplier metrics
+                order_metrics = db.query(
+                    func.count(Order.id).label('total_orders'),
+                    func.avg(Order.delivery_time).label('avg_delivery_time'),
+                    func.sum(Order.total_amount).label('total_business')
+                ).filter(
+                    Order.supplier_id == supplier.id,
+                    Order.created_at >= datetime.utcnow() - timedelta(days=90)
+                ).first()
+                
+                supplier_data['metrics'] = {
+                    'total_orders': order_metrics.total_orders or 0,
+                    'avg_delivery_time': float(order_metrics.avg_delivery_time or 0),
+                    'total_business': float(order_metrics.total_business or 0),
+                    'product_count': len(supplier.products)
+                }
+            
+            result.append(supplier_data)
+        
+        # Sort by rating descending
+        result.sort(key=lambda x: x['rating'], reverse=True)
+        
+        return result
     except Exception as e:
-        logger.error(f"Error fetching suppliers: {e}")
-        return []
+        logger.error(f"Error fetching suppliers: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/time-frames")
-async def get_time_frames():
-    """Get available time frame options"""
+@router.get("/currencies")
+async def get_currencies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get supported currencies"""
     return [
-        {"id": "last_week", "name": "Last Week", "days": 7},
-        {"id": "last_month", "name": "Last Month", "days": 30},
-        {"id": "last_quarter", "name": "Last Quarter", "days": 90},
-        {"id": "last_year", "name": "Last Year", "days": 365},
-        {"id": "year_to_date", "name": "Year to Date", "days": None},
-        {"id": "custom", "name": "Custom Range", "days": None}
+        {"code": "USD", "name": "US Dollar", "symbol": "$"},
+        {"code": "EUR", "name": "Euro", "symbol": "€"},
+        {"code": "GBP", "name": "British Pound", "symbol": "£"},
+        {"code": "JPY", "name": "Japanese Yen", "symbol": "¥"},
+        {"code": "CNY", "name": "Chinese Yuan", "symbol": "¥"},
+        {"code": "INR", "name": "Indian Rupee", "symbol": "₹"},
+        {"code": "CAD", "name": "Canadian Dollar", "symbol": "$"},
+        {"code": "AUD", "name": "Australian Dollar", "symbol": "$"}
     ]
 
-@router.get("/abc-classes")
-async def get_abc_classes():
-    """Get ABC classification definitions"""
+@router.get("/time-zones")
+async def get_time_zones(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get supported time zones"""
     return [
-        {
-            "class": "A",
-            "name": "High Value",
-            "description": "Top 20% of products by value",
-            "color": "green",
-            "threshold": 0.8
-        },
-        {
-            "class": "B",
-            "name": "Medium Value",
-            "description": "Next 30% of products by value",
-            "color": "yellow",
-            "threshold": 0.5
-        },
-        {
-            "class": "C",
-            "name": "Low Value",
-            "description": "Bottom 50% of products by value",
-            "color": "red",
-            "threshold": 0.0
-        }
+        {"value": "UTC", "label": "UTC", "offset": "+00:00"},
+        {"value": "America/New_York", "label": "Eastern Time", "offset": "-05:00"},
+        {"value": "America/Chicago", "label": "Central Time", "offset": "-06:00"},
+        {"value": "America/Denver", "label": "Mountain Time", "offset": "-07:00"},
+        {"value": "America/Los_Angeles", "label": "Pacific Time", "offset": "-08:00"},
+        {"value": "Europe/London", "label": "London", "offset": "+00:00"},
+        {"value": "Europe/Paris", "label": "Paris", "offset": "+01:00"},
+        {"value": "Asia/Tokyo", "label": "Tokyo", "offset": "+09:00"},
+        {"value": "Asia/Shanghai", "label": "Shanghai", "offset": "+08:00"},
+        {"value": "Asia/Kolkata", "label": "India", "offset": "+05:30"},
+        {"value": "Australia/Sydney", "label": "Sydney", "offset": "+11:00"}
     ]

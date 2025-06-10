@@ -1,4 +1,4 @@
-# app/cache/result_cache.py
+# backend/app/cache/result_cache.py
 
 from typing import Dict, List, Any, Optional, Union, Tuple
 import json
@@ -561,6 +561,76 @@ class ResultCache:
                 await self._save_entry(key, metadata, value)
                 
         logger.info("Result cache shutdown complete")
+    
+    # Backward compatibility methods
+    def get(self, key: str) -> Optional[Any]:
+        """DEPRECATED: Use async get() method instead"""
+        import warnings
+        warnings.warn("Synchronous get() is deprecated. Use await get() instead", DeprecationWarning)
+        return asyncio.run(self.get(sql_query=key))
+    
+    def set(self, key: str, value: Any, ttl: int = 300):
+        """DEPRECATED: Use async set() method instead"""
+        import warnings
+        warnings.warn("Synchronous set() is deprecated. Use await set() instead", DeprecationWarning)
+        asyncio.run(self.set(sql_query=key, result={"data": value}))
+    
+    def delete(self, key: str):
+        """DEPRECATED: Use async invalidate() method instead"""
+        import warnings
+        warnings.warn("delete() is deprecated. Use await invalidate() instead", DeprecationWarning)
+        asyncio.run(self.invalidate(sql_query=key))
+    
+    def clear_pattern(self, pattern: str):
+        """DEPRECATED: Use async invalidate() method instead"""
+        import warnings
+        warnings.warn("clear_pattern() is deprecated. Use await invalidate() instead", DeprecationWarning)
+        asyncio.run(self.invalidate())
+    
+    @staticmethod
+    def generate_key(*args) -> str:
+        """DEPRECATED: Keys are now generated automatically from SQL queries"""
+        import warnings
+        warnings.warn("generate_key() is deprecated. Keys are generated automatically", DeprecationWarning)
+        key_str = '_'.join(str(arg) for arg in args)
+        return hashlib.md5(key_str.encode()).hexdigest()
+    
+    def cached(self, ttl: int = 300):
+        """Decorator for caching function results"""
+        def decorator(func):
+            async def async_wrapper(*args, **kwargs):
+                # Generate cache key from function name and arguments
+                sql_query = f"{func.__name__}_{str(args)}_{str(kwargs)}"
+                
+                # Check cache
+                cached_result = await self.get(sql_query)
+                if cached_result is not None:
+                    return cached_result.get('value', cached_result)
+                
+                # Execute function
+                if asyncio.iscoroutinefunction(func):
+                    result = await func(*args, **kwargs)
+                else:
+                    result = func(*args, **kwargs)
+                
+                # Store in cache
+                await self.set(
+                    sql_query=sql_query,
+                    result={'value': result},
+                    metadata={'function': func.__name__}
+                )
+                
+                return result
+                
+            def sync_wrapper(*args, **kwargs):
+                return asyncio.run(async_wrapper(*args, **kwargs))
+                
+            if asyncio.iscoroutinefunction(func):
+                return async_wrapper
+            else:
+                return sync_wrapper
+                
+        return decorator
 
 # Singleton instance
 _result_cache = None

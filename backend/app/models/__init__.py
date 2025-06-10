@@ -34,6 +34,19 @@ from .analytics import (
     BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
 )
 
+# Add these imports to your existing backend/app/models/__init__.py:
+from app.models.extended_models import (
+    ForecastModel,
+    AnalyticsMetric,
+    ExportJob,
+    ReportTemplate,
+    Report,
+    ScheduledReport,
+    SystemSetting,
+    NotificationSetting,
+    WidgetType
+)
+
 # Re-export all models
 __all__ = [
     # User models
@@ -60,5 +73,10 @@ __all__ = [
     'DeliveryPerformance', 'RiskAssessment', 'ComplianceCheck',
     'ABCAnalysisResult', 'ForecastResult', 'SafetyStockCalculation',
     'SupplyChainNetwork', 'NetworkNode', 'NetworkEdge',
-    'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact'
+    'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact',
+    
+    # Extended models
+    'ForecastModel', 'AnalyticsMetric', 'ExportJob',
+    'ReportTemplate', 'Report', 'ScheduledReport',
+    'SystemSetting', 'NotificationSetting', 'WidgetType'
 ]

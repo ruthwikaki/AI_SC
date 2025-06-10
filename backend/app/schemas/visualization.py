@@ -38,6 +38,34 @@ class DashboardTheme(str, Enum):
     SPACIOUS = "spacious"
 
 
+class ExportStatusEnum(str, Enum):
+    """Export job status"""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class ExportTypeEnum(str, Enum):
+    """Export types"""
+    CHART = "chart"
+    DASHBOARD = "dashboard"
+    DATA = "data"
+    REPORT = "report"
+
+
+class WidgetTypeEnum(str, Enum):
+    """Widget types"""
+    CHART = "chart"
+    TEXT = "text"
+    METRIC = "metric"
+    TABLE = "table"
+    FILTER = "filter"
+    IMAGE = "image"
+    CUSTOM = "custom"
+
+
 # =====================================================
 # Chart Type Schemas
 # =====================================================
@@ -57,7 +85,7 @@ class ChartTypeResponse(BaseModel):
     preview_image: Optional[str] = None
     
     class Config:
-        from_attributes = True  # Changed from orm_mode
+        from_attributes = True
 
 
 # =====================================================
@@ -151,7 +179,7 @@ class ChartResponse(ChartBase):
     last_accessed_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True  # Changed from orm_mode
+        from_attributes = True
 
 
 # =====================================================
@@ -177,11 +205,49 @@ class SavedChartResponse(BaseModel):
     saved_at: datetime
     
     class Config:
-        from_attributes = True  # Changed from orm_mode
+        from_attributes = True
 
 
 # =====================================================
-# Dashboard Schemas
+# Widget Schemas (NEW)
+# =====================================================
+
+class WidgetBase(BaseModel):
+    """Base widget schema"""
+    type: Union[WidgetTypeEnum, str]
+    title: Optional[str] = None
+    config: Dict[str, Any] = Field(default_factory=dict)
+    position: Dict[str, Any] = Field(default_factory=dict)
+
+
+class WidgetCreateRequest(WidgetBase):
+    """Create widget request"""
+    chart_id: Optional[UUID] = None  # For chart widgets
+    data_source: Optional[Dict[str, Any]] = None  # For data-driven widgets
+
+
+class WidgetUpdateRequest(BaseModel):
+    """Update widget request"""
+    type: Optional[Union[WidgetTypeEnum, str]] = None
+    title: Optional[str] = None
+    config: Optional[Dict[str, Any]] = None
+    position: Optional[Dict[str, Any]] = None
+
+
+class WidgetResponse(WidgetBase):
+    """Widget response schema"""
+    id: UUID
+    dashboard_id: UUID
+    chart_id: Optional[UUID] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# =====================================================
+# Dashboard Schemas (UPDATED)
 # =====================================================
 
 class DashboardBase(BaseModel):
@@ -201,6 +267,17 @@ class DashboardCreate(DashboardBase):
         "layouts": {}
     })
     refresh_interval: Optional[int] = Field(None, ge=0)  # seconds, 0 means no auto-refresh
+    widgets: Optional[List[WidgetCreateRequest]] = None  # NEW: Create widgets with dashboard
+
+
+# Alternative simplified create request (NEW)
+class DashboardCreateRequest(BaseModel):
+    """Simplified dashboard create request"""
+    name: str
+    description: Optional[str] = None
+    is_public: bool = False
+    layout_config: Optional[Dict[str, Any]] = None
+    widgets: Optional[List[WidgetCreateRequest]] = None
 
 
 class DashboardUpdate(BaseModel):
@@ -214,6 +291,15 @@ class DashboardUpdate(BaseModel):
     tags: Optional[List[str]] = None
 
 
+# Alternative simplified update request (NEW)
+class DashboardUpdateRequest(BaseModel):
+    """Simplified dashboard update request"""
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_public: Optional[bool] = None
+    layout_config: Optional[Dict[str, Any]] = None
+
+
 class DashboardResponse(DashboardBase):
     """Dashboard response schema"""
     id: UUID
@@ -223,15 +309,17 @@ class DashboardResponse(DashboardBase):
     created_by: UUID
     created_at: datetime
     updated_at: datetime
-    charts: List['DashboardChartResponse'] = []
+    charts: List['DashboardChartResponse'] = []  # Legacy: for backward compatibility
+    widgets: List[WidgetResponse] = []  # NEW: Modern widget system
+    widgets_count: int = 0  # NEW: Widget count
     
     class Config:
-        from_attributes = True  # Changed from orm_mode
+        from_attributes = True
         use_enum_values = True
 
 
 # =====================================================
-# Dashboard Chart Schemas
+# Dashboard Chart Schemas (Legacy - kept for backward compatibility)
 # =====================================================
 
 class DashboardChartPosition(BaseModel):
@@ -273,7 +361,7 @@ class DashboardChartResponse(BaseModel):
     display_order: int
     
     class Config:
-        from_attributes = True  # Changed from orm_mode
+        from_attributes = True
 
 
 class DashboardLayoutUpdate(BaseModel):
@@ -291,12 +379,12 @@ class DashboardLayoutUpdate(BaseModel):
 
 
 # =====================================================
-# Chart Export Schemas
+# Export Schemas (ENHANCED)
 # =====================================================
 
 class ChartExportRequest(BaseModel):
     """Chart export request"""
-    format: str = Field(..., pattern='^(png|svg|pdf|csv|xlsx)$')  # Changed from regex
+    format: str = Field(..., pattern='^(png|svg|pdf|csv|xlsx)$')
     width: Optional[int] = Field(None, ge=100, le=4000)
     height: Optional[int] = Field(None, ge=100, le=4000)
     include_data: bool = True
@@ -305,9 +393,58 @@ class ChartExportRequest(BaseModel):
 
 class DashboardExportRequest(BaseModel):
     """Dashboard export request"""
-    format: str = Field(..., pattern='^(pdf|png|html)$')  # Changed from regex
-    paper_size: str = Field(default='a4', pattern='^(a4|letter|legal)$')  # Changed from regex
-    orientation: str = Field(default='portrait', pattern='^(portrait|landscape)$')  # Changed from regex
+    format: str = Field(..., pattern='^(pdf|png|html)$')
+    paper_size: str = Field(default='a4', pattern='^(a4|letter|legal)$')
+    orientation: str = Field(default='portrait', pattern='^(portrait|landscape)$')
+
+
+# Generic export request (NEW)
+class ExportRequest(BaseModel):
+    """Generic export request"""
+    export_type: Union[ExportTypeEnum, str]
+    format: str
+    parameters: Dict[str, Any] = Field(default_factory=dict)
+    
+    @field_validator('format')
+    @classmethod
+    def validate_format(cls, v, info):
+        """Validate format based on export type"""
+        export_type = info.data.get('export_type')
+        valid_formats = {
+            ExportTypeEnum.CHART: ['png', 'svg', 'pdf', 'csv', 'xlsx'],
+            ExportTypeEnum.DASHBOARD: ['pdf', 'png', 'html'],
+            ExportTypeEnum.DATA: ['csv', 'xlsx', 'json'],
+            ExportTypeEnum.REPORT: ['pdf', 'docx', 'html']
+        }
+        
+        if isinstance(export_type, str):
+            export_type = ExportTypeEnum(export_type)
+            
+        if export_type in valid_formats:
+            if v not in valid_formats[export_type]:
+                raise ValueError(f"Invalid format '{v}' for export type '{export_type}'")
+        
+        return v
+
+
+# Export job response (NEW)
+class ExportJobResponse(BaseModel):
+    """Export job status and result"""
+    id: UUID
+    status: Union[ExportStatusEnum, str]
+    export_type: Union[ExportTypeEnum, str]
+    format: str
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    file_size: Optional[int] = None
+    download_url: Optional[str] = None  # Added for completeness
+    expires_at: Optional[datetime] = None  # Added for completeness
+    error_message: Optional[str] = None
+    progress: Optional[float] = Field(None, ge=0.0, le=100.0)  # Added progress tracking
+    
+    class Config:
+        from_attributes = True
+        use_enum_values = True
 
 
 # =====================================================
@@ -332,8 +469,10 @@ class DashboardAnalytics(BaseModel):
     unique_viewers: int
     average_view_duration_seconds: float
     chart_interaction_count: int
+    widget_interaction_count: int  # NEW: Track widget interactions
     last_viewed_at: Optional[datetime] = None
     popular_time_ranges: List[str] = []
+    widget_performance: Dict[str, Any] = Field(default_factory=dict)  # NEW: Widget-specific metrics
 
 
 # =====================================================
@@ -358,5 +497,37 @@ class VisualizationRecommendation(BaseModel):
     data_mapping: Dict[str, str] = Field(default_factory=dict)
 
 
-# Forward reference update
-DashboardResponse.model_rebuild()  # Changed from update_forward_refs()
+# =====================================================
+# Batch Operations (NEW)
+# =====================================================
+
+class BatchWidgetCreate(BaseModel):
+    """Batch create widgets"""
+    dashboard_id: UUID
+    widgets: List[WidgetCreateRequest]
+
+
+class BatchWidgetUpdate(BaseModel):
+    """Batch update widgets"""
+    updates: List[Dict[str, Any]]  # Each dict must have 'id' and update fields
+    
+    @field_validator('updates')
+    @classmethod
+    def validate_updates(cls, v):
+        """Validate each update has widget id"""
+        for update in v:
+            if 'id' not in update:
+                raise ValueError('Each update must have widget id')
+        return v
+
+
+class BatchExportRequest(BaseModel):
+    """Batch export request"""
+    export_requests: List[ExportRequest]
+    notify_on_completion: bool = True
+    combine_results: bool = False
+
+
+# Forward reference updates
+DashboardResponse.model_rebuild()
+WidgetResponse.model_rebuild()

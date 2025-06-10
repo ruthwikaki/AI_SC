@@ -1,7 +1,5 @@
 """
-Supply chain core business data models
-from app.models.base import Base
-
+Supply chain core business data models with all updates applied
 """
 
 from datetime import datetime, date
@@ -12,12 +10,27 @@ from decimal import Decimal
 from sqlalchemy import (
     Column, String, Boolean, Integer, DateTime, ForeignKey,
     Text, Date, DECIMAL, CheckConstraint, UniqueConstraint,
-    Computed, BigInteger
+    Computed, BigInteger, Table
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
+
+# ========== ASSOCIATION TABLE: Supplier-Products ==========
+supplier_products = Table(
+    'supplier_products',
+    Base.metadata,
+    Column('supplier_id', UUID(as_uuid=True), ForeignKey('suppliers.id'), primary_key=True),
+    Column('product_id', UUID(as_uuid=True), ForeignKey('products.id'), primary_key=True),
+    Column('is_preferred', Boolean, default=False),
+    Column('lead_time_days', Integer),
+    Column('minimum_order_quantity', DECIMAL(15, 3)),
+    Column('unit_price', DECIMAL(15, 2)),
+    Column('created_at', DateTime(timezone=True), default=datetime.utcnow),
+    UniqueConstraint('supplier_id', 'product_id', name='uq_supplier_product')
+)
+
 
 class Supplier(Base):
     """Supplier master data"""
@@ -30,6 +43,7 @@ class Supplier(Base):
     status = Column(String(50), default='active')
     tier = Column(Integer, default=1, index=True)
     country = Column(String(2))
+    region = Column(String(100))  # NEW FIELD
     city = Column(String(100))
     address = Column(Text)
     contact_name = Column(String(255))
@@ -54,6 +68,8 @@ class Supplier(Base):
                                       back_populates='parent_supplier')
     orders = relationship('Order', back_populates='supplier')
     performance_metrics = relationship('SupplierPerformanceMetric', back_populates='supplier')
+    products = relationship("Product", secondary=supplier_products, back_populates="suppliers")  # NEW
+    analytics_metrics = relationship("AnalyticsMetric", back_populates="supplier")  # NEW
     
     def __repr__(self):
         return f"<Supplier(code={self.code}, name={self.name})>"
@@ -151,6 +167,9 @@ class Product(Base):
     materials = relationship('ProductMaterial', back_populates='product', cascade='all, delete-orphan')
     inventory = relationship('Inventory', back_populates='product')
     order_items = relationship('OrderItem', back_populates='product')
+    suppliers = relationship("Supplier", secondary=supplier_products, back_populates="products")  # NEW
+    analytics_metrics = relationship("AnalyticsMetric", back_populates="product")  # NEW
+    orders = relationship("Order", back_populates="product")  # NEW - for simple orders
     
     def __repr__(self):
         return f"<Product(sku={self.sku}, name={self.name})>"
@@ -215,6 +234,39 @@ class ProductMaterial(Base):
         return f"<ProductMaterial(product_id={self.product_id}, material_id={self.material_id})>"
 
 
+class Warehouse(Base):
+    """Warehouse/Distribution Center model"""
+    __tablename__ = 'warehouses'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    code = Column(String(100), unique=True, nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    region = Column(String(100))
+    warehouse_type = Column(String(50))  # e.g., 'distribution', 'fulfillment', 'cross-dock'
+    is_active = Column(Boolean, default=True)
+    address = Column(Text)
+    city = Column(String(100))
+    state = Column(String(100))
+    country = Column(String(2))
+    postal_code = Column(String(20))
+    capacity_m3 = Column(DECIMAL(15, 3))
+    available_capacity_m3 = Column(DECIMAL(15, 3))
+    operating_hours = Column(String(255))
+    manager_name = Column(String(255))
+    manager_email = Column(String(255))
+    manager_phone = Column(String(50))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    inventory = relationship("Inventory", back_populates="warehouse")
+    orders = relationship("Order", back_populates="warehouse")
+    analytics_metrics = relationship("AnalyticsMetric", back_populates="warehouse")
+    
+    def __repr__(self):
+        return f"<Warehouse(code={self.code}, name={self.name}, region={self.region})>"
+
+
 class Inventory(Base):
     """Current inventory levels"""
     __tablename__ = 'inventory'
@@ -222,11 +274,13 @@ class Inventory(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey('products.id'), index=True)
     material_id = Column(UUID(as_uuid=True), ForeignKey('materials.id'), index=True)
+    warehouse_id = Column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=False)  # NEW FIELD
     location_code = Column(String(100), nullable=False)
     quantity_on_hand = Column(DECIMAL(15, 3), nullable=False, default=0)
     quantity_reserved = Column(DECIMAL(15, 3), nullable=False, default=0)
     quantity_available = Column(DECIMAL(15, 3), 
                                Computed('quantity_on_hand - quantity_reserved'))
+    unit_cost = Column(DECIMAL(15, 2))  # NEW FIELD
     reorder_point = Column(DECIMAL(15, 3))
     reorder_quantity = Column(DECIMAL(15, 3))
     last_counted_date = Column(Date)
@@ -238,6 +292,7 @@ class Inventory(Base):
     # Relationships
     product = relationship('Product', back_populates='inventory')
     material = relationship('Material', back_populates='inventory')
+    warehouse = relationship("Warehouse", back_populates="inventory")  # NEW
     history = relationship('InventoryHistory', back_populates='inventory', cascade='all, delete-orphan')
     
     # Constraints
@@ -245,12 +300,14 @@ class Inventory(Base):
         CheckConstraint('(product_id IS NOT NULL AND material_id IS NULL) OR '
                        '(product_id IS NULL AND material_id IS NOT NULL)',
                        name='ck_inventory_product_or_material'),
+        UniqueConstraint('warehouse_id', 'product_id', 'material_id', 'location_code',
+                        name='uq_inventory_warehouse_product_material_location'),  # NEW
     )
     
     def __repr__(self):
         item_type = 'product' if self.product_id else 'material'
         item_id = self.product_id or self.material_id
-        return f"<Inventory({item_type}={item_id}, location={self.location_code})>"
+        return f"<Inventory({item_type}={item_id}, warehouse={self.warehouse_id}, location={self.location_code})>"
     
     @property
     def needs_reorder(self) -> bool:
@@ -301,6 +358,10 @@ class Order(Base):
     order_number = Column(String(100), unique=True, nullable=False, index=True)
     order_type = Column(String(50), nullable=False)
     supplier_id = Column(UUID(as_uuid=True), ForeignKey('suppliers.id'), index=True)
+    warehouse_id = Column(UUID(as_uuid=True), ForeignKey("warehouses.id"))  # NEW FIELD
+    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"))  # NEW FIELD - for simple orders
+    quantity = Column(DECIMAL(15, 3))  # NEW FIELD - for simple orders
+    delivery_time = Column(Integer)  # NEW FIELD - calculated delivery time in days
     status = Column(String(50), nullable=False, default='draft', index=True)
     order_date = Column(Date, nullable=False)
     requested_delivery_date = Column(Date)
@@ -318,6 +379,8 @@ class Order(Base):
     
     # Relationships
     supplier = relationship('Supplier', back_populates='orders')
+    warehouse = relationship("Warehouse", back_populates="orders")  # NEW
+    product = relationship("Product", back_populates="orders")  # NEW - for simple orders
     items = relationship('OrderItem', back_populates='order', cascade='all, delete-orphan')
     shipments = relationship('Shipment', back_populates='order')
     created_by_user = relationship('User')
@@ -342,6 +405,13 @@ class Order(Base):
         if not self.items:
             return Decimal('0.00')
         return sum(item.line_total for item in self.items if item.line_total)
+    
+    @property
+    def calculated_delivery_time(self) -> Optional[int]:
+        """Calculate delivery time in days"""
+        if self.actual_delivery_date and self.order_date:
+            return (self.actual_delivery_date - self.order_date).days
+        return None
 
 
 class OrderItem(Base):
@@ -457,3 +527,50 @@ class ShipmentItem(Base):
     
     def __repr__(self):
         return f"<ShipmentItem(shipment_id={self.shipment_id}, quantity={self.quantity_shipped})>"
+
+
+class SupplierPerformanceMetric(Base):
+    """Supplier performance tracking"""
+    __tablename__ = 'supplier_performance_metrics'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    supplier_id = Column(UUID(as_uuid=True), ForeignKey('suppliers.id'), nullable=False)
+    metric_type = Column(String(100), nullable=False)
+    metric_value = Column(DECIMAL(15, 4), nullable=False)
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=False)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    supplier = relationship('Supplier', back_populates='performance_metrics')
+    
+    def __repr__(self):
+        return f"<SupplierPerformanceMetric(supplier_id={self.supplier_id}, type={self.metric_type})>"
+
+
+class AnalyticsMetric(Base):
+    """Analytics metrics for warehouses, products, suppliers"""
+    __tablename__ = 'analytics_metrics'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    metric_type = Column(String(100), nullable=False)  # e.g., 'inventory_turnover', 'fill_rate'
+    metric_value = Column(DECIMAL(15, 4))
+    metric_date = Column(Date, nullable=False)
+    warehouse_id = Column(UUID(as_uuid=True), ForeignKey('warehouses.id'))
+    product_id = Column(UUID(as_uuid=True), ForeignKey('products.id'))
+    supplier_id = Column(UUID(as_uuid=True), ForeignKey('suppliers.id'))
+    period_type = Column(String(50))  # 'daily', 'weekly', 'monthly'
+    metadata = Column(JSONB, default={})
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    warehouse = relationship("Warehouse", back_populates="analytics_metrics")
+    product = relationship("Product", back_populates="analytics_metrics")
+    supplier = relationship("Supplier", back_populates="analytics_metrics")
+    
+    def __repr__(self):
+        return f"<AnalyticsMetric(type={self.metric_type}, value={self.metric_value}, date={self.metric_date})>"
+
+
+# Note: User model referenced in relationships should be defined elsewhere in your application

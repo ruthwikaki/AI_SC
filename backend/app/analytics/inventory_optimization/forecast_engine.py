@@ -14,7 +14,13 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 import json
+import math
+from uuid import UUID
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
+from app.models.supply_chain import Order, Product, Inventory
+from app.models.extended_models import AnalyticsMetric
 from app.utils.logger import get_logger
 
 # Initialize logger
@@ -33,21 +39,138 @@ class ForecastEngine:
         "holt_winters": "Holt-Winters Exponential Smoothing",
         "arima": "ARIMA (AutoRegressive Integrated Moving Average)",
         "sarima": "SARIMA (Seasonal ARIMA)",
-        "automatic": "Automatic Method Selection"
+        "linear_regression": "Linear Regression",
+        "automatic": "Automatic Method Selection",
+        "auto": "Automatic Method Selection"
     }
     
-    def __init__(self, method: str = "automatic"):
+    def __init__(self, method: str = "automatic", db: Optional[Session] = None):
         """
         Initialize the forecast engine.
         
         Args:
             method: Forecasting method to use (default: automatic selection)
+            db: Optional database session for storing results
         """
         if method not in self.METHODS:
             logger.warning(f"Unknown forecasting method: {method}. Falling back to automatic selection.")
             method = "automatic"
         
         self.method = method
+        self.db = db
+    
+    def forecast(
+        self,
+        historical_data: Union[List[Order], List[float], List[Dict[str, Any]]],
+        method: str = 'auto',
+        periods: int = 12,
+        confidence_level: float = 0.95
+    ) -> Dict[str, Any]:
+        """Generate forecast based on historical data"""
+        
+        # Handle Order objects
+        if historical_data and isinstance(historical_data[0], Order):
+            if not historical_data:
+                return {
+                    "status": "error",
+                    "message": "No historical data available",
+                    "forecast": []
+                }
+            
+            # Prepare time series data from Orders
+            time_series = self._prepare_time_series_from_orders(historical_data)
+        else:
+            # Handle regular list data
+            time_series = historical_data if isinstance(historical_data, list) else []
+        
+        if not time_series:
+            return {
+                "status": "error",
+                "message": "No time series data available",
+                "forecast": []
+            }
+        
+        # Select forecasting method
+        if method == 'auto' or method == 'automatic':
+            method = self._select_best_method(time_series, "M")
+        
+        # Generate forecast based on method
+        forecast_result = self._generate_forecast_by_method(
+            time_series=time_series,
+            method=method,
+            periods=periods,
+            confidence_level=confidence_level
+        )
+        
+        # Extract forecast values for analysis
+        forecast_values = []
+        if isinstance(forecast_result, dict) and 'forecast' in forecast_result:
+            forecast_values = [f['value'] for f in forecast_result['forecast']]
+        else:
+            forecast_values = forecast_result if isinstance(forecast_result, list) else []
+        
+        # Detect patterns
+        trend = self._detect_trend(time_series)
+        seasonality = self._detect_seasonality(time_series)
+        volatility = self._calculate_volatility(time_series)
+        
+        # Prepare forecast results in new format if needed
+        if not isinstance(forecast_result, dict) or 'forecast' not in forecast_result:
+            forecast_dates = self._generate_forecast_dates(periods, "M")
+            confidence_intervals = self._calculate_confidence_intervals(
+                time_series, forecast_values, confidence_level
+            )
+            
+            forecast_results = []
+            for i, date in enumerate(forecast_dates):
+                forecast_results.append({
+                    "date": date.isoformat(),
+                    "predicted_value": float(forecast_values[i]) if i < len(forecast_values) else 0.0,
+                    "lower_bound": float(confidence_intervals[i][0]) if i < len(confidence_intervals) else 0.0,
+                    "upper_bound": float(confidence_intervals[i][1]) if i < len(confidence_intervals) else 0.0,
+                    "confidence_level": confidence_level
+                })
+        else:
+            forecast_results = forecast_result.get('forecast', [])
+        
+        # Store forecast in database if db session is available
+        if self.db:
+            self._store_forecast_results(forecast_results, method)
+        
+        return {
+            "status": "success",
+            "method": method,
+            "forecast": forecast_results,
+            "trend": trend,
+            "seasonality_detected": seasonality,
+            "volatility": volatility,
+            "historical_periods": len(time_series),
+            "forecast_periods": periods,
+            "methodology": forecast_result.get('methodology', self.METHODS.get(method, method))
+        }
+    
+    def forecast_single_product(
+        self,
+        product_id: UUID,
+        historical_orders: List[Order],
+        periods: int = 12,
+        method: str = 'auto'
+    ) -> List[Dict[str, Any]]:
+        """Forecast for a single product"""
+        
+        # Filter orders for the specific product
+        product_orders = [o for o in historical_orders if o.product_id == product_id]
+        
+        if not product_orders:
+            return []
+        
+        # Use the main forecast method
+        result = self.forecast(product_orders, method, periods)
+        
+        if result['status'] == 'success':
+            return result['forecast']
+        else:
+            return []
     
     async def generate_forecast(
         self,
@@ -60,7 +183,7 @@ class ForecastEngine:
         method_params: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Generate a forecast based on historical data.
+        Generate a forecast based on historical data (async version).
         
         Args:
             historical_data: Historical data (list of values or dictionaries)
@@ -80,7 +203,7 @@ class ForecastEngine:
             
             # Choose forecasting method if automatic
             method = self.method
-            if method == "automatic":
+            if method == "automatic" or method == "auto":
                 method = self._select_best_method(processed_data, frequency)
             
             # Set default method parameters if not provided
@@ -88,71 +211,15 @@ class ForecastEngine:
                 method_params = {}
             
             # Generate forecast using the selected method
-            if method == "moving_average":
-                forecast_result = self._forecast_moving_average(
-                    data=processed_data,
-                    periods=periods,
-                    window=method_params.get("window", 3),
-                    dates=dates,
-                    frequency=frequency,
-                    confidence_level=confidence_level
-                )
-            
-            elif method == "weighted_moving_average":
-                forecast_result = self._forecast_weighted_moving_average(
-                    data=processed_data,
-                    periods=periods,
-                    weights=method_params.get("weights", [0.5, 0.3, 0.2]),
-                    dates=dates,
-                    frequency=frequency,
-                    confidence_level=confidence_level
-                )
-            
-            elif method == "exponential_smoothing":
-                forecast_result = self._forecast_exponential_smoothing(
-                    data=processed_data,
-                    periods=periods,
-                    alpha=method_params.get("alpha", 0.3),
-                    dates=dates,
-                    frequency=frequency,
-                    confidence_level=confidence_level
-                )
-            
-            elif method == "holt_winters":
-                forecast_result = self._forecast_holt_winters(
-                    data=processed_data,
-                    periods=periods,
-                    seasonal_periods=method_params.get("seasonal_periods", 12 if frequency == "M" else 4),
-                    trend=method_params.get("trend", "add"),
-                    seasonal=method_params.get("seasonal", "add"),
-                    dates=dates,
-                    frequency=frequency,
-                    confidence_level=confidence_level
-                )
-            
-            elif method == "arima":
-                forecast_result = self._forecast_arima(
-                    data=processed_data,
-                    periods=periods,
-                    order=method_params.get("order", (1, 1, 1)),
-                    dates=dates,
-                    frequency=frequency,
-                    confidence_level=confidence_level
-                )
-            
-            elif method == "sarima":
-                forecast_result = self._forecast_sarima(
-                    data=processed_data,
-                    periods=periods,
-                    order=method_params.get("order", (1, 1, 1)),
-                    seasonal_order=method_params.get("seasonal_order", (1, 1, 1, 12 if frequency == "M" else 4)),
-                    dates=dates,
-                    frequency=frequency,
-                    confidence_level=confidence_level
-                )
-            
-            else:
-                raise ValueError(f"Unsupported forecasting method: {method}")
+            forecast_result = self._generate_forecast_by_method(
+                time_series=processed_data,
+                method=method,
+                periods=periods,
+                confidence_level=confidence_level,
+                frequency=frequency,
+                dates=dates,
+                method_params=method_params
+            )
             
             # Add historical data if requested
             if include_history:
@@ -196,6 +263,122 @@ class ForecastEngine:
                 "forecast": [],
                 "method": {"name": self.method}
             }
+    
+    def _generate_forecast_by_method(
+        self,
+        time_series: List[float],
+        method: str,
+        periods: int,
+        confidence_level: float,
+        frequency: str = "M",
+        dates: Optional[List[datetime]] = None,
+        method_params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Generate forecast using the specified method"""
+        
+        if not method_params:
+            method_params = {}
+        
+        if not dates:
+            dates = self._generate_historical_dates(len(time_series), frequency)
+        
+        if method == "moving_average":
+            return self._forecast_moving_average(
+                data=time_series,
+                periods=periods,
+                window=method_params.get("window", 3),
+                dates=dates,
+                frequency=frequency,
+                confidence_level=confidence_level
+            )
+        
+        elif method == "weighted_moving_average":
+            return self._forecast_weighted_moving_average(
+                data=time_series,
+                periods=periods,
+                weights=method_params.get("weights", [0.5, 0.3, 0.2]),
+                dates=dates,
+                frequency=frequency,
+                confidence_level=confidence_level
+            )
+        
+        elif method == "exponential_smoothing":
+            return self._forecast_exponential_smoothing(
+                data=time_series,
+                periods=periods,
+                alpha=method_params.get("alpha", 0.3),
+                dates=dates,
+                frequency=frequency,
+                confidence_level=confidence_level
+            )
+        
+        elif method == "holt_winters":
+            return self._forecast_holt_winters(
+                data=time_series,
+                periods=periods,
+                seasonal_periods=method_params.get("seasonal_periods", 12 if frequency == "M" else 4),
+                trend=method_params.get("trend", "add"),
+                seasonal=method_params.get("seasonal", "add"),
+                dates=dates,
+                frequency=frequency,
+                confidence_level=confidence_level
+            )
+        
+        elif method == "arima":
+            return self._forecast_arima(
+                data=time_series,
+                periods=periods,
+                order=method_params.get("order", (1, 1, 1)),
+                dates=dates,
+                frequency=frequency,
+                confidence_level=confidence_level
+            )
+        
+        elif method == "sarima":
+            return self._forecast_sarima(
+                data=time_series,
+                periods=periods,
+                order=method_params.get("order", (1, 1, 1)),
+                seasonal_order=method_params.get("seasonal_order", (1, 1, 1, 12 if frequency == "M" else 4)),
+                dates=dates,
+                frequency=frequency,
+                confidence_level=confidence_level
+            )
+        
+        elif method == "linear_regression":
+            return self._forecast_linear_regression(
+                data=time_series,
+                periods=periods,
+                dates=dates,
+                frequency=frequency,
+                confidence_level=confidence_level
+            )
+        
+        else:
+            # Default to moving average
+            return self._forecast_moving_average(
+                data=time_series,
+                periods=periods,
+                window=3,
+                dates=dates,
+                frequency=frequency,
+                confidence_level=confidence_level
+            )
+    
+    def _prepare_time_series_from_orders(self, orders: List[Order]) -> List[float]:
+        """Convert orders to time series data"""
+        # Group by month and sum quantities
+        monthly_data = {}
+        
+        for order in orders:
+            month_key = order.created_at.strftime('%Y-%m')
+            if month_key not in monthly_data:
+                monthly_data[month_key] = 0
+            monthly_data[month_key] += order.quantity
+        
+        # Sort by date and extract values
+        sorted_months = sorted(monthly_data.keys())
+        return [monthly_data[month] for month in sorted_months]
     
     def _process_input_data(
         self,
@@ -257,60 +440,66 @@ class ForecastEngine:
         
         # If no dates were extracted or parsing failed, create dates based on frequency
         if not dates or len(dates) != len(values):
-            dates = []
-            end_date = datetime.now()
-            
-            if frequency == "D":
-                # Daily data
-                for i in range(len(values) - 1, -1, -1):
-                    dates.insert(0, end_date - timedelta(days=i))
-            
-            elif frequency == "W":
-                # Weekly data
-                for i in range(len(values) - 1, -1, -1):
-                    dates.insert(0, end_date - timedelta(weeks=i))
-            
-            elif frequency == "M":
-                # Monthly data
-                end_month = end_date.month
-                end_year = end_date.year
-                
-                for i in range(len(values) - 1, -1, -1):
-                    month = end_month - (i % 12)
-                    year = end_year - (i // 12)
-                    if month <= 0:
-                        month += 12
-                        year -= 1
-                    dates.insert(0, datetime(year, month, 1))
-            
-            elif frequency == "Q":
-                # Quarterly data
-                end_quarter = (end_date.month - 1) // 3 + 1
-                end_year = end_date.year
-                
-                for i in range(len(values) - 1, -1, -1):
-                    quarter = end_quarter - (i % 4)
-                    year = end_year - (i // 4)
-                    if quarter <= 0:
-                        quarter += 4
-                        year -= 1
-                    month = (quarter - 1) * 3 + 1
-                    dates.insert(0, datetime(year, month, 1))
-            
-            elif frequency == "Y":
-                # Yearly data
-                end_year = end_date.year
-                
-                for i in range(len(values) - 1, -1, -1):
-                    year = end_year - i
-                    dates.insert(0, datetime(year, 1, 1))
-            
-            else:
-                # Unknown frequency, use sequential dates
-                for i in range(len(values)):
-                    dates.append(end_date + timedelta(days=i))
+            dates = self._generate_historical_dates(len(values), frequency)
         
         return values, dates
+    
+    def _generate_historical_dates(self, num_periods: int, frequency: str) -> List[datetime]:
+        """Generate historical dates based on frequency"""
+        dates = []
+        end_date = datetime.now()
+        
+        if frequency == "D":
+            # Daily data
+            for i in range(num_periods - 1, -1, -1):
+                dates.insert(0, end_date - timedelta(days=i))
+        
+        elif frequency == "W":
+            # Weekly data
+            for i in range(num_periods - 1, -1, -1):
+                dates.insert(0, end_date - timedelta(weeks=i))
+        
+        elif frequency == "M":
+            # Monthly data
+            end_month = end_date.month
+            end_year = end_date.year
+            
+            for i in range(num_periods - 1, -1, -1):
+                month = end_month - (i % 12)
+                year = end_year - (i // 12)
+                if month <= 0:
+                    month += 12
+                    year -= 1
+                dates.insert(0, datetime(year, month, 1))
+        
+        elif frequency == "Q":
+            # Quarterly data
+            end_quarter = (end_date.month - 1) // 3 + 1
+            end_year = end_date.year
+            
+            for i in range(num_periods - 1, -1, -1):
+                quarter = end_quarter - (i % 4)
+                year = end_year - (i // 4)
+                if quarter <= 0:
+                    quarter += 4
+                    year -= 1
+                month = (quarter - 1) * 3 + 1
+                dates.insert(0, datetime(year, month, 1))
+        
+        elif frequency == "Y":
+            # Yearly data
+            end_year = end_date.year
+            
+            for i in range(num_periods - 1, -1, -1):
+                year = end_year - i
+                dates.insert(0, datetime(year, 1, 1))
+        
+        else:
+            # Unknown frequency, use sequential dates
+            for i in range(num_periods):
+                dates.append(end_date + timedelta(days=i))
+        
+        return dates
     
     def _select_best_method(self, data: List[float], frequency: str) -> str:
         """
@@ -324,18 +513,44 @@ class ForecastEngine:
             Selected forecasting method
         """
         try:
+            if len(data) < 3:
+                return 'moving_average'
+            
+            # Check for trend
+            trend = self._detect_trend(data)
+            
+            # Check for seasonality
+            seasonality = self._detect_seasonality(data)
+            
+            # Check data volatility
+            volatility = self._calculate_volatility(data)
+            
             # Check data length
             if len(data) < 24 and frequency in ("M", "W"):
                 # For short series, use simpler methods
-                return "exponential_smoothing"
+                if volatility > 0.5:
+                    return 'exponential_smoothing'
+                elif abs(trend) > 0.1:
+                    return 'linear_regression'
+                else:
+                    return 'moving_average'
             
-            # Check for seasonality
-            if len(data) >= 24 and frequency in ("M", "W", "D"):
+            # Check for seasonality in longer series
+            if len(data) >= 24 and frequency in ("M", "W", "D") and seasonality:
                 # Use seasonal methods for longer series
                 return "holt_winters"
             
-            # Default to ARIMA for other cases
-            return "arima"
+            # For longer series without clear seasonality
+            if len(data) >= 24:
+                return "arima"
+            
+            # Default based on characteristics
+            if volatility > 0.5:
+                return 'exponential_smoothing'
+            elif abs(trend) > 0.1:
+                return 'linear_regression'
+            else:
+                return 'moving_average'
         
         except Exception as e:
             logger.error(f"Error selecting best forecasting method: {str(e)}")
@@ -373,12 +588,17 @@ class ForecastEngine:
             # Calculate moving average for recent periods
             recent_avg = sum(data[-window:]) / window
             
-            # Generate forecast (flat forecast)
-            forecast = [recent_avg] * periods
+            # Apply slight trend adjustment
+            trend = 0
+            if len(data) >= 2:
+                trend = (data[-1] - data[-2]) * 0.1
+            
+            # Generate forecast with trend
+            forecast = [recent_avg + (i * trend) for i in range(1, periods + 1)]
             
             # Calculate prediction intervals
             # For moving average, use standard deviation of historical data
-            std_dev = np.std(data[-window:], ddof=1)
+            std_dev = np.std(data[-window:], ddof=1) if len(data) > 1 else 0
             z_score = 1.96  # Approximately 95% confidence interval
             if confidence_level == 0.90:
                 z_score = 1.645
@@ -389,11 +609,7 @@ class ForecastEngine:
             upper_bounds = [x + z_score * std_dev for x in forecast]
             
             # Generate forecast dates
-            forecast_dates = self._generate_forecast_dates(
-                last_date=dates[-1] if dates else datetime.now(),
-                periods=periods,
-                frequency=frequency
-            )
+            forecast_dates = self._generate_forecast_dates(periods, frequency, dates[-1] if dates else None)
             
             # Prepare forecast result
             forecast_result = {
@@ -482,11 +698,7 @@ class ForecastEngine:
             upper_bounds = [x + z_score * std_dev for x in forecast]
             
             # Generate forecast dates
-            forecast_dates = self._generate_forecast_dates(
-                last_date=dates[-1] if dates else datetime.now(),
-                periods=periods,
-                frequency=frequency
-            )
+            forecast_dates = self._generate_forecast_dates(periods, frequency, dates[-1] if dates else None)
             
             # Prepare forecast result
             forecast_result = {
@@ -541,33 +753,29 @@ class ForecastEngine:
             # Ensure alpha is valid
             alpha = max(0.01, min(0.99, alpha))
             
-            # Create pandas Series with datetime index
-            if dates and len(dates) == len(data):
-                ts = pd.Series(data, index=pd.DatetimeIndex(dates, freq=frequency))
-            else:
-                # Create a synthetic DatetimeIndex
-                end_date = datetime.now()
-                if frequency == "M":
-                    # Monthly data
-                    start_date = end_date - pd.DateOffset(months=len(data))
-                    idx = pd.date_range(start=start_date, periods=len(data), freq='M')
-                else:
-                    # Default to daily
-                    start_date = end_date - pd.DateOffset(days=len(data))
-                    idx = pd.date_range(start=start_date, periods=len(data), freq='D')
-                
-                ts = pd.Series(data, index=idx)
+            # Simple exponential smoothing implementation
+            if len(data) == 0:
+                return {
+                    "forecast": [],
+                    "methodology": "Exponential Smoothing Forecast"
+                }
             
-            # Fit the Simple Exponential Smoothing model
-            model = ExponentialSmoothing(ts, trend=None, seasonal=None)
-            fitted_model = model.fit(smoothing_level=alpha)
+            # Calculate exponential smoothing
+            s = [data[0]]
+            for i in range(1, len(data)):
+                s.append(alpha * data[i] + (1 - alpha) * s[-1])
             
-            # Generate forecast
-            forecast = fitted_model.forecast(periods)
+            # Forecast
+            last_value = s[-1]
+            trend = 0
+            if len(s) >= 2:
+                trend = (s[-1] - s[-2]) * 0.5
+            
+            forecast = [last_value + (i * trend) for i in range(1, periods + 1)]
             
             # Calculate prediction intervals
-            residuals = fitted_model.resid
-            residual_std = residuals.std()
+            residuals = [data[i] - s[i] for i in range(len(data))]
+            residual_std = np.std(residuals, ddof=1) if len(residuals) > 1 else 0
             
             z_score = 1.96  # Approximately 95% confidence interval
             if confidence_level == 0.90:
@@ -577,6 +785,9 @@ class ForecastEngine:
             
             lower_bounds = [max(0, x - z_score * residual_std) for x in forecast]
             upper_bounds = [x + z_score * residual_std for x in forecast]
+            
+            # Generate forecast dates
+            forecast_dates = self._generate_forecast_dates(periods, frequency, dates[-1] if dates else None)
             
             # Prepare forecast result
             forecast_result = {
@@ -588,7 +799,7 @@ class ForecastEngine:
                         "upper_bound": float(upper_bounds[i]),
                         "type": "forecast"
                     }
-                    for i, date in enumerate(forecast.index)
+                    for i, date in enumerate(forecast_dates)
                 ],
                 "methodology": "Exponential Smoothing Forecast",
                 "parameters": {"alpha": alpha}
@@ -602,6 +813,88 @@ class ForecastEngine:
                 "error": str(e),
                 "forecast": [],
                 "methodology": "Exponential Smoothing Forecast"
+            }
+    
+    def _forecast_linear_regression(
+        self,
+        data: List[float],
+        periods: int,
+        dates: List[datetime],
+        frequency: str,
+        confidence_level: float
+    ) -> Dict[str, Any]:
+        """Linear regression forecast"""
+        try:
+            n = len(data)
+            if n < 2:
+                return {
+                    "forecast": [{"period": "", "value": data[-1] if data else 0, 
+                                "lower_bound": 0, "upper_bound": 0, "type": "forecast"}] * periods,
+                    "methodology": "Linear Regression Forecast"
+                }
+            
+            # Calculate linear regression
+            x = list(range(n))
+            x_mean = np.mean(x)
+            y_mean = np.mean(data)
+            
+            numerator = sum((x[i] - x_mean) * (data[i] - y_mean) for i in range(n))
+            denominator = sum((x[i] - x_mean) ** 2 for i in range(n))
+            
+            if denominator == 0:
+                slope = 0
+            else:
+                slope = numerator / denominator
+            
+            intercept = y_mean - slope * x_mean
+            
+            # Generate forecast
+            forecast = []
+            for i in range(periods):
+                forecast_x = n + i
+                forecast_y = slope * forecast_x + intercept
+                forecast.append(max(0, forecast_y))  # Ensure non-negative
+            
+            # Calculate confidence intervals
+            residuals = [data[i] - (slope * i + intercept) for i in range(n)]
+            residual_std = np.std(residuals, ddof=1) if len(residuals) > 1 else 0
+            
+            z_score = 1.96
+            if confidence_level == 0.90:
+                z_score = 1.645
+            elif confidence_level == 0.99:
+                z_score = 2.576
+            
+            # Generate forecast dates
+            forecast_dates = self._generate_forecast_dates(periods, frequency, dates[-1] if dates else None)
+            
+            # Prepare results
+            forecast_result = {
+                "forecast": [
+                    {
+                        "period": date.strftime("%Y-%m-%d"),
+                        "value": float(forecast[i]),
+                        "lower_bound": float(max(0, forecast[i] - z_score * residual_std * np.sqrt(1 + 1/n + (n+i-x_mean)**2/denominator))),
+                        "upper_bound": float(forecast[i] + z_score * residual_std * np.sqrt(1 + 1/n + (n+i-x_mean)**2/denominator)),
+                        "type": "forecast"
+                    }
+                    for i, date in enumerate(forecast_dates)
+                ],
+                "methodology": "Linear Regression Forecast",
+                "parameters": {
+                    "slope": float(slope),
+                    "intercept": float(intercept)
+                }
+            }
+            
+            return forecast_result
+            
+        except Exception as e:
+            logger.error(f"Error generating linear regression forecast: {str(e)}")
+            return {
+                "error": str(e),
+                "forecast": [],
+                "methodology": "Linear Regression Forecast"
             }
     
     def _forecast_holt_winters(
@@ -684,12 +977,12 @@ class ForecastEngine:
                 "forecast": [
                     {
                         "period": date.strftime("%Y-%m-%d"),
-                        "value": float(forecast[i]),
+                        "value": float(forecast.iloc[i]) if hasattr(forecast, 'iloc') else float(forecast[i]),
                         "lower_bound": float(lower_bounds[i]),
                         "upper_bound": float(upper_bounds[i]),
                         "type": "forecast"
                     }
-                    for i, date in enumerate(forecast.index)
+                    for i, date in enumerate(forecast.index if hasattr(forecast, 'index') else self._generate_forecast_dates(periods, frequency, dates[-1] if dates else None))
                 ],
                 "methodology": "Holt-Winters Exponential Smoothing Forecast",
                 "parameters": {
@@ -770,7 +1063,6 @@ class ForecastEngine:
             )
             
             # Get prediction intervals
-            pred_interval = confidence_level * 100
             forecast_obj = fitted_model.get_forecast(periods)
             intervals = forecast_obj.conf_int(alpha=1-confidence_level)
             
@@ -785,7 +1077,7 @@ class ForecastEngine:
                 "forecast": [
                     {
                         "period": date.strftime("%Y-%m-%d"),
-                        "value": float(forecast[i]),
+                        "value": float(forecast.iloc[i]) if hasattr(forecast, 'iloc') else float(forecast[i]),
                         "lower_bound": float(lower_bounds[i]),
                         "upper_bound": float(upper_bounds[i]),
                         "type": "forecast"
@@ -874,7 +1166,6 @@ class ForecastEngine:
             )
             
             # Get prediction intervals
-            pred_interval = confidence_level * 100
             forecast_obj = fitted_model.get_forecast(periods)
             intervals = forecast_obj.conf_int(alpha=1-confidence_level)
             
@@ -889,7 +1180,7 @@ class ForecastEngine:
                 "forecast": [
                     {
                         "period": date.strftime("%Y-%m-%d"),
-                        "value": float(forecast[i]),
+                        "value": float(forecast.iloc[i]) if hasattr(forecast, 'iloc') else float(forecast[i]),
                         "lower_bound": float(lower_bounds[i]),
                         "upper_bound": float(upper_bounds[i]),
                         "type": "forecast"
@@ -917,21 +1208,24 @@ class ForecastEngine:
     
     def _generate_forecast_dates(
         self,
-        last_date: datetime,
         periods: int,
-        frequency: str
+        frequency: str,
+        last_date: Optional[datetime] = None
     ) -> List[datetime]:
         """
         Generate dates for the forecast periods.
         
         Args:
-            last_date: Last date in historical data
             periods: Number of periods to forecast
             frequency: Data frequency
+            last_date: Last date in historical data (optional)
             
         Returns:
             List of dates for the forecast periods
         """
+        if not last_date:
+            last_date = datetime.now()
+        
         dates = []
         
         for i in range(1, periods + 1):
@@ -973,6 +1267,107 @@ class ForecastEngine:
             dates.append(date)
         
         return dates
+    
+    def _calculate_confidence_intervals(
+        self,
+        time_series: List[float],
+        forecast: List[float],
+        confidence_level: float
+    ) -> List[tuple]:
+        """Calculate confidence intervals for forecast"""
+        # Calculate standard deviation of historical data
+        if len(time_series) < 2:
+            std_dev = 0
+        else:
+            std_dev = np.std(time_series)
+        
+        # Z-score for confidence level
+        z_scores = {
+            0.90: 1.645,
+            0.95: 1.96,
+            0.99: 2.576
+        }
+        z = z_scores.get(confidence_level, 1.96)
+        
+        # Calculate intervals
+        intervals = []
+        for i, value in enumerate(forecast):
+            # Increase uncertainty for further forecasts
+            uncertainty = std_dev * z * (1 + i * 0.1)
+            lower = max(0, value - uncertainty)
+            upper = value + uncertainty
+            intervals.append((lower, upper))
+        
+        return intervals
+    
+    def _detect_trend(self, time_series: List[float]) -> float:
+        """Detect trend in time series data"""
+        if len(time_series) < 2:
+            return 0.0
+        
+        # Simple linear regression to detect trend
+        x = list(range(len(time_series)))
+        x_mean = np.mean(x)
+        y_mean = np.mean(time_series)
+        
+        numerator = sum((x[i] - x_mean) * (time_series[i] - y_mean) for i in range(len(x)))
+        denominator = sum((x[i] - x_mean) ** 2 for i in range(len(x)))
+        
+        if denominator == 0:
+            return 0.0
+        
+        slope = numerator / denominator
+        return slope / y_mean if y_mean != 0 else 0.0
+    
+    def _detect_seasonality(self, time_series: List[float]) -> bool:
+        """Detect seasonality in time series data"""
+        if len(time_series) < 24:  # Need at least 2 years of monthly data
+            return False
+        
+        # Simple seasonality detection based on autocorrelation
+        # Check if there's a pattern every 12 months
+        if len(time_series) >= 24:
+            correlation = np.corrcoef(time_series[:-12], time_series[12:])[0, 1]
+            return correlation > 0.7
+        
+        return False
+    
+    def _calculate_volatility(self, time_series: List[float]) -> float:
+        """Calculate volatility of time series data"""
+        if len(time_series) < 2:
+            return 0.0
+        
+        # Calculate coefficient of variation
+        mean = np.mean(time_series)
+        std = np.std(time_series)
+        
+        if mean == 0:
+            return 0.0
+        
+        return std / mean
+    
+    def _store_forecast_results(self, forecast_results: List[Dict], method: str):
+        """Store forecast results in the database"""
+        if not self.db:
+            return
+        
+        try:
+            # Store as AnalyticsMetric
+            metric = AnalyticsMetric(
+                metric_name=f"forecast_{method}",
+                metric_value=json.dumps({
+                    "forecast": forecast_results,
+                    "method": method,
+                    "generated_at": datetime.now().isoformat()
+                }),
+                calculated_at=datetime.now()
+            )
+            self.db.add(metric)
+            self.db.commit()
+            logger.info(f"Stored forecast results using method: {method}")
+        except Exception as e:
+            logger.error(f"Error storing forecast results: {str(e)}")
+            self.db.rollback()
     
     def _adjust_forecast_with_factors(
         self,
@@ -1130,19 +1525,20 @@ class ForecastEngine:
                     })
             
             # Check for outliers within forecast
-            forecast_mean = np.mean(forecast_values)
-            forecast_std = np.std(forecast_values, ddof=1)
-            
-            for i, value in enumerate(forecast_values):
-                z_score = abs((value - forecast_mean) / forecast_std) if forecast_std > 0 else 0
-                if z_score > threshold:
-                    anomalies.append({
-                        "type": "forecast_outlier",
-                        "index": i,
-                        "value": float(value),
-                        "z_score": float(z_score),
-                        "description": f"Forecast value with Z-score of {z_score:.2f}"
-                    })
+            if forecast_values:
+                forecast_mean = np.mean(forecast_values)
+                forecast_std = np.std(forecast_values, ddof=1)
+                
+                for i, value in enumerate(forecast_values):
+                    z_score = abs((value - forecast_mean) / forecast_std) if forecast_std > 0 else 0
+                    if z_score > threshold:
+                        anomalies.append({
+                            "type": "forecast_outlier",
+                            "index": i,
+                            "value": float(value),
+                            "z_score": float(z_score),
+                            "description": f"Forecast value with Z-score of {z_score:.2f}"
+                        })
             
             return anomalies
             
@@ -1183,9 +1579,12 @@ class ForecastEngine:
             historical_change = (historical_end - historical_start) / historical_start * 100 if historical_start != 0 else 0
             
             # Forecast trend
-            forecast_start = forecast_values[0]
-            forecast_end = forecast_values[-1]
-            forecast_change = (forecast_end - forecast_start) / forecast_start * 100 if forecast_start != 0 else 0
+            if forecast_values:
+                forecast_start = forecast_values[0]
+                forecast_end = forecast_values[-1]
+                forecast_change = (forecast_end - forecast_start) / forecast_start * 100 if forecast_start != 0 else 0
+            else:
+                forecast_change = 0
             
             # Generate insights based on trends
             if abs(historical_change) < 5:
@@ -1389,7 +1788,9 @@ class ForecastEngine:
             "product_id": "MOCK_PRODUCT",
             "is_mock_data": True
         }
-        # Add these functions at the end of forecast_engine.py
+
+
+# Add these functions at the end of the file for module-level access
 
 async def generate_forecast(
     historical_data: Union[List[float], List[Dict[str, Any]]],

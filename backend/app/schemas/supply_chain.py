@@ -606,6 +606,56 @@ class RiskAssessment(BaseModel):
 
 
 # =====================================================
+# Network Analysis and Simulation Schemas (NEW)
+# =====================================================
+
+class NetworkGraphResponse(BaseModel):
+    """Supply chain network graph response"""
+    nodes: List[Dict[str, Any]]
+    edges: List[Dict[str, Any]]
+    bottlenecks: List[Dict[str, Any]]
+    metrics: Dict[str, Any]
+
+
+class RiskAnalysisResponse(BaseModel):
+    """Risk analysis response with propagation paths"""
+    risk_scores: Dict[str, float]
+    propagation_paths: List[Dict[str, Any]]
+    impact_metrics: Dict[str, Any]
+    recommendations: List[str]
+    analysis_timestamp: datetime
+
+
+class ScenarioSimulationRequest(BaseModel):
+    """Request for scenario simulation"""
+    disrupted_suppliers: List[UUID]
+    severity: float
+    duration_days: int
+    disruption_type: str
+    target_recovery_time: Optional[int] = None
+
+
+class ScenarioSimulationResponse(BaseModel):
+    """Scenario simulation results"""
+    scenario_id: str
+    affected_suppliers: List[Dict[str, Any]]
+    supply_impact: Dict[str, Any]
+    financial_impact: Dict[str, Any]
+    recovery_strategies: List[Dict[str, Any]]
+    timeline: List[Dict[str, Any]]
+
+
+class SupplierTierResponse(BaseModel):
+    """Supplier tier information response"""
+    supplier_id: UUID
+    supplier_name: str
+    tier_level: int
+    tier_score: float
+    connections_count: int
+    risk_level: str
+
+
+# =====================================================
 # Aggregated Response Schemas
 # =====================================================
 

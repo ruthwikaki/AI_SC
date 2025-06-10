@@ -1,7 +1,6 @@
 """
 Visualization-related database models
 from app.models.base import Base
-
 """
 
 from datetime import datetime
@@ -128,6 +127,7 @@ class Dashboard(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     description = Column(Text)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)  # Added from new version
     layout_config = Column(JSONB, nullable=False, default={})
     theme = Column(String(50), default='default')
     refresh_interval = Column(Integer)  # seconds
@@ -139,8 +139,10 @@ class Dashboard(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    created_by_user = relationship('User', back_populates='created_dashboards')
+    user = relationship('User', foreign_keys=[user_id])  # Added from new version
+    created_by_user = relationship('User', back_populates='created_dashboards', foreign_keys=[created_by])
     charts = relationship('DashboardChart', back_populates='dashboard', cascade='all, delete-orphan')
+    widgets = relationship('DashboardWidget', back_populates='dashboard', cascade='all, delete-orphan')  # Added from new version
     
     def __repr__(self):
         return f"<Dashboard(id={self.id}, name={self.name})>"
@@ -215,3 +217,23 @@ class DashboardChart(Base):
             config.update(self.config_overrides)
         
         return config
+
+
+class DashboardWidget(Base):
+    """Generic widgets within dashboards (Added from new version)"""
+    __tablename__ = 'dashboard_widgets'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    dashboard_id = Column(UUID(as_uuid=True), ForeignKey('dashboards.id'), nullable=False)
+    widget_type = Column(String(50), nullable=False)
+    title = Column(String(200))
+    config = Column(JSONB)
+    position = Column(JSONB)  # {x, y, w, h}
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    dashboard = relationship('Dashboard', back_populates='widgets')
+    
+    def __repr__(self):
+        return f"<DashboardWidget(dashboard_id={self.dashboard_id}, widget_type={self.widget_type})>"

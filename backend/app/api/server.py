@@ -10,7 +10,22 @@ import logging
 from sqlalchemy import text
 from sqlalchemy import create_engine
 
-from app.api.routes import auth, queries, visualizations, database, analytics, admin, reference_data
+from app.api.routes import (
+    auth, 
+    queries, 
+    visualizations, 
+    database, 
+    analytics, 
+    admin,
+    multi_tier,
+    reports,
+    settings,
+    dashboards,
+    suggestions,
+    export,
+    analytics_enhanced,
+    reference_data
+)
 from app.api.middleware.auth import JWTAuthMiddleware, AdminOnlyMiddleware
 from app.api.middleware.error_handler import ErrorHandlerMiddleware
 from app.api.middleware.rate_limit import RateLimitMiddleware
@@ -113,13 +128,21 @@ async def health_db():
             }
         )
 
-# Include routers
+# Include all routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(queries.router, prefix="/api")
 app.include_router(visualizations.router, prefix="/api")
 app.include_router(database.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(multi_tier.router)  # Already has /api prefix
+app.include_router(reports.router)  # Already has /api prefix
+app.include_router(settings.router)  # Already has /api prefix
+app.include_router(dashboards.router)  # Already has /api prefix
+app.include_router(suggestions.router)  # Already has /api prefix
+app.include_router(export.router)  # Already has /api prefix
+app.include_router(analytics_enhanced.router, prefix="/api")
+app.include_router(reference_data.router, prefix="/api")
 
 # Custom OpenAPI docs
 @app.get("/api/docs", include_in_schema=False)

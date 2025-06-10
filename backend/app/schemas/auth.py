@@ -255,6 +255,30 @@ class UserPreferencesResponse(UserPreferencesUpdate):
 
 
 # =====================================================
+# Notification Settings Schemas
+# =====================================================
+
+class NotificationSettingsUpdate(BaseModel):
+    """Notification settings update schema"""
+    email_enabled: Optional[bool] = None
+    push_enabled: Optional[bool] = None
+    sms_enabled: Optional[bool] = None
+    notification_types: Optional[Dict[str, bool]] = None
+    quiet_hours: Optional[Dict[str, str]] = None
+
+
+class NotificationSettingsResponse(NotificationSettingsUpdate):
+    """Notification settings response schema"""
+    id: UUID
+    user_id: UUID
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True  # Changed from orm_mode
+
+
+# =====================================================
 # Session Management Schemas
 # =====================================================
 

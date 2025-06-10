@@ -3,7 +3,7 @@ Dashboard repository for dashboard management operations
 """
 
 from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 import logging
 
@@ -12,6 +12,8 @@ from sqlalchemy import func, or_, and_, desc
 from sqlalchemy.exc import IntegrityError
 
 from app.models import Dashboard, DashboardChart, Chart, User
+from app.models.visualization import DashboardWidget
+from app.models.extended_models import WidgetType
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +37,13 @@ class DashboardRepository:
         theme: str = 'default',
         refresh_interval: Optional[int] = None,
         is_public: bool = False,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        user_id: Optional[UUID] = None  # Added for compatibility
     ) -> Dashboard:
         """Create a new dashboard"""
+        # Use user_id if provided, otherwise use created_by for backward compatibility
+        dashboard_user_id = user_id or created_by
+        
         dashboard = Dashboard(
             name=name,
             description=description,
@@ -46,7 +52,8 @@ class DashboardRepository:
             refresh_interval=refresh_interval,
             is_public=is_public,
             tags=tags or [],
-            created_by=created_by
+            created_by=dashboard_user_id,
+            user_id=dashboard_user_id  # Add if your model supports it
         )
         
         self.db.add(dashboard)
@@ -70,6 +77,26 @@ class DashboardRepository:
         
         return query.filter(Dashboard.id == dashboard_id).first()
     
+    def get_user_dashboards(self, user_id: UUID, shared: Optional[bool] = None) -> List[Dashboard]:
+        """Get dashboards for a user (new simplified method)"""
+        query = self.db.query(Dashboard).filter(
+            or_(
+                Dashboard.created_by == user_id,
+                Dashboard.is_public == True
+            )
+        )
+        
+        if shared is not None:
+            if shared:
+                query = query.filter(Dashboard.is_public == True)
+            else:
+                query = query.filter(
+                    Dashboard.created_by == user_id,
+                    Dashboard.is_public == False
+                )
+        
+        return query.order_by(Dashboard.created_at.desc()).all()
+    
     def get_dashboards(
         self,
         user_id: Optional[UUID] = None,
@@ -79,7 +106,7 @@ class DashboardRepository:
         tags: Optional[List[str]] = None,
         is_public_only: bool = False
     ) -> Tuple[List[Dashboard], int]:
-        """Get dashboards with filters"""
+        """Get dashboards with filters (original method)"""
         query = self.db.query(Dashboard)
         
         # Filter by access
@@ -120,12 +147,17 @@ class DashboardRepository:
         self,
         dashboard_id: UUID,
         user_id: UUID,
-        update_data: Dict[str, Any]
+        update_data: Dict[str, Any] = None,
+        **kwargs  # Added for compatibility with new signature
     ) -> Optional[Dashboard]:
         """Update dashboard configuration"""
         dashboard = self.get_dashboard_by_id(dashboard_id, include_charts=False)
         if not dashboard or dashboard.created_by != user_id:
             return None
+        
+        # Merge update_data and kwargs for flexibility
+        all_updates = update_data or {}
+        all_updates.update(kwargs)
         
         # Update allowed fields
         allowed_fields = [
@@ -133,7 +165,7 @@ class DashboardRepository:
             'refresh_interval', 'is_public', 'tags'
         ]
         
-        for key, value in update_data.items():
+        for key, value in all_updates.items():
             if key in allowed_fields and hasattr(dashboard, key):
                 setattr(dashboard, key, value)
         
@@ -142,10 +174,14 @@ class DashboardRepository:
         self.db.refresh(dashboard)
         return dashboard
     
-    def delete_dashboard(self, dashboard_id: UUID, user_id: UUID) -> bool:
+    def delete_dashboard(self, dashboard_id: UUID, user_id: UUID = None) -> bool:
         """Delete dashboard"""
         dashboard = self.get_dashboard_by_id(dashboard_id, include_charts=False)
-        if not dashboard or dashboard.created_by != user_id:
+        if not dashboard:
+            return False
+            
+        # If user_id provided, verify ownership
+        if user_id and dashboard.created_by != user_id:
             return False
         
         self.db.delete(dashboard)
@@ -172,7 +208,8 @@ class DashboardRepository:
             refresh_interval=original.refresh_interval,
             is_public=False,  # Copies are private by default
             tags=original.tags.copy() if original.tags else [],
-            created_by=user_id
+            created_by=user_id,
+            user_id=user_id  # Add if your model supports it
         )
         
         self.db.add(new_dashboard)
@@ -194,7 +231,84 @@ class DashboardRepository:
         return new_dashboard
     
     # =====================================================
-    # Dashboard Chart Operations
+    # Widget Operations (NEW)
+    # =====================================================
+    
+    def add_widget_to_dashboard(
+        self,
+        dashboard_id: UUID,
+        widget_type: str,
+        config: Optional[Dict] = None,
+        position: Optional[Dict] = None,
+        title: Optional[str] = None
+    ) -> DashboardWidget:
+        """Add a widget to dashboard (NEW)"""
+        widget = DashboardWidget(
+            dashboard_id=dashboard_id,
+            widget_type=widget_type,
+            title=title or widget_type.replace('_', ' ').title(),
+            config=config or {},
+            position=position or {},
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        self.db.add(widget)
+        self.db.commit()
+        self.db.refresh(widget)
+        return widget
+    
+    def get_dashboard_widgets(self, dashboard_id: UUID) -> List[DashboardWidget]:
+        """Get all widgets for a dashboard (NEW)"""
+        return self.db.query(DashboardWidget).filter(
+            DashboardWidget.dashboard_id == dashboard_id
+        ).order_by(DashboardWidget.created_at).all()
+    
+    def update_widget(
+        self,
+        dashboard_id: UUID,
+        widget_id: UUID,
+        **kwargs
+    ) -> Optional[DashboardWidget]:
+        """Update a widget (NEW)"""
+        widget = self.db.query(DashboardWidget).filter(
+            DashboardWidget.id == widget_id,
+            DashboardWidget.dashboard_id == dashboard_id
+        ).first()
+        
+        if not widget:
+            return None
+        
+        allowed_fields = ['widget_type', 'title', 'config', 'position']
+        for key, value in kwargs.items():
+            if key in allowed_fields and hasattr(widget, key):
+                setattr(widget, key, value)
+        
+        widget.updated_at = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(widget)
+        return widget
+    
+    def remove_widget_from_dashboard(
+        self,
+        dashboard_id: UUID,
+        widget_id: UUID
+    ) -> bool:
+        """Remove a widget from dashboard (NEW)"""
+        widget = self.db.query(DashboardWidget).filter(
+            DashboardWidget.id == widget_id,
+            DashboardWidget.dashboard_id == dashboard_id
+        ).first()
+        
+        if not widget:
+            return False
+        
+        self.db.delete(widget)
+        self.db.commit()
+        return True
+    
+    # =====================================================
+    # Dashboard Chart Operations (Original)
     # =====================================================
     
     def add_chart_to_dashboard(
@@ -444,6 +558,15 @@ class DashboardRepository:
             )
         ).scalar() or 0
         
+        # Average widgets per dashboard (NEW)
+        avg_widgets = self.db.query(
+            func.avg(
+                self.db.query(func.count(DashboardWidget.id))
+                .filter(DashboardWidget.dashboard_id == Dashboard.id)
+                .scalar_subquery()
+            )
+        ).scalar() or 0
+        
         # Dashboards by theme
         themes = dict(
             self.db.query(
@@ -462,6 +585,7 @@ class DashboardRepository:
             "public_dashboards": public_dashboards,
             "private_dashboards": total_dashboards - public_dashboards,
             "average_charts_per_dashboard": float(avg_charts),
+            "average_widgets_per_dashboard": float(avg_widgets),  # NEW
             "themes_distribution": themes,
             "dashboards_updated_today": recent_dashboards
         }
@@ -504,3 +628,19 @@ class DashboardRepository:
         ).all()
         
         return dict(chart_types)
+    
+    def get_dashboard_widget_types(
+        self,
+        dashboard_id: UUID
+    ) -> Dict[str, int]:
+        """Get distribution of widget types in a dashboard (NEW)"""
+        widget_types = self.db.query(
+            DashboardWidget.widget_type,
+            func.count(DashboardWidget.id)
+        ).filter(
+            DashboardWidget.dashboard_id == dashboard_id
+        ).group_by(
+            DashboardWidget.widget_type
+        ).all()
+        
+        return dict(widget_types)

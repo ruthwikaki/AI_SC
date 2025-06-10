@@ -412,20 +412,44 @@ class ReportGenerationRequest(BaseModel):
     recipients: Optional[List[str]] = None
 
 
+class ReportCreateRequest(BaseModel):
+    """Create report request"""
+    name: Optional[str] = None
+    template_id: UUID
+    parameters: Dict[str, Any]
+
+
 class ReportResponse(BaseModel):
     """Report response"""
     id: UUID
     name: str
-    report_type: str
-    format: str
+    report_type: Optional[str] = None  # Made optional for compatibility
+    format: Optional[str] = None  # Made optional for compatibility
     status: str
+    template_name: Optional[str] = None  # Added for new schema
     file_url: Optional[str] = None
+    file_path: Optional[str] = None  # Added for new schema
     file_size_bytes: Optional[int] = None
-    generated_at: datetime
+    generated_at: Optional[datetime] = None  # Made optional
+    created_at: Optional[datetime] = None  # Added for new schema
+    completed_at: Optional[datetime] = None  # Added for new schema
     expires_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
     
     class Config:
         from_attributes = True  # Changed from orm_mode
+
+
+class ReportTemplateResponse(BaseModel):
+    """Report template response"""
+    id: UUID
+    name: str
+    description: str
+    category: str
+    parameters: Dict[str, Any]
+    preview_image: Optional[str] = None
+    estimated_time: Optional[int] = None
 
 
 # =====================================================
@@ -459,3 +483,13 @@ class ScheduledAnalyticsResponse(BaseModel):
     
     class Config:
         from_attributes = True  # Changed from orm_mode
+
+
+class ScheduledReportRequest(BaseModel):
+    """Scheduled report request"""
+    name: str
+    template_id: UUID
+    schedule_type: str
+    schedule_config: Dict[str, Any]
+    parameters: Dict[str, Any]
+    recipients: List[str]

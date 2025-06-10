@@ -77,6 +77,13 @@ class User(Base):
     created_dashboards = relationship('Dashboard', back_populates='created_by_user', cascade='all, delete-orphan')
     audit_logs = relationship('AuditLog', back_populates='user', foreign_keys='AuditLog.user_id')
     
+    # New Analytics and Reporting relationships
+    analytics_metrics = relationship("AnalyticsMetric", back_populates="creator", foreign_keys="AnalyticsMetric.created_by")
+    export_jobs = relationship("ExportJob", back_populates="user", foreign_keys="ExportJob.user_id")
+    reports = relationship("Report", back_populates="user", foreign_keys="Report.user_id")
+    scheduled_reports = relationship("ScheduledReport", back_populates="user", foreign_keys="ScheduledReport.user_id")
+    notification_settings = relationship("NotificationSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"
     
