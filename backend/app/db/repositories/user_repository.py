@@ -6,14 +6,14 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from uuid import UUID
 import logging
+from app.models.user import Role
 
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_
 from sqlalchemy.exc import IntegrityError
 
 from app.models import (
-    User, UserSession, PasswordResetToken, UserPreference,
-    Role, Permission, AuditLog
+    User, UserSession, PasswordResetToken, UserPreference Permission, AuditLog
 )
 from app.security.password_utils import hash_password, verify_password
 

@@ -1,32 +1,46 @@
-# backend/app/api/routes/reports.py
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
 import json
-import os
+import uuid
 
 from app.db.database import get_db
-from app.api.middleware.auth import get_current_user
+from app.api.routes.auth import get_current_active_user
 from app.models.user import User
-from app.models.analytics import Report, ReportTemplate, ScheduledReport
-from app.schemas.analytics import (
-    ReportCreateRequest,
+from app.models.analytics import Report, ReportSchedule
+from app.models.extended_models import ReportTemplate, ScheduledReport
+from app.schemas.reports import (
+    ReportRequest,
     ReportResponse,
+    ReportTemplateRequest,
     ReportTemplateResponse,
-    ScheduledReportRequest
+    ScheduledReportRequest,
+    ScheduledReportResponse,
+    ReportListResponse,
+    ReportTemplateListResponse,
+    ScheduledReportListResponse
 )
-from app.visualization.export_manager import ExportManager
-from app.utils.logger import logger
+from app.utils.logger import get_logger
+from app.api.middleware.client_context import get_client_context
 
-router = APIRouter(prefix="/api/reports", tags=["reports"])
+# Initialize logger
+logger = get_logger(__name__)
+
+# Router
+router = APIRouter(
+    prefix="/reports",
+    tags=["reports"],
+    dependencies=[Depends(get_current_active_user)],
+    responses={401: {"description": "Unauthorized"}}
+)
+
 
 @router.get("/templates", response_model=List[ReportTemplateResponse])
 async def get_report_templates(
     category: Optional[str] = Query(None, description="Filter by category"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get available report templates"""
     try:
@@ -54,10 +68,10 @@ async def get_report_templates(
 
 @router.post("/generate", response_model=ReportResponse)
 async def generate_report(
-    report_request: ReportCreateRequest,
+    report_request: ReportRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Generate a new report"""
     try:
@@ -108,7 +122,7 @@ async def list_reports(
     limit: int = Query(20, le=100),
     offset: int = Query(0),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """List user's reports"""
     try:
@@ -141,7 +155,7 @@ async def download_report(
     report_id: int,
     format: str = Query("pdf", description="Export format"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Download generated report"""
     try:
@@ -176,7 +190,7 @@ async def download_report(
 async def schedule_report(
     schedule_request: ScheduledReportRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Schedule recurring report generation"""
     try:
@@ -210,7 +224,7 @@ async def schedule_report(
 @router.get("/scheduled", response_model=List[Dict[str, Any]])
 async def get_scheduled_reports(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get user's scheduled reports"""
     try:

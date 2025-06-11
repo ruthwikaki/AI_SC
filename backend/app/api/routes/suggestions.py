@@ -7,12 +7,16 @@ from datetime import datetime, timedelta
 import json
 
 from app.db.database import get_db
-from app.api.middleware.auth import get_current_user
+from app.api.routes.auth import get_current_active_user
 from app.models.user import User
 from app.models.query import QueryHistory, SavedQuery
 from app.db.schema.schema_discovery import SchemaDiscovery
 from app.llm.prompt.context_builder import ContextBuilder
-from app.utils.logger import logger
+from app.utils.logger import get_logger
+
+
+# Initialize logger
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/suggestions", tags=["suggestions"])
 
@@ -21,7 +25,7 @@ async def get_query_suggestions(
     partial_query: str = Query(..., description="Partial query text"),
     limit: int = Query(10, le=20),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get intelligent query suggestions based on partial input"""
     try:
@@ -73,7 +77,7 @@ async def get_query_suggestions(
 async def get_query_templates(
     category: Optional[str] = Query(None, description="Filter by category"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get predefined query templates"""
     try:
@@ -164,7 +168,7 @@ async def get_autocomplete_suggestions(
     value: str = Query("", description="Partial value"),
     limit: int = Query(10, le=50),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get autocomplete suggestions for specific fields"""
     try:
@@ -198,7 +202,7 @@ async def get_related_queries(
     query_id: Optional[int] = Query(None, description="Base query ID"),
     query_text: Optional[str] = Query(None, description="Base query text"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get queries related to a given query"""
     try:

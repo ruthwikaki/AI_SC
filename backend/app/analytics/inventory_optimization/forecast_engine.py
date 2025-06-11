@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.models.supply_chain import Order, Product, Inventory
-from app.models.extended_models import AnalyticsMetric
+from app.models.extended_models import ExtendedAnalyticsMetric as AnalyticsMetric
 from app.utils.logger import get_logger
 
 # Initialize logger

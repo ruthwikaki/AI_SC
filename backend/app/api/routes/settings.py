@@ -6,18 +6,23 @@ from datetime import datetime
 import json
 
 from app.db.database import get_db
-from app.api.middleware.auth import get_current_user
-from app.models.user import User, UserPreference, SystemSetting
-from app.models.base import NotificationSetting
+from app.api.routes.auth import get_current_active_user
+from app.models.user import User, UserPreference
+from app.models.extended_models import SystemSetting
+from app.models.extended_models import NotificationSetting
 from app.schemas.auth import UserPreferencesUpdate, NotificationSettingsUpdate
-from app.utils.logger import logger
+from app.utils.logger import get_logger
+
+
+# Initialize logger
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 @router.get("/preferences")
 async def get_user_preferences(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get current user preferences"""
     try:
@@ -60,7 +65,7 @@ async def get_user_preferences(
 async def update_user_preferences(
     preferences: UserPreferencesUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Update user preferences"""
     try:
@@ -107,7 +112,7 @@ async def update_user_preferences(
 @router.get("/notifications")
 async def get_notification_settings(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get user notification settings"""
     try:
@@ -156,7 +161,7 @@ async def get_notification_settings(
 async def update_notification_settings(
     settings: NotificationSettingsUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Update notification settings"""
     try:
@@ -192,7 +197,7 @@ async def update_notification_settings(
 @router.get("/system")
 async def get_system_settings(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get system-wide settings (admin only)"""
     try:
@@ -218,7 +223,7 @@ async def update_system_setting(
     key: str,
     value: Any = Body(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Update system setting (admin only)"""
     try:
@@ -256,7 +261,7 @@ async def update_system_setting(
 @router.get("/dashboard-layout")
 async def get_dashboard_layout(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get user's dashboard layout configuration"""
     try:
@@ -284,7 +289,7 @@ async def get_dashboard_layout(
 async def update_dashboard_layout(
     layout: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Update user's dashboard layout"""
     try:

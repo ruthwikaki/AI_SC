@@ -677,3 +677,6 @@ class SupplyChainGraphBuilder:
         except Exception as e:
             logger.error(f"Error exporting graph: {str(e)}")
             raise
+
+# Alias for backward compatibility
+GraphBuilder = SupplyChainGraphBuilder

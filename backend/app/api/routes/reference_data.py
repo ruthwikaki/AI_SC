@@ -1,4 +1,4 @@
-ï»¿# backend/app/api/routes/reference_data.py
+# backend/app/api/routes/reference_data.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -7,18 +7,22 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from app.db.database import get_db
-from app.api.middleware.auth import get_current_user
+from app.api.routes.auth import get_current_active_user
 from app.models.user import User
 from app.models.supply_chain import Product, Supplier, Warehouse, Order, Inventory
 from app.models.extended_models import ForecastModel
-from app.utils.logger import logger
+from app.utils.logger import get_logger
+
+
+# Initialize logger
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/reference", tags=["reference-data"])
 
 @router.get("/forecast-methods")
 async def get_forecast_methods(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get available forecast methods with their configurations"""
     try:
@@ -114,7 +118,7 @@ async def get_forecast_methods(
 async def get_warehouses(
     include_stats: bool = Query(False, description="Include warehouse statistics"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get list of warehouses with optional statistics"""
     try:
@@ -162,7 +166,7 @@ async def get_warehouses(
 async def get_regions(
     include_metrics: bool = Query(False, description="Include regional metrics"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get list of regions with optional metrics"""
     try:
@@ -216,7 +220,7 @@ async def get_regions(
 async def get_product_categories(
     include_stats: bool = Query(True, description="Include category statistics"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get product categories with statistics"""
     try:
@@ -290,7 +294,7 @@ async def get_suppliers_list(
     region: Optional[str] = Query(None, description="Filter by region"),
     include_metrics: bool = Query(False, description="Include supplier metrics"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get suppliers list with optional filters and metrics"""
     try:
@@ -352,16 +356,16 @@ async def get_suppliers_list(
 @router.get("/currencies")
 async def get_currencies(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get supported currencies"""
     return [
         {"code": "USD", "name": "US Dollar", "symbol": "$"},
-        {"code": "EUR", "name": "Euro", "symbol": "â‚¬"},
-        {"code": "GBP", "name": "British Pound", "symbol": "Â£"},
-        {"code": "JPY", "name": "Japanese Yen", "symbol": "Â¥"},
-        {"code": "CNY", "name": "Chinese Yuan", "symbol": "Â¥"},
-        {"code": "INR", "name": "Indian Rupee", "symbol": "â‚¹"},
+        {"code": "EUR", "name": "Euro", "symbol": "€"},
+        {"code": "GBP", "name": "British Pound", "symbol": "£"},
+        {"code": "JPY", "name": "Japanese Yen", "symbol": "¥"},
+        {"code": "CNY", "name": "Chinese Yuan", "symbol": "¥"},
+        {"code": "INR", "name": "Indian Rupee", "symbol": "?"},
         {"code": "CAD", "name": "Canadian Dollar", "symbol": "$"},
         {"code": "AUD", "name": "Australian Dollar", "symbol": "$"}
     ]
@@ -369,7 +373,7 @@ async def get_currencies(
 @router.get("/time-zones")
 async def get_time_zones(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get supported time zones"""
     return [

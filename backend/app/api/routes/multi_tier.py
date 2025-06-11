@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
 from app.db.database import get_db
-from app.api.middleware.auth import get_current_user
+from app.api.routes.auth import get_current_active_user
 from app.models.user import User
 from app.models.supply_chain import Supplier, Order, Inventory
-from app.multiTier.network_visualization.graph_builder import GraphBuilder
+from app.multiTier.network_visualization.graph_builder import SupplyChainGraphBuilder as GraphBuilder
 from app.multiTier.network_visualization.bottleneck_identifier import BottleneckIdentifier
 from app.multiTier.risk_propagation.cascade_analyzer import CascadeAnalyzer
 from app.multiTier.risk_propagation.impact_calculator import ImpactCalculator
@@ -30,7 +30,7 @@ async def get_network_visualization(
     depth: int = Query(3, ge=1, le=5, description="Network depth to visualize"),
     include_inactive: bool = Query(False, description="Include inactive suppliers"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get supply chain network visualization data"""
     try:
@@ -71,7 +71,7 @@ async def analyze_supply_chain_risk(
     risk_type: Optional[str] = Query(None, description="Type of risk to analyze"),
     time_horizon: int = Query(30, description="Time horizon in days"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Analyze supply chain risks and propagation patterns"""
     try:
@@ -109,7 +109,7 @@ async def analyze_supply_chain_risk(
 async def simulate_scenario(
     scenario: ScenarioSimulationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Simulate what-if scenarios for supply chain disruptions"""
     try:
@@ -146,7 +146,7 @@ async def simulate_scenario(
 async def get_supplier_tiers(
     recalculate: bool = Query(False, description="Force recalculation of tiers"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get supplier tier classification"""
     try:
@@ -175,7 +175,7 @@ async def get_supplier_tiers(
 @router.get("/network/metrics")
 async def get_network_metrics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get comprehensive network metrics"""
     try:

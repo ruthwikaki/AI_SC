@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
+from sqlalchemy.orm import Session
 from enum import Enum
 import uuid
 
@@ -14,7 +15,8 @@ from app.analytics.logistics_analytics.delivery_analytics import analyze_deliver
 from app.analytics.supplier_performance.scorecard import generate_supplier_scorecard
 from app.analytics.supplier_performance.risk_analysis import analyze_supplier_risk
 from app.analytics.supplier_performance.compliance_checker import check_supplier_compliance
-from app.models.user import User, UserInterface  # Added UserInterface
+from app.models.user import User
+from app.db.interfaces.user_interface import UserInterface
 from app.db.interfaces.inventory_interface import InventoryInterface
 from app.db.interfaces.order_interface import OrderInterface
 from app.db.interfaces.supplier_interface import SupplierInterface
@@ -27,15 +29,13 @@ from app.llm.prompt.template_manager import get_template
 from app.api.middleware.client_context import get_client_context
 
 from app.api.routes.auth import get_current_active_user
+from app.db.database import get_db
 
 # Initialize logger
 logger = get_logger(__name__)
 
 # Router
 router = APIRouter(
-
-# Include reference data routes
-router.include_router(reference_router)
     prefix="/analytics",
     tags=["analytics"],
     dependencies=[Depends(get_current_active_user)],
@@ -1232,7 +1232,7 @@ async def get_product_forecast(
     forecast_periods: int = Query(default=12, ge=1, le=36),
     method: str = Query(default="exponential_smoothing"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get forecast for a specific product"""
     analytics_repo = AnalyticsRepository(db)
@@ -1277,7 +1277,7 @@ async def batch_product_forecast(
     product_ids: List[str],
     request: ForecastRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Run forecast for multiple products"""
     analytics_repo = AnalyticsRepository(db)
@@ -1326,7 +1326,7 @@ async def get_product_forecast(
     forecast_periods: int = Query(default=12, ge=1, le=36),
     method: str = Query(default="exponential_smoothing"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get forecast for a specific product"""
     analytics_repo = AnalyticsRepository(db)
@@ -1371,7 +1371,7 @@ async def batch_product_forecast(
     product_ids: List[str],
     request: ForecastRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Run forecast for multiple products"""
     analytics_repo = AnalyticsRepository(db)
@@ -1417,7 +1417,7 @@ async def batch_product_forecast(
 async def get_dashboard_preferences(
     preference_type: str = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get user dashboard preferences"""
     try:

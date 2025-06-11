@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import json
 
 from app.db.database import get_db
-from app.api.middleware.auth import get_current_user
+from app.api.routes.auth import get_current_active_user
 from app.models.user import User
 from app.models.supply_chain import Product, Order, Inventory, Supplier, Warehouse
 from app.models.analytics import AnalyticsMetric
@@ -16,7 +16,11 @@ from app.analytics.inventory_optimization.abc_analysis import ABCAnalyzer
 from app.analytics.logistics_analytics.delivery_analytics import DeliveryAnalytics
 from app.analytics.supplier_performance.scorecard import SupplierScorecard
 from app.cache.result_cache import ResultCache
-from app.utils.logger import logger
+from app.utils.logger import get_logger
+
+
+# Initialize logger
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/analytics", tags=["analytics-enhanced"])
 
@@ -27,7 +31,7 @@ cache = ResultCache()
 async def run_inventory_forecast(
     request_body: Dict[str, Any],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Run inventory forecast with specified parameters"""
     try:
@@ -90,7 +94,7 @@ async def get_forecast_data(
     warehouse_id: Optional[int] = Query(None),
     limit: int = Query(50),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get existing forecast data"""
     try:
@@ -142,7 +146,7 @@ async def get_forecast_data(
 async def get_forecast_performance(
     days: int = Query(30, description="Number of days to analyze"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get historical forecast performance metrics"""
     try:
@@ -185,7 +189,7 @@ async def get_product_forecast(
     product_id: int,
     periods: int = Query(12, description="Number of periods to forecast"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get forecast for specific product"""
     try:
@@ -232,7 +236,7 @@ async def get_product_forecast(
 async def batch_product_forecast(
     request_body: Dict[str, Any],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Run batch forecast for multiple products"""
     try:
@@ -294,7 +298,7 @@ async def batch_product_forecast(
 @router.get("/dashboard/kpi/realtime")
 async def get_realtime_kpis(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get real-time KPI metrics"""
     try:
@@ -385,7 +389,7 @@ async def get_realtime_kpis(
 async def export_analytics_data(
     export_request: Dict[str, Any],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Export analytics data in various formats"""
     try:
@@ -409,7 +413,7 @@ async def export_analytics_data(
 async def get_dashboard_preferences(
     preference_type: str = Query(..., description="Type of preference to fetch"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get user's dashboard preferences"""
     try:
@@ -436,7 +440,7 @@ async def get_dashboard_preferences(
 async def save_dashboard_preferences(
     preference_data: Dict[str, Any],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Save user's dashboard preferences"""
     try:

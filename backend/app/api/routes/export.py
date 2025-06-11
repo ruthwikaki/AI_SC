@@ -9,12 +9,16 @@ import io
 import os
 
 from app.db.database import get_db
-from app.api.middleware.auth import get_current_user
+from app.api.routes.auth import get_current_active_user
 from app.models.user import User
 from app.models.analytics import ExportJob
 from app.visualization.export_manager import ExportManager
 from app.schemas.visualization import ExportRequest, ExportJobResponse
-from app.utils.logger import logger
+from app.utils.logger import get_logger
+
+
+# Initialize logger
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
@@ -23,7 +27,7 @@ async def create_export(
     export_request: ExportRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Create a new export job"""
     try:
@@ -64,7 +68,7 @@ async def get_export_jobs(
     limit: int = Query(20, le=100),
     offset: int = Query(0),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get user's export jobs"""
     try:
@@ -96,7 +100,7 @@ async def get_export_jobs(
 async def download_export(
     export_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Download exported file"""
     try:
@@ -127,7 +131,7 @@ async def quick_export(
     export_data: Dict[str, Any],
     format: str = Query("csv", description="Export format"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Quick export without creating a job (for small datasets)"""
     try:
@@ -172,7 +176,7 @@ async def quick_export(
 async def get_export_templates(
     category: Optional[str] = Query(None, description="Filter by category"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get available export templates"""
     try:
@@ -230,7 +234,7 @@ async def get_export_templates(
 async def delete_export_job(
     export_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Delete an export job and its file"""
     try:

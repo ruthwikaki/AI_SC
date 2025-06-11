@@ -6,9 +6,10 @@ from datetime import datetime
 import json
 
 from app.db.database import get_db
-from app.api.middleware.auth import get_current_user
+from app.api.routes.auth import get_current_active_user
 from app.models.user import User
-from app.models.visualization import Dashboard, DashboardWidget, WidgetType
+from app.models.visualization import Dashboard, DashboardWidget
+from app.models.extended_models import WidgetType
 from app.db.repositories.dashboard_repository import DashboardRepository
 from app.schemas.visualization import (
     DashboardCreateRequest,
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/api/dashboards", tags=["dashboards"])
 async def get_dashboards(
     shared: Optional[bool] = Query(None, description="Filter by shared status"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get user's dashboards"""
     try:
@@ -52,7 +53,7 @@ async def get_dashboards(
 async def create_dashboard(
     dashboard: DashboardCreateRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Create a new dashboard"""
     try:
@@ -99,7 +100,7 @@ async def create_dashboard(
 async def get_dashboard_details(
     dashboard_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get dashboard with all widgets"""
     try:
@@ -148,7 +149,7 @@ async def update_dashboard(
     dashboard_id: int,
     update_data: DashboardUpdateRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Update dashboard configuration"""
     try:
@@ -194,7 +195,7 @@ async def update_dashboard(
 async def delete_dashboard(
     dashboard_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Delete dashboard"""
     try:
@@ -223,7 +224,7 @@ async def add_widget(
     dashboard_id: int,
     widget: WidgetCreateRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Add widget to dashboard"""
     try:
@@ -269,7 +270,7 @@ async def update_widget(
     widget_id: int,
     widget_update: Dict[str, Any],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Update widget configuration"""
     try:
@@ -311,7 +312,7 @@ async def remove_widget(
     dashboard_id: int,
     widget_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Remove widget from dashboard"""
     try:
@@ -344,7 +345,7 @@ async def remove_widget(
 @router.get("/widget-types", response_model=List[Dict[str, Any]])
 async def get_available_widget_types(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get available widget types"""
     try:
