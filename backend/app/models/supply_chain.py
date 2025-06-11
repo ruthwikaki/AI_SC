@@ -561,7 +561,7 @@ class AnalyticsMetric(Base):
     product_id = Column(UUID(as_uuid=True), ForeignKey('products.id'))
     supplier_id = Column(UUID(as_uuid=True), ForeignKey('suppliers.id'))
     period_type = Column(String(50))  # 'daily', 'weekly', 'monthly'
-    metadata = Column(JSONB, default={})
+    meta_data = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships

@@ -34,13 +34,13 @@ from .analytics import (
     BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
 )
 
-# Add these imports to your existing backend/app/models/__init__.py:
-from app.models.extended_models import (
+# Import from extended_models with proper relative import and renamed classes
+from .extended_models import (
     ForecastModel,
-    AnalyticsMetric,
+    ExtendedAnalyticsMetric,  # Renamed from AnalyticsMetric
     ExportJob,
     ReportTemplate,
-    Report,
+    ExtendedReport,  # Renamed from Report
     ScheduledReport,
     SystemSetting,
     NotificationSetting,
@@ -51,7 +51,7 @@ from app.models.extended_models import (
 __all__ = [
     # User models
     'User', 'UserSession', 'PasswordResetToken', 'UserPreference',
-    'Role', 'Permission', 'RolePermission', 'UserRole', 'AuditLog',
+    # 'Role', 'Permission', 'RolePermission', 'UserRole', 'AuditLog',
     
     # Query models
     'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',
@@ -76,7 +76,7 @@ __all__ = [
     'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact',
     
     # Extended models
-    'ForecastModel', 'AnalyticsMetric', 'ExportJob',
-    'ReportTemplate', 'Report', 'ScheduledReport',
+    'ForecastModel', 'ExtendedAnalyticsMetric', 'ExportJob',
+    'ReportTemplate', 'ExtendedReport', 'ScheduledReport',
     'SystemSetting', 'NotificationSetting', 'WidgetType'
 ]

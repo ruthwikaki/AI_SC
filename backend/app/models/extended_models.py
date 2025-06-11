@@ -1,3 +1,5 @@
+# app/models/extended_models.py
+
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, JSON, ForeignKey, Text, Enum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -21,8 +23,9 @@ class ForecastModel(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
-class AnalyticsMetric(Base):
-    __tablename__ = "analytics_metrics"
+# Renamed from AnalyticsMetric to ExtendedAnalyticsMetric to avoid conflict
+class ExtendedAnalyticsMetric(Base):
+    __tablename__ = "extended_analytics_metrics"  # Changed table name
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     metric_type = Column(String(50), nullable=False)  # forecast, accuracy, kpi, etc.
@@ -31,13 +34,13 @@ class AnalyticsMetric(Base):
     warehouse_id = Column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=True)
     metric_date = Column(DateTime(timezone=True), nullable=False)
     value = Column(Float, nullable=False)
-    metadata = Column(JSONB)  # Additional metric-specific data
+    meta_data = Column(JSONB)  # Changed from metadata to meta_data
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
-    # Relationships
-    warehouse = relationship("Warehouse", back_populates="analytics_metrics")
-    creator = relationship("User", back_populates="analytics_metrics")
+    # Relationships - commented out until models exist
+    # warehouse = relationship("Warehouse", back_populates="analytics_metrics")
+    # creator = relationship("User", back_populates="analytics_metrics")
 
 class ExportJob(Base):
     __tablename__ = "export_jobs"
@@ -56,7 +59,7 @@ class ExportJob(Base):
     completed_at = Column(DateTime(timezone=True))
     
     # Relationships
-    user = relationship("User", back_populates="export_jobs")
+    # user = relationship("User", back_populates="export_jobs")
 
 class ReportTemplate(Base):
     __tablename__ = "report_templates"
@@ -75,25 +78,26 @@ class ReportTemplate(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    reports = relationship("Report", back_populates="template")
+    # reports = relationship("ExtendedReport", back_populates="template")
 
-class Report(Base):
-    __tablename__ = "reports"
+# Renamed from Report to ExtendedReport to avoid conflict with analytics.py
+class ExtendedReport(Base):
+    __tablename__ = "extended_reports"  # Changed table name
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(200), nullable=False)
     template_id = Column(UUID(as_uuid=True), ForeignKey("report_templates.id"), nullable=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     parameters = Column(JSONB)
-    status = Column(Enum('generating', 'completed', 'failed', name='report_status'), default='generating')
+    status = Column(Enum('generating', 'completed', 'failed', name='extended_report_status'), default='generating')
     file_path = Column(String(500))
     error_message = Column(Text)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     completed_at = Column(DateTime(timezone=True))
     
     # Relationships
-    template = relationship("ReportTemplate", back_populates="reports")
-    user = relationship("User", back_populates="reports")
+    # template = relationship("ReportTemplate", back_populates="reports")
+    # user = relationship("User", back_populates="reports")
 
 class ScheduledReport(Base):
     __tablename__ = "scheduled_reports"
@@ -112,8 +116,8 @@ class ScheduledReport(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    template = relationship("ReportTemplate")
-    user = relationship("User", back_populates="scheduled_reports")
+    # template = relationship("ReportTemplate")
+    # user = relationship("User", back_populates="scheduled_reports")
 
 class SystemSetting(Base):
     __tablename__ = "system_settings"
@@ -143,7 +147,7 @@ class NotificationSetting(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = relationship("User", back_populates="notification_settings")
+    # user = relationship("User", back_populates="notification_settings")
 
 class WidgetType(Base):
     __tablename__ = "widget_types"
