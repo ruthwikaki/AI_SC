@@ -13,7 +13,12 @@ from sqlalchemy import func, or_, and_
 from sqlalchemy.exc import IntegrityError
 
 from app.models import (
-    User, UserSession, PasswordResetToken, UserPreference Permission, AuditLog
+    User, 
+    UserSession, 
+    PasswordResetToken, 
+    UserPreference, 
+    Permission, 
+    AuditLog
 )
 from app.security.password_utils import hash_password, verify_password
 
@@ -56,11 +61,7 @@ class UserRepository:
             
             # Create audit log
             self._create_audit_log(
-                user_id=user.id,
-                action="user_created",
-                resource_type="user",
-                resource_id=str(user.id),
-                new_values={"email": user.email, "username": user.username}
+                user_id=user.id, action="user_created", resource_type="user", resource_id=str(user.id), new_values={"email": user.email, "username": user.username}
             )
             
             return user
@@ -93,13 +94,7 @@ class UserRepository:
         ).first()
     
     def get_users(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        search: Optional[str] = None,
-        role: Optional[str] = None,
-        is_active: Optional[bool] = None,
-        department: Optional[str] = None
+        self, skip: int = 0, limit: int = 100, search: Optional[str] = None, role: Optional[str] = None, is_active: Optional[bool] = None, department: Optional[str] = None
     ) -> List[User]:
         """Get users with filters"""
         query = self.db.query(User)
@@ -109,10 +104,7 @@ class UserRepository:
             search_filter = f"%{search}%"
             query = query.filter(
                 or_(
-                    User.email.ilike(search_filter),
-                    User.username.ilike(search_filter),
-                    User.first_name.ilike(search_filter),
-                    User.last_name.ilike(search_filter)
+                    User.email.ilike(search_filter), User.username.ilike(search_filter), User.first_name.ilike(search_filter), User.last_name.ilike(search_filter)
                 )
             )
         
@@ -157,12 +149,7 @@ class UserRepository:
             
             # Create audit log
             self._create_audit_log(
-                user_id=user_id,
-                action="user_updated",
-                resource_type="user",
-                resource_id=str(user_id),
-                old_values=old_values,
-                new_values=update_data
+                user_id=user_id, action="user_updated", resource_type="user", resource_id=str(user_id), old_values=old_values, new_values=update_data
             )
             
             return user
@@ -171,7 +158,7 @@ class UserRepository:
             raise
     
     def delete_user(self, user_id: UUID) -> bool:
-        """Delete user (soft delete)"""
+        """Delete user (soft, delete)"""
         user = self.get_user_by_id(user_id)
         if not user:
             return False
@@ -181,18 +168,14 @@ class UserRepository:
         
         # Revoke all sessions
         self.db.query(UserSession).filter(
-            UserSession.user_id == user_id,
-            UserSession.is_active == True
+            UserSession.user_id == user_id, UserSession.is_active == True
         ).update({"is_active": False, "revoked_at": datetime.utcnow()})
         
         self.db.commit()
         
         # Create audit log
         self._create_audit_log(
-            user_id=user_id,
-            action="user_deleted",
-            resource_type="user",
-            resource_id=str(user_id)
+            user_id=user_id, action="user_deleted", resource_type="user", resource_id=str(user_id)
         )
         
         return True
@@ -232,26 +215,11 @@ class UserRepository:
         return user
     
     def create_session(
-        self,
-        user_id: UUID,
-        token_hash: str,
-        expires_at: datetime,
-        refresh_token_hash: Optional[str] = None,
-        refresh_expires_at: Optional[datetime] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        device_id: Optional[str] = None
+        self, user_id: UUID, token_hash: str, expires_at: datetime, refresh_token_hash: Optional[str] = None, refresh_expires_at: Optional[datetime] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None, device_id: Optional[str] = None
     ) -> UserSession:
         """Create user session"""
         session = UserSession(
-            user_id=user_id,
-            token_hash=token_hash,
-            expires_at=expires_at,
-            refresh_token_hash=refresh_token_hash,
-            refresh_expires_at=refresh_expires_at,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            device_id=device_id
+            user_id=user_id, token_hash=token_hash, expires_at=expires_at, refresh_token_hash=refresh_token_hash, refresh_expires_at=refresh_expires_at, ip_address=ip_address, user_agent=user_agent, device_id=device_id
         )
         self.db.add(session)
         self.db.commit()
@@ -261,9 +229,7 @@ class UserRepository:
     def get_session_by_token(self, token_hash: str) -> Optional[UserSession]:
         """Get session by token hash"""
         return self.db.query(UserSession).filter(
-            UserSession.token_hash == token_hash,
-            UserSession.is_active == True,
-            UserSession.expires_at > datetime.utcnow()
+            UserSession.token_hash == token_hash, UserSession.is_active == True, UserSession.expires_at > datetime.utcnow()
         ).first()
     
     def revoke_session(self, session_id: UUID) -> bool:
@@ -283,8 +249,7 @@ class UserRepository:
     def revoke_all_user_sessions(self, user_id: UUID) -> int:
         """Revoke all sessions for a user"""
         count = self.db.query(UserSession).filter(
-            UserSession.user_id == user_id,
-            UserSession.is_active == True
+            UserSession.user_id == user_id, UserSession.is_active == True
         ).update({"is_active": False, "revoked_at": datetime.utcnow()})
         
         self.db.commit()
@@ -304,25 +269,17 @@ class UserRepository:
     # =====================================================
     
     def create_password_reset_token(
-        self,
-        user_id: UUID,
-        token_hash: str,
-        expires_at: datetime,
-        ip_address: Optional[str] = None
+        self, user_id: UUID, token_hash: str, expires_at: datetime, ip_address: Optional[str] = None
     ) -> PasswordResetToken:
         """Create password reset token"""
         # Invalidate existing tokens
         self.db.query(PasswordResetToken).filter(
-            PasswordResetToken.user_id == user_id,
-            PasswordResetToken.used_at.is_(None)
+            PasswordResetToken.user_id == user_id, PasswordResetToken.used_at.is_(None)
         ).update({"used_at": datetime.utcnow()})
         
         # Create new token
         token = PasswordResetToken(
-            user_id=user_id,
-            token_hash=token_hash,
-            expires_at=expires_at,
-            ip_address=ip_address
+            user_id=user_id, token_hash=token_hash, expires_at=expires_at, ip_address=ip_address
         )
         self.db.add(token)
         self.db.commit()
@@ -333,9 +290,7 @@ class UserRepository:
     def get_password_reset_token(self, token_hash: str) -> Optional[PasswordResetToken]:
         """Get valid password reset token"""
         return self.db.query(PasswordResetToken).filter(
-            PasswordResetToken.token_hash == token_hash,
-            PasswordResetToken.used_at.is_(None),
-            PasswordResetToken.expires_at > datetime.utcnow()
+            PasswordResetToken.token_hash == token_hash, PasswordResetToken.used_at.is_(None), PasswordResetToken.expires_at > datetime.utcnow()
         ).first()
     
     def use_password_reset_token(self, token_hash: str, new_password: str) -> Optional[User]:
@@ -363,10 +318,7 @@ class UserRepository:
         
         # Create audit log
         self._create_audit_log(
-            user_id=user.id,
-            action="password_reset",
-            resource_type="user",
-            resource_id=str(user.id)
+            user_id=user.id, action="password_reset", resource_type="user", resource_id=str(user.id)
         )
         
         return user
@@ -382,9 +334,7 @@ class UserRepository:
         ).first()
     
     def update_user_preferences(
-        self,
-        user_id: UUID,
-        preferences_data: Dict[str, Any]
+        self, user_id: UUID, preferences_data: Dict[str, Any]
     ) -> Optional[UserPreference]:
         """Update user preferences"""
         preferences = self.get_user_preferences(user_id)
@@ -408,11 +358,7 @@ class UserRepository:
     # =====================================================
     
     def assign_role_to_user(
-        self,
-        user_id: UUID,
-        role_id: UUID,
-        assigned_by: UUID,
-        expires_at: Optional[datetime] = None
+        self, user_id: UUID, role_id: UUID, assigned_by: UUID, expires_at: Optional[datetime] = None
     ) -> bool:
         """Assign role to user"""
         user = self.get_user_by_id(user_id)
@@ -430,11 +376,7 @@ class UserRepository:
         
         # Create audit log
         self._create_audit_log(
-            user_id=assigned_by,
-            action="role_assigned",
-            resource_type="user",
-            resource_id=str(user_id),
-            new_values={"role_id": str(role_id), "role_name": role.name}
+            user_id=assigned_by, action="role_assigned", resource_type="user", resource_id=str(user_id), new_values={"role_id": str(role_id), "role_name": role.name}
         )
         
         return True
@@ -454,11 +396,7 @@ class UserRepository:
         
         # Create audit log
         self._create_audit_log(
-            user_id=removed_by,
-            action="role_removed",
-            resource_type="user",
-            resource_id=str(user_id),
-            old_values={"role_id": str(role_id), "role_name": role.name}
+            user_id=removed_by, action="role_removed", resource_type="user", resource_id=str(user_id), old_values={"role_id": str(role_id), "role_name": role.name}
         )
         
         return True
@@ -489,25 +427,12 @@ class UserRepository:
     # =====================================================
     
     def _create_audit_log(
-        self,
-        user_id: UUID,
-        action: str,
-        resource_type: str,
-        resource_id: str,
-        old_values: Optional[Dict[str, Any]] = None,
-        new_values: Optional[Dict[str, Any]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        self, user_id: UUID, action: str, resource_type: str, resource_id: str, old_values: Optional[Dict[str, Any]] = None, new_values: Optional[Dict[str, Any]] = None, metadata: Optional[Dict[str, Any]] = None
     ):
         """Create audit log entry"""
         try:
             audit_log = AuditLog(
-                user_id=user_id,
-                action=action,
-                resource_type=resource_type,
-                resource_id=resource_id,
-                old_values=old_values,
-                new_values=new_values,
-                metadata=metadata
+                user_id=user_id, action=action, resource_type=resource_type, resource_id=resource_id, old_values=old_values, new_values=new_values, metadata=metadata
             )
             self.db.add(audit_log)
             self.db.commit()

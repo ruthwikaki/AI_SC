@@ -71,7 +71,7 @@ class ResultCache:
         self._load_cache()
         
         # Start cleanup task
-        self.cleanup_task = asyncio.create_task(self._cleanup_loop())
+        self.cleanup_task = None  # Will be initialized when event loop is available
         
     async def get(
         self,
@@ -237,6 +237,16 @@ class ResultCache:
         logger.info(f"Invalidated {count} result cache entries")
         return count
         
+    
+    def start_cleanup_task(self):
+        """Start the cleanup task when event loop is available"""
+        if self.cleanup_task is None:
+            try:
+                loop = asyncio.get_running_loop()
+                self.cleanup_task = loop.create_task(self._cleanup_loop())
+            except RuntimeError:
+                # No event loop running, skip cleanup task
+                pass
     def get_stats(self) -> Dict[str, Any]:
         """
         Get cache statistics.

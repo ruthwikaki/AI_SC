@@ -11,7 +11,7 @@ import os
 from app.db.database import get_db
 from app.api.routes.auth import get_current_active_user
 from app.models.user import User
-from app.models.analytics import ExportJob
+from app.models.extended_models import ExportJob
 from app.visualization.export_manager import ExportManager
 from app.schemas.visualization import ExportRequest, ExportJobResponse
 from app.utils.logger import get_logger

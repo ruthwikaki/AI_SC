@@ -344,3 +344,45 @@ async def export_schema(client_id: str, connection_id: Optional[str] = None, for
         return "-- SQL schema export not implemented yet"
     else:
         raise ValueError(f"Unsupported format: {format}")
+
+class SchemaDiscovery:
+    """
+    Wrapper class for schema discovery functions.
+    Provides compatibility with code expecting a SchemaDiscovery class.
+    """
+    
+    def __init__(self, client_id: str = None, connection_id: str = None):
+        self.client_id = client_id
+        self.connection_id = connection_id
+    
+    async def discover(self, force_refresh: bool = False) -> DatabaseSchema:
+        """Discover the database schema"""
+        return await discover_client_schema(
+            client_id=self.client_id,
+            connection_id=self.connection_id,
+            force_refresh=force_refresh
+        )
+    
+    async def get_schema(self, force_refresh: bool = False) -> DatabaseSchema:
+        """Alias for discover()"""
+        return await self.discover(force_refresh=force_refresh)
+    
+    async def get_table_info(self, table_name: str, schema: str = None) -> Optional[Dict[str, Any]]:
+        """Get information for a specific table"""
+        return await get_table_schema(
+            client_id=self.client_id,
+            table_name=table_name,
+            schema=schema,
+            connection_id=self.connection_id
+        )
+    
+    async def refresh_cache(self) -> bool:
+        """Refresh the schema cache"""
+        return await refresh_schema_cache(
+            client_id=self.client_id,
+            connection_id=self.connection_id
+        )
+    
+    async def clear_cache(self) -> None:
+        """Clear the schema cache"""
+        await clear_schema_cache(client_id=self.client_id)

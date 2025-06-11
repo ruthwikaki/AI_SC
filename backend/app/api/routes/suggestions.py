@@ -1,6 +1,6 @@
 # backend/app/api/routes/suggestions.py
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
@@ -9,9 +9,8 @@ import json
 from app.db.database import get_db
 from app.api.routes.auth import get_current_active_user
 from app.models.user import User
-from app.models.query import QueryHistory, SavedQuery
-from app.db.schema.schema_discovery import SchemaDiscovery
-from app.llm.prompt.context_builder import ContextBuilder
+from app.models.query import NaturalLanguageQuery, SavedQuery
+from app.db.schema.schema_discovery import discover_client_schema, get_table_schema, DatabaseSchema
 from app.utils.logger import get_logger
 
 
@@ -172,7 +171,7 @@ async def get_autocomplete_suggestions(
 ):
     """Get autocomplete suggestions for specific fields"""
     try:
-        schema_discovery = SchemaDiscovery(db)
+        # Schema discovery functions imported
         
         # Parse field (could be table.column or just column)
         parts = field.split('.')
@@ -213,9 +212,9 @@ async def get_related_queries(
         
         if query_id:
             # Get base query
-            base_query = db.query(QueryHistory).filter(
-                QueryHistory.id == query_id,
-                QueryHistory.user_id == current_user.id
+            base_query = db.query(NaturalLanguageQuery).filter(
+                NaturalLanguageQuery.id == query_id,
+                NaturalLanguageQuery.user_id == current_user.id
             ).first()
             
             if not base_query:
@@ -226,9 +225,9 @@ async def get_related_queries(
         # Find related queries based on similarity
         # This is a simplified version - in production, you might use
         # more sophisticated similarity measures
-        similar_queries = db.query(QueryHistory).filter(
-            QueryHistory.user_id == current_user.id,
-            QueryHistory.natural_language_query.ilike(f"%{query_text.split()[0]}%")
+        similar_queries = db.query(NaturalLanguageQuery).filter(
+            NaturalLanguageQuery.user_id == current_user.id,
+            NaturalLanguageQuery.natural_language_query.ilike(f"%{query_text.split()[0]}%")
         ).limit(10).all()
         
         for query in similar_queries:
@@ -251,10 +250,10 @@ def _get_history_based_suggestions(partial_query: str, user_id: int, db: Session
     """Get suggestions from user's query history"""
     suggestions = []
     
-    recent_queries = db.query(QueryHistory).filter(
-        QueryHistory.user_id == user_id,
-        QueryHistory.natural_language_query.ilike(f"{partial_query}%")
-    ).order_by(desc(QueryHistory.executed_at)).limit(limit).all()
+    recent_queries = db.query(NaturalLanguageQuery).filter(
+        NaturalLanguageQuery.user_id == user_id,
+        NaturalLanguageQuery.natural_language_query.ilike(f"{partial_query}%")
+    ).order_by(desc(NaturalLanguageQuery.executed_at)).limit(limit).all()
     
     for query in recent_queries:
         suggestions.append({
@@ -274,12 +273,12 @@ def _get_popular_query_suggestions(partial_query: str, db: Session, limit: int) 
     
     # Get most used queries matching partial
     popular = db.query(
-        QueryHistory.natural_language_query,
-        func.count(QueryHistory.id).label('count')
+        NaturalLanguageQuery.natural_language_query,
+        func.count(NaturalLanguageQuery.id).label('count')
     ).filter(
-        QueryHistory.natural_language_query.ilike(f"{partial_query}%")
+        NaturalLanguageQuery.natural_language_query.ilike(f"{partial_query}%")
     ).group_by(
-        QueryHistory.natural_language_query
+        NaturalLanguageQuery.natural_language_query
     ).order_by(
         desc('count')
     ).limit(limit).all()
@@ -310,7 +309,7 @@ def _get_schema_based_suggestions(partial_query: str, db: Session, limit: int) -
         "Compare {table} between"
     ]
     
-    schema_discovery = SchemaDiscovery(db)
+    # Schema discovery functions imported
     tables = schema_discovery.get_tables()
     
     for pattern in patterns:

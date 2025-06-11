@@ -10,12 +10,11 @@ from app.db.database import get_db
 from app.api.routes.auth import get_current_active_user
 from app.models.user import User
 from app.models.supply_chain import Product, Order, Inventory, Supplier, Warehouse
-from app.models.analytics import AnalyticsMetric
+from app.models.extended_models import ExtendedAnalyticsMetric as AnalyticsMetric
 from app.analytics.inventory_optimization.forecast_engine import ForecastEngine
-from app.analytics.inventory_optimization.abc_analysis import ABCAnalyzer
 from app.analytics.logistics_analytics.delivery_analytics import DeliveryAnalytics
 from app.analytics.supplier_performance.scorecard import SupplierScorecard
-from app.cache.result_cache import ResultCache
+from app.get_cache().result_cache import ResultCache
 from app.utils.logger import get_logger
 
 
@@ -25,7 +24,19 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/analytics", tags=["analytics-enhanced"])
 
 # Initialize cache
-cache = ResultCache()
+# Cache will be initialized on first use
+cache = None
+
+
+def get_cache():
+    """Get or create the cache instance"""
+    global cache
+    if cache is None:
+        cache = ResultCache()
+        # Try to start cleanup task if event loop is available
+        if hasattr(cache, 'start_cleanup_task'):
+            get_cache().start_cleanup_task()
+    return cache
 
 @router.post("/inventory/forecast")
 async def run_inventory_forecast(
@@ -100,7 +111,7 @@ async def get_forecast_data(
     try:
         # Check cache first
         cache_key = f"forecast_{product_id}_{warehouse_id}_{current_user.id}"
-        cached_data = cache.get(cache_key)
+        cached_data = get_cache().get(cache_key)
         if cached_data:
             return cached_data
         
@@ -134,7 +145,7 @@ async def get_forecast_data(
         }
         
         # Cache result
-        cache.set(cache_key, result, ttl=300)  # 5 minutes
+        get_cache().set(cache_key, result, ttl=300)  # 5 minutes
         
         return result
         
