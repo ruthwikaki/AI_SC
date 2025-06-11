@@ -34,7 +34,7 @@ from .analytics import (
     BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
 )
 
-# Import from extended_models with proper relative import and renamed classes
+# Import with correct names from extended_models
 from .extended_models import (
     ForecastModel,
     ExtendedAnalyticsMetric,  # Renamed from AnalyticsMetric
@@ -51,7 +51,7 @@ from .extended_models import (
 __all__ = [
     # User models
     'User', 'UserSession', 'PasswordResetToken', 'UserPreference',
-    # 'Role', 'Permission', 'RolePermission', 'UserRole', 'AuditLog',
+    #'Role', 'Permission', 'RolePermission', 'UserRole', 'AuditLog',
     
     # Query models
     'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',

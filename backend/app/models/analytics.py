@@ -177,6 +177,7 @@ class SupplierPerformanceMetric(Base):
     # Constraints
     __table_args__ = (
         UniqueConstraint('supplier_id', 'metric_date', name='uq_supplier_metric_date'),
+        {'extend_existing': True}  # This allows the table to be redefined if needed
     )
     
     def __repr__(self):
