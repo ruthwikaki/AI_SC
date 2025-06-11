@@ -6,7 +6,7 @@ import json
 
 from app.db.schema.schema_discovery import discover_client_schema, get_table_schema
 from app.db.connectors.postgres import PostgresConnector  # This would be dynamically selected based on client
-from app.db.interfaces.user_interface import User
+from app.models.user import User
 from app.security.rbac_manager import check_permission
 from app.utils.logger import get_logger
 from app.api.middleware.client_context import get_client_context

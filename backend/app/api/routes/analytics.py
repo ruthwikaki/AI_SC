@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
@@ -14,7 +14,7 @@ from app.analytics.logistics_analytics.delivery_analytics import analyze_deliver
 from app.analytics.supplier_performance.scorecard import generate_supplier_scorecard
 from app.analytics.supplier_performance.risk_analysis import analyze_supplier_risk
 from app.analytics.supplier_performance.compliance_checker import check_supplier_compliance
-from app.db.interfaces.user_interface import User, UserInterface  # Added UserInterface
+from app.models.user import User, UserInterface  # Added UserInterface
 from app.db.interfaces.inventory_interface import InventoryInterface
 from app.db.interfaces.order_interface import OrderInterface
 from app.db.interfaces.supplier_interface import SupplierInterface

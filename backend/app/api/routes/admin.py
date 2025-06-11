@@ -7,7 +7,7 @@ import uuid
 # Import the Pydantic schemas - FIXED: importing from auth module
 from app.schemas.auth import UserResponse as User, UserCreate, UserUpdate
 # Import the database model
-from app.db.interfaces.user_interface import User as DBUser
+from app.models.user import User as DBUser
 
 from app.security.rbac_manager import check_permission, get_role_permissions, update_role_permissions
 from app.security.audit_logger import get_audit_logs
