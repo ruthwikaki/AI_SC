@@ -1,4 +1,4 @@
-# backend/app/api/routes/reference_data.py
+ï»¿# backend/app/api/routes/reference_data.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -361,11 +361,11 @@ async def get_currencies(
     """Get supported currencies"""
     return [
         {"code": "USD", "name": "US Dollar", "symbol": "$"},
-        {"code": "EUR", "name": "Euro", "symbol": "€"},
-        {"code": "GBP", "name": "British Pound", "symbol": "£"},
-        {"code": "JPY", "name": "Japanese Yen", "symbol": "¥"},
-        {"code": "CNY", "name": "Chinese Yuan", "symbol": "¥"},
-        {"code": "INR", "name": "Indian Rupee", "symbol": "?"},
+        {"code": "EUR", "name": "Euro", "symbol": "EUR"},
+        {"code": "GBP", "name": "British Pound", "symbol": "GBP"},
+        {"code": "JPY", "name": "Japanese Yen", "symbol": "JPY"},
+        {"code": "CNY", "name": "Chinese Yuan", "symbol": "CNY"},
+        {"code": "INR", "name": "Indian Rupee", "symbol": "INR"},
         {"code": "CAD", "name": "Canadian Dollar", "symbol": "$"},
         {"code": "AUD", "name": "Australian Dollar", "symbol": "$"}
     ]

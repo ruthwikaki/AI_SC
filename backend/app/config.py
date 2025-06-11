@@ -19,10 +19,12 @@ class Settings(BaseSettings):
     """Application settings."""
     
     # General settings
+    TIMEZONE: str = "UTC"
     app_name: str = "Supply Chain LLM API"
     api_version: str = "1.0.0"
     environment: str = "development"
     debug: bool = False
+    enable_scheduler: bool = Field(default=True, description='Enable job scheduler')
     
     # Server settings
     host: str = "0.0.0.0"

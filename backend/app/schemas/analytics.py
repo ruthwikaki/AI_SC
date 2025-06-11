@@ -110,7 +110,7 @@ class InventoryAnalyticsRequest(BaseModel):
     ])
 
 
-class InventoryMetrics(BaseModel):
+class InventoryMetric(BaseModel):
     """Inventory metrics"""
     total_value: float
     total_items: int
@@ -124,7 +124,7 @@ class InventoryMetrics(BaseModel):
 
 class InventoryAnalyticsResponse(BaseModel):
     """Inventory analytics response"""
-    metrics: InventoryMetrics
+    metrics: InventoryMetric
     low_stock_items: List[Dict[str, Any]]
     overstock_items: List[Dict[str, Any]]
     trends: Dict[str, List[Dict[str, Any]]]
@@ -456,7 +456,7 @@ class ReportTemplateResponse(BaseModel):
 # Scheduled Analytics Schemas
 # =====================================================
 
-class ScheduledAnalyticsCreate(BaseModel):
+class ScheduledAnalyticCreate(BaseModel):
     """Create scheduled analytics"""
     name: str = Field(..., min_length=1, max_length=255)
     analytics_type: AnalyticsType
@@ -468,7 +468,7 @@ class ScheduledAnalyticsCreate(BaseModel):
     is_active: bool = True
 
 
-class ScheduledAnalyticsResponse(BaseModel):
+class ScheduledAnalyticResponse(BaseModel):
     """Scheduled analytics response"""
     id: UUID
     name: str

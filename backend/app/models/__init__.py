@@ -37,8 +37,8 @@ from .extended_models import (
     ScheduledReport,
     SystemSetting,
     NotificationSetting,
-    WidgetType
-)
+    WidgetType,
+    SyncHistory)
 
 __all__ = [
     # User models

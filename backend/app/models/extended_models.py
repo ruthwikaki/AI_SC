@@ -161,3 +161,17 @@ class WidgetType(Base):
     preview_image = Column(String(500))
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+class SyncHistory(Base):
+    """Track data synchronization history"""
+    __tablename__ = "sync_history"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    sync_type = Column(String(50), nullable=False)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime)
+    status = Column(String(20))  # pending, running, completed, failed
+    records_processed = Column(Integer, default=0)
+    records_failed = Column(Integer, default=0)
+    error_message = Column(Text)
+    sync_metadata = Column(JSON)

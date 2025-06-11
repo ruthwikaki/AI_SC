@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 # jobs/analytics_update.py
 
 """
@@ -18,15 +18,24 @@ from sqlalchemy import and_, or_, func, case
 from sqlalchemy.sql import text
 
 from app.db.database import get_db_session
+from app.config import get_settings
+
 from app.models import (
+
+
     Supplier, Product, Inventory, Order, OrderItem,
-    Shipment, ShipmentItem, SupplierPerformanceMetrics,
-    InventoryMetrics, DeliveryPerformance, ABCAnalysisResult,
+    Shipment, ShipmentItem, SupplierPerformanceMetric,
+    InventoryMetric, DeliveryPerformance, ABCAnalysisResult,
     ForecastResult, SafetyStockCalculation, RiskAssessment,
-    ComplianceCheck, ScheduledAnalytics, AnalyticsResult,
+    ComplianceCheck, ScheduledAnalytic, AnalyticsResult,
     BottleneckAnalysis, NetworkNode, NetworkEdge
 )
-from app.core.config import settings
+
+# Get settings
+settings = get_settings()
+
+# Get settings
+
 from .scheduler import scheduled_job
 
 logger = logging.getLogger(__name__)
@@ -43,7 +52,7 @@ class AnalyticsCalculator:
         supplier_id: str,
         start_date: date,
         end_date: date
-    ) -> SupplierPerformanceMetrics:
+    ) -> SupplierPerformanceMetric:
         """Calculate supplier performance metrics"""
         
         # Get orders for supplier in period
@@ -110,16 +119,16 @@ class AnalyticsCalculator:
         )
         
         # Create or update metrics
-        metrics = self.db.query(SupplierPerformanceMetrics).filter(
+        metrics = self.db.query(SupplierPerformanceMetric).filter(
             and_(
-                SupplierPerformanceMetrics.supplier_id == supplier_id,
-                SupplierPerformanceMetrics.period_start == start_date,
-                SupplierPerformanceMetrics.period_end == end_date
+                SupplierPerformanceMetric.supplier_id == supplier_id,
+                SupplierPerformanceMetric.period_start == start_date,
+                SupplierPerformanceMetric.period_end == end_date
             )
         ).first()
         
         if not metrics:
-            metrics = SupplierPerformanceMetrics(
+            metrics = SupplierPerformanceMetric(
                 supplier_id=supplier_id,
                 period_start=start_date,
                 period_end=end_date
@@ -145,7 +154,7 @@ class AnalyticsCalculator:
         product_id: Optional[str],
         start_date: date,
         end_date: date
-    ) -> List[InventoryMetrics]:
+    ) -> List[InventoryMetric]:
         """Calculate inventory metrics"""
         
         # Build query
@@ -198,17 +207,17 @@ class AnalyticsCalculator:
             service_level = 100 if stockout_days == 0 else max(0, 100 - (stockout_days * 10))
             
             # Create or update metrics
-            metrics = self.db.query(InventoryMetrics).filter(
+            metrics = self.db.query(InventoryMetric).filter(
                 and_(
-                    InventoryMetrics.location_id == location_id,
-                    InventoryMetrics.product_id == inventory.product_id,
-                    InventoryMetrics.period_start == start_date,
-                    InventoryMetrics.period_end == end_date
+                    InventoryMetric.location_id == location_id,
+                    InventoryMetric.product_id == inventory.product_id,
+                    InventoryMetric.period_start == start_date,
+                    InventoryMetric.period_end == end_date
                 )
             ).first()
             
             if not metrics:
-                metrics = InventoryMetrics(
+                metrics = InventoryMetric(
                     location_id=location_id,
                     product_id=inventory.product_id,
                     period_start=start_date,
@@ -426,9 +435,9 @@ class AnalyticsCalculator:
             risk_factors["geopolitical"] = 0.2
         
         # Performance risk
-        recent_metrics = self.db.query(SupplierPerformanceMetrics).filter(
-            SupplierPerformanceMetrics.supplier_id == supplier_id
-        ).order_by(SupplierPerformanceMetrics.period_end.desc()).first()
+        recent_metrics = self.db.query(SupplierPerformanceMetric).filter(
+            SupplierPerformanceMetric.supplier_id == supplier_id
+        ).order_by(SupplierPerformanceMetric.period_end.desc()).first()
         
         if recent_metrics:
             if recent_metrics.overall_score < 60:
@@ -841,8 +850,8 @@ async def run_analytics_by_id(analytics_id: str):
     """Run a specific scheduled analytics job"""
     with get_db_session() as db:
         # Get scheduled analytics
-        scheduled = db.query(ScheduledAnalytics).filter(
-            ScheduledAnalytics.id == analytics_id
+        scheduled = db.query(ScheduledAnalytic).filter(
+            ScheduledAnalytic.id == analytics_id
         ).first()
         
         if not scheduled:
@@ -915,8 +924,8 @@ async def generate_scheduled_report(report_type: str, recipients: List[str]):
         # Generate report based on type
         if report_type == "supplier_performance":
             # Get latest supplier metrics
-            metrics = db.query(SupplierPerformanceMetrics).filter(
-                SupplierPerformanceMetrics.period_end >= date.today() - timedelta(days=35)
+            metrics = db.query(SupplierPerformanceMetric).filter(
+                SupplierPerformanceMetric.period_end >= date.today() - timedelta(days=35)
             ).all()
             
             # Create report data

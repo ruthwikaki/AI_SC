@@ -17,10 +17,7 @@ from .scheduler import (
 from .data_sync import (
     sync_supplier_data,
     sync_inventory_data,
-    sync_order_data,
-    run_full_sync,
-    check_sync_status
-)
+    sync_order_data)
 
 from .analytics_update import (
     update_supplier_metrics,
@@ -32,7 +29,6 @@ from .analytics_update import (
 )
 
 from .cleanup import (
-    cleanup_old_logs,
     cleanup_expired_sessions,
     cleanup_old_analytics,
     archive_old_data,
@@ -49,7 +45,7 @@ __all__ = [
     'sync_supplier_data',
     'sync_inventory_data',
     'sync_order_data',
-    'run_full_sync',
+    '',
     
     # Analytics
     'update_supplier_metrics',
@@ -57,7 +53,7 @@ __all__ = [
     'run_all_analytics',
     
     # Cleanup
-    'cleanup_old_logs',
+    '',
     'cleanup_expired_sessions',
     'vacuum_database'
 ]

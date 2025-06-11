@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Request, Depends, HTTPException, status
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
@@ -27,6 +27,10 @@ from app.api.routes import (
     export,
     analytics_enhanced,
     reference_data
+,
+    settings
+,
+    settings
 )
 
 from app.api.middleware.auth import JWTAuthMiddleware, AdminOnlyMiddleware
@@ -63,22 +67,22 @@ async def lifespan(app: FastAPI):
     
     # Log all loaded routes
     logger.info("API Routes loaded:")
-    logger.info("  ✓ Authentication & Authorization")
-    logger.info("  ✓ AI-Powered Natural Language Queries")
-    logger.info("  ✓ Dynamic Visualizations")
-    logger.info("  ✓ Advanced Analytics")
-    logger.info("  ✓ Multi-tier Supply Chain Analysis")
-    logger.info("  ✓ Custom Dashboards")
-    logger.info("  ✓ Automated Reports")
-    logger.info("  ✓ Data Export")
-    logger.info("  ✓ System Settings")
-    logger.info("  ✓ Admin Panel")
-    logger.info("  ✓ Database Management")
-    logger.info("  ✓ Reference Data")
-    logger.info("  ✓ AI Suggestions")
+    logger.info("  ? Authentication & Authorization")
+    logger.info("  ? AI-Powered Natural Language Queries")
+    logger.info("  ? Dynamic Visualizations")
+    logger.info("  ? Advanced Analytics")
+    logger.info("  ? Multi-tier Supply Chain Analysis")
+    logger.info("  ? Custom Dashboards")
+    logger.info("  ? Automated Reports")
+    logger.info("  ? Data Export")
+    logger.info("  ? System Settings")
+    logger.info("  ? Admin Panel")
+    logger.info("  ? Database Management")
+    logger.info("  ? Reference Data")
+    logger.info("  ? AI Suggestions")
     
     logger.info("="*60)
-    logger.info("🚀 AI-Powered Supply Chain System Ready!")
+    logger.info("?? AI-Powered Supply Chain System Ready!")
     logger.info("="*60)
     
     yield
@@ -102,13 +106,13 @@ app = FastAPI(
     AI-Powered Supply Chain Management API with Natural Language Processing
     
     Features:
-    - 🤖 Natural language to SQL query generation using LLMs
-    - 📊 Automatic visualization generation
-    - 🔍 Advanced analytics and forecasting
-    - 🕸️ Multi-tier supply chain network analysis
-    - 📈 Custom dashboard builder
-    - 🔄 Real-time data synchronization
-    - 🔐 Enterprise-grade security
+    - ?? Natural language to SQL query generation using LLMs
+    - ?? Automatic visualization generation
+    - ?? Advanced analytics and forecasting
+    - ??? Multi-tier supply chain network analysis
+    - ?? Custom dashboard builder
+    - ?? Real-time data synchronization
+    - ?? Enterprise-grade security
     
     Powered by Deepseek-Coder LLM for intelligent query understanding.
     """,
@@ -303,7 +307,7 @@ app.include_router(dashboards.router)  # Has its own /api prefix
 # Utilities and configuration
 app.include_router(suggestions.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
-app.include_router(settings.router, prefix="/api")
+# # app.include_router(settings.router, prefix="/api")  # TODO: Fix settings router  # TODO: Fix settings router
 app.include_router(reference_data.router, prefix="/api")
 
 # Admin functionality

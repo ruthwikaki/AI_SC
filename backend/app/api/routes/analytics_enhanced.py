@@ -14,7 +14,7 @@ from app.models.extended_models import ExtendedAnalyticsMetric as AnalyticsMetri
 from app.analytics.inventory_optimization.forecast_engine import ForecastEngine
 from app.analytics.logistics_analytics.delivery_analytics import DeliveryAnalytics
 from app.analytics.supplier_performance.scorecard import SupplierScorecard
-from app.get_cache().result_cache import ResultCache
+from app.cache.result_cache import ResultCache
 from app.utils.logger import get_logger
 
 

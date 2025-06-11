@@ -547,7 +547,7 @@ class SupplierPerformanceUpdate(BaseModel):
     lead_time_variance: Optional[float] = None
 
 
-class InventoryMetrics(BaseModel):
+class InventoryMetric(BaseModel):
     """Inventory metrics"""
     location_id: str
     product_id: Optional[UUID] = None
