@@ -1,4 +1,4 @@
-"""
+﻿"""
 Database initialization script
 Creates tables, indexes, and loads initial data
 """
@@ -23,7 +23,9 @@ from app.models import (
     Supplier, Product, Material, Inventory
 )
 from app.security.password_utils import hash_password
-from config import settings
+from app.config import get_settings
+
+settings = get_settings()
 
 logger = logging.getLogger(__name__)
 

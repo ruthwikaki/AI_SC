@@ -1,4 +1,4 @@
-"""
+﻿"""
 Configuration loader.
 
 This module provides functions for loading and accessing application settings.
@@ -19,30 +19,21 @@ class Settings(BaseSettings):
     """Application settings."""
     
     # General settings
-    TIMEZONE: str = "UTC"
     app_name: str = "Supply Chain LLM API"
     api_version: str = "1.0.0"
     environment: str = "development"
     debug: bool = False
-    enable_scheduler: bool = Field(default=True, description='Enable job scheduler')
     
     # Server settings
     host: str = "0.0.0.0"
     port: int = 8000
     uvicorn_workers: int = 1
     allowed_hosts: List[str] = ["*"]
-    cors_origins: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:3001", 
-        "http://localhost:3002",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:3002"
-    ]
+    cors_origins: List[str] = ["*"]
     
-    # Database settings - FIXED: Using Field with validation_alias for env mapping
+    # Database settings - FIXED: Using correct database name
     database_url: str = Field(
-        default="postgresql://postgres:123456789@localhost:5432/supplychain_AI",
+        default="postgresql://postgres:123456789@localhost:5432/Supplychain_AI",
         validation_alias="DATABASE_URL"
     )
     database_pool_size: int = 5
@@ -56,6 +47,16 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
+    
+    # Admin settings
+    admin_email: str = Field(
+        default="admin@example.com",
+        validation_alias="ADMIN_EMAIL"
+    )
+    admin_password: str = Field(
+        default="changeme123",
+        validation_alias="ADMIN_PASSWORD"
+    )
     
     # Encryption settings
     encryption_key: Optional[str] = Field(
@@ -99,77 +100,10 @@ class Settings(BaseSettings):
     # Template settings
     templates_dir: str = "app/llm/prompt/templates"
     
-    # Cache settings (updated for new ResultCache)
-    cache_type: str = "memory"  # memory, redis (kept for backward compatibility)
-    cache_redis_url: Optional[str] = None  # deprecated
-    cache_ttl: int = 300  # 5 minutes default
-    query_cache_ttl: int = 3600  # 1 hour for query results
-    
-    # Result Cache specific settings (NEW)
-    result_cache_size: int = Field(
-        default=200,  # MB
-        validation_alias="RESULT_CACHE_SIZE"
-    )
-    result_cache_ttl: int = Field(
-        default=300,  # seconds (5 minutes)
-        validation_alias="RESULT_CACHE_TTL"
-    )
-    max_result_size: int = Field(
-        default=10 * 1024 * 1024,  # 10MB in bytes
-        validation_alias="MAX_RESULT_SIZE"
-    )
-    result_cache_dir: Optional[str] = Field(
-        default="./cache/results",
-        validation_alias="RESULT_CACHE_DIR"
-    )
-    compress_result_cache: bool = Field(
-        default=True,
-        validation_alias="COMPRESS_RESULT_CACHE"
-    )
-    
-    # Redis settings (deprecated - kept for backward compatibility)
-    redis_host: str = Field(
-        default="localhost",
-        validation_alias="REDIS_HOST"
-    )
-    redis_port: int = Field(
-        default=6379,
-        validation_alias="REDIS_PORT"
-    )
-    redis_db: int = Field(
-        default=0,
-        validation_alias="REDIS_DB"
-    )
-    
-    # Analytics settings
-    max_forecast_periods: int = Field(
-        default=24,
-        validation_alias="MAX_FORECAST_PERIODS"
-    )
-    default_confidence_level: float = Field(
-        default=0.95,
-        validation_alias="DEFAULT_CONFIDENCE_LEVEL"
-    )
-    
-    # Export settings
-    export_directory: str = Field(
-        default="./exports",
-        validation_alias="EXPORT_DIRECTORY"
-    )
-    max_export_size_mb: int = Field(
-        default=100,
-        validation_alias="MAX_EXPORT_SIZE_MB"
-    )
-    
-    # Report settings
-    report_directory: str = Field(
-        default="./reports",
-        validation_alias="REPORT_DIRECTORY"
-    )
-    report_retention_days: int = Field(
-        default=30,
-        validation_alias="REPORT_RETENTION_DAYS"
-    )
+    # Cache settings
+    cache_type: str = "memory"  # memory, redis
+    cache_redis_url: Optional[str] = None
+    cache_ttl: int = 3600  # seconds
     
     # Client settings
     default_client_id: Optional[str] = None
@@ -188,15 +122,13 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = None
     email_sender: str = "noreply@example.com"
     
-    # FIXED: Using Pydantic v2 ConfigDict
     model_config = ConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore"  # This prevents "extra inputs are not permitted" error
+        extra="ignore"
     )
     
-    # FIXED: Updated validators to Pydantic v2 syntax
     @field_validator("environment")
     @classmethod
     def validate_environment(cls, v):
@@ -229,46 +161,6 @@ class Settings(BaseSettings):
         """Validate JWT secret key."""
         if info.data.get("environment") == "production" and v == "CHANGE_THIS_IN_PRODUCTION":
             raise ValueError("Production environment requires a secure JWT secret key")
-        return v
-    
-    @field_validator("default_confidence_level")
-    @classmethod
-    def validate_confidence_level(cls, v):
-        """Validate confidence level is between 0 and 1."""
-        if not 0 <= v <= 1:
-            raise ValueError("default_confidence_level must be between 0 and 1")
-        return v
-    
-    @field_validator("max_export_size_mb")
-    @classmethod
-    def validate_export_size(cls, v):
-        """Validate export size is positive."""
-        if v <= 0:
-            raise ValueError("max_export_size_mb must be positive")
-        return v
-    
-    @field_validator("result_cache_size")
-    @classmethod
-    def validate_cache_size(cls, v):
-        """Validate cache size is positive."""
-        if v <= 0:
-            raise ValueError("result_cache_size must be positive")
-        return v
-    
-    @field_validator("result_cache_ttl")
-    @classmethod
-    def validate_cache_ttl(cls, v):
-        """Validate cache TTL is positive."""
-        if v <= 0:
-            raise ValueError("result_cache_ttl must be positive")
-        return v
-    
-    @field_validator("max_result_size")
-    @classmethod
-    def validate_result_size(cls, v):
-        """Validate max result size is positive."""
-        if v <= 0:
-            raise ValueError("max_result_size must be positive")
         return v
 
 @lru_cache()
