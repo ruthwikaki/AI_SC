@@ -1,4 +1,4 @@
-import api from './api';
+﻿import api from './api';
 
 const queryService = {
   /**
@@ -9,7 +9,7 @@ const queryService = {
    */
   executeQuery: async (queryText, options = {}) => {
     try {
-      const response = await api.post('/queries/execute', {
+      const response = await api.post('/api/queries/natural-language', {
         query: queryText,
         ...options,
       });
@@ -41,7 +41,7 @@ const queryService = {
    */
   saveQuery: async (queryData) => {
     try {
-      const response = await api.post('/queries/save', queryData);
+      const response = await api.post('/api/queries/save', queryData);
       return response;
     } catch (error) {
       throw error;
@@ -69,7 +69,7 @@ const queryService = {
    */
   getRecentQueries: async (limit = 10) => {
     try {
-      const response = await api.get('/queries/recent', {
+      const response = await api.get('/api/queries/recent', {
         params: { limit },
       });
       
@@ -85,7 +85,7 @@ const queryService = {
    */
   getSavedQueries: async () => {
     try {
-      const response = await api.get('/queries/saved');
+      const response = await api.get('/api/queries/saved');
       return response.queries || [];
     } catch (error) {
       throw error;
@@ -99,7 +99,7 @@ const queryService = {
    */
   getQuerySuggestions: async (category = 'all') => {
     try {
-      const response = await api.get('/queries/suggestions', {
+      const response = await api.get('/api/queries/suggestions', {
         params: { category },
       });
       
@@ -117,7 +117,7 @@ const queryService = {
    */
   generateChart: async (queryResult, chartType = 'auto') => {
     try {
-      const response = await api.post('/visualizations/generate', {
+      const response = await api.post('/api/visualizations/generate', {
         data: queryResult,
         chart_type: chartType,
       });
@@ -134,7 +134,7 @@ const queryService = {
    */
   analyzeSchema: async () => {
     try {
-      const response = await api.get('/database/analyze');
+      const response = await api.get('/api/database/analyze');
       return response;
     } catch (error) {
       throw error;
@@ -147,7 +147,7 @@ const queryService = {
    */
   getTables: async () => {
     try {
-      const response = await api.get('/database/tables');
+      const response = await api.get('/api/database/tables');
       return response.tables || [];
     } catch (error) {
       throw error;
@@ -193,7 +193,7 @@ const queryService = {
    */
   executeSqlQuery: async (sqlQuery) => {
     try {
-      const response = await api.post('/queries/sql', {
+      const response = await api.post('/api/queries/sql', {
         query: sqlQuery,
       });
       
@@ -205,3 +205,4 @@ const queryService = {
 };
 
 export default queryService;
+

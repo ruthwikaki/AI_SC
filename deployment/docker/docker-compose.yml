@@ -1,4 +1,4 @@
-# docker-compose.yml
+﻿# docker-compose.yml
 
 version: '3.8'
 
@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-123456789}
-      POSTGRES_DB: ${DB_NAME:-supplychain_AI}
+      POSTGRES_DB: ${DB_NAME:-Supplychain_AI}
       POSTGRES_INITDB_ARGS: "-E UTF8"
     ports:
       - "${DB_PORT:-5432}:5432"
@@ -21,7 +21,7 @@ services:
     networks:
       - ssa-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-supplychain_AI}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-Supplychain_AI}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,7 +64,7 @@ services:
         condition: service_healthy
     environment:
       # Database
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-123456789}@db:5432/${DB_NAME:-supplychain_AI}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-123456789}@db:5432/${DB_NAME:-Supplychain_AI}
       REDIS_URL: redis://:${REDIS_PASSWORD:-ssa_redis_password}@redis:6379/0
       
       # Application
@@ -115,7 +115,7 @@ services:
     environment:
       MODELS_DIR: /app/models
       CONFIG_DIR: /app/config
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-123456789}@db:5432/${DB_NAME:-supplychain_AI}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-123456789}@db:5432/${DB_NAME:-Supplychain_AI}
       REDIS_URL: redis://:${REDIS_PASSWORD:-ssa_redis_password}@redis:6379/1
       MODEL_CACHE_DIR: /app/model_cache
       ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -180,7 +180,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-123456789}@db:5432/${DB_NAME:-supplychain_AI}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-123456789}@db:5432/${DB_NAME:-Supplychain_AI}
       REDIS_URL: redis://:${REDIS_PASSWORD:-ssa_redis_password}@redis:6379/0
       SCHEDULER_ENABLED: "true"
       ENVIRONMENT: ${ENVIRONMENT:-development}

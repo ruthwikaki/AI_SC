@@ -1,17 +1,17 @@
-// frontend/src/services/dashboards.js
+﻿// frontend/src/services/dashboards.js
 import api from './api';
 
 export const dashboardsService = {
   // Dashboard CRUD
   getDashboards: async (shared = null) => {
-    const response = await api.get('/api/dashboards', { 
+    const response = await api.get('/api/api/dashboards', { 
       params: { shared } 
     });
     return response.data;
   },
 
   createDashboard: async (dashboardData) => {
-    const response = await api.post('/api/dashboards', dashboardData);
+    const response = await api.post('/api/api/dashboards', dashboardData);
     return response.data;
   },
 
@@ -48,7 +48,7 @@ export const dashboardsService = {
 
   // Widget Types
   getWidgetTypes: async () => {
-    const response = await api.get('/api/dashboards/widget-types');
+    const response = await api.get('/api/api/dashboards/widget-types');
     return response.data;
   }
 };

@@ -24,9 +24,25 @@ export const CardTitle = ({ className = '', children, ...props }) => {
   );
 };
 
+export const CardDescription = ({ className = '', children, ...props }) => {
+  return (
+    <p className={`text-sm text-gray-600 ${className}`} {...props}>
+      {children}
+    </p>
+  );
+};
+
 export const CardContent = ({ className = '', children, ...props }) => {
   return (
     <div className={`px-6 py-4 ${className}`} {...props}>
+      {children}
+    </div>
+  );
+};
+
+export const CardFooter = ({ className = '', children, ...props }) => {
+  return (
+    <div className={`px-6 py-4 border-t border-gray-200 ${className}`} {...props}>
       {children}
     </div>
   );

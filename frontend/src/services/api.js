@@ -1,4 +1,4 @@
-// frontend/src/services/api.js
+﻿// frontend/src/services/api.js
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -9,8 +9,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
-});
+  });
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -221,3 +220,4 @@ export const createWebSocketConnection = (endpoint) => {
 };
 
 export default api;
+

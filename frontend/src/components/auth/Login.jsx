@@ -1,135 +1,134 @@
-﻿// frontend/src/components/auth/Login.jsx
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { Button } from '../ui/button';
+import { useAuth } from '../../hooks/useAuth';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
-import authService from '../../services/auth';
-import { Loader2, LogIn } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [credentials, setCredentials] = useState({
-    username: '',
+  const { login } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
     password: ''
   });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setLoading(true);
+
+    console.log('Login form data:', formData); // Debug log
 
     try {
-      // Fix: Call auth.login with the correct parameters
-      const response = await authService.login(
-        credentials.username,  // email parameter
-        credentials.password,  // password parameter
-        true                  // rememberMe parameter (optional)
-      );
-      
-      // The auth.login function already handles token storage
-      // Just redirect to dashboard
+      await login(formData);
       navigate('/dashboard');
-      
     } catch (err) {
       console.error('Login error:', err);
-      console.error('Error response:', err.response?.data);  // Added for debugging
-      setError(
-        err.response?.data?.detail || 
-        err.response?.data?.message || 
-        'Failed to login. Please check your credentials.'
-      );
+      console.error('Error response:', err.response?.data);
+      
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError('Login failed. Please check your credentials and try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-          <p className="text-sm text-gray-600 mt-2">
-            Access your supply chain dashboard
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{' '}
+            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              create a new account
+            </Link>
           </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                Username or Email
-              </label>
-              <Input
-                id="username"
-                type="text"
-                required
-                value={credentials.username}
-                onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-                placeholder="Enter your username or email"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={credentials.password}
-                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                placeholder="Enter your password"
-                disabled={loading}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !credentials.username || !credentials.password}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
-                </>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>Enter your credentials to access the supply chain dashboard</CardDescription>
+          </CardHeader>
+          
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-            </Button>
-
-            <div className="text-center mt-4">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
-                <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
-                  Sign up
-                </Link>
-              </p>
-            </div>
-
-            {/* Add this for testing - remove in production */}
-            <div className="text-center mt-4 text-xs text-gray-500">
-              <p>Test credentials:</p>
-              <p>Username: admin@supplychain.com</p>
-              <p>Password: admin123</p>
-            </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="test@example.com"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                />
+              </div>
+            </CardContent>
+            
+            <CardFooter>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </CardFooter>
           </form>
-        </CardContent>
-      </Card>
+        </Card>
+        
+        <div className="text-center text-sm text-gray-600">
+          <p>Test credentials:</p>
+          <p className="font-mono">Email: test@example.com</p>
+          <p className="font-mono">Password: password123</p>
+        </div>
+      </div>
     </div>
   );
 };

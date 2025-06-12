@@ -16,6 +16,7 @@ import dotenv
 dotenv.load_dotenv()
 
 class Settings(BaseSettings):
+    cors_origins: list = ["http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3001", "http://127.0.0.1:5173"]
     """Application settings."""
     
     # General settings
@@ -235,3 +236,5 @@ def get_environment_variables(prefix: str = "APP_") -> Dict[str, str]:
         for k, v in os.environ.items()
         if k.startswith(prefix)
     }
+
+

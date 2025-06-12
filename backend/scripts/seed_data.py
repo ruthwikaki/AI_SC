@@ -1,4 +1,4 @@
-
+﻿
 import os
 import sys
 import random
@@ -38,7 +38,7 @@ def seed_database():
     session = Session()
     try:
         result = session.execute(text("SELECT 1"))
-        logger.info("✓ Database connection successful")
+        logger.info("âœ“ Database connection successful")
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
         return
@@ -112,7 +112,7 @@ def seed_database():
                 )
                 created_inventory += 1
             
-            logger.info(f"  ✓ Created {created_inventory} inventory records")
+            logger.info(f"  âœ“ Created {created_inventory} inventory records")
             session.commit()
     except Exception as e:
         logger.error(f"Error seeding inventory: {e}")
@@ -168,7 +168,7 @@ def seed_database():
                     )
                     order_ids.append(order_id)
                 
-                logger.info(f"  ✓ Created {len(order_ids)} orders")
+                logger.info(f"  âœ“ Created {len(order_ids)} orders")
                 session.commit()
     except Exception as e:
         logger.error(f"Error seeding orders: {e}")
@@ -216,7 +216,7 @@ def seed_database():
                     )
                     created_items += 1
             
-            logger.info(f"  ✓ Created {created_items} order items")
+            logger.info(f"  âœ“ Created {created_items} order items")
             session.commit()
     except Exception as e:
         logger.error(f"Error seeding order items: {e}")
@@ -228,7 +228,7 @@ def seed_database():
     session = Session()
     try:
         logger.info("\n" + "="*60)
-        logger.info("✅ DATABASE SEEDING COMPLETED!")
+        logger.info("âœ… DATABASE SEEDING COMPLETED!")
         logger.info("="*60)
         
         total_users = session.execute(text("SELECT COUNT(*) FROM users")).scalar()
@@ -240,15 +240,15 @@ def seed_database():
         total_queries = session.execute(text("SELECT COUNT(*) FROM natural_language_queries")).scalar()
         
         logger.info("\nDatabase Summary:")
-        logger.info(f"  • Users: {total_users}")
-        logger.info(f"  • Suppliers: {total_suppliers}")
-        logger.info(f"  • Products: {total_products}")
-        logger.info(f"  • Inventory: {total_inventory} records")
-        logger.info(f"  • Orders: {total_orders}")
-        logger.info(f"  • Order Items: {total_order_items}")
-        logger.info(f"  • Natural Language Queries: {total_queries}")
+        logger.info(f"  â€¢ Users: {total_users}")
+        logger.info(f"  â€¢ Suppliers: {total_suppliers}")
+        logger.info(f"  â€¢ Products: {total_products}")
+        logger.info(f"  â€¢ Inventory: {total_inventory} records")
+        logger.info(f"  â€¢ Orders: {total_orders}")
+        logger.info(f"  â€¢ Order Items: {total_order_items}")
+        logger.info(f"  â€¢ Natural Language Queries: {total_queries}")
         
-        logger.info("\n🎉 Your Supply Chain AI database is ready for testing!")
+        logger.info("\nðŸŽ‰ Your Supply Chain AI database is ready for testing!")
         logger.info("\nNext steps:")
         logger.info("1. Go back to backend directory: cd ..")
         logger.info("2. Start the server: python main.py")

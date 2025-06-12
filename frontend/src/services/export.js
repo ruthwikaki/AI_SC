@@ -1,16 +1,16 @@
-// frontend/src/services/export.js
+﻿// frontend/src/services/export.js
 import api from './api';
 
 export const exportService = {
   // Create Export
   createExport: async (exportData) => {
-    const response = await api.post('/api/export/create', exportData);
+    const response = await api.post('/api/api/export/create', exportData);
     return response.data;
   },
 
   // Get Export Jobs
   getExportJobs: async (params = {}) => {
-    const response = await api.get('/api/export/jobs', { params });
+    const response = await api.get('/api/api/export/jobs', { params });
     return response.data;
   },
 
@@ -24,7 +24,7 @@ export const exportService = {
 
   // Quick Export
   quickExport: async (exportData, format = 'csv') => {
-    const response = await api.post('/api/export/quick-export', exportData, {
+    const response = await api.post('/api/api/export/quick-export', exportData, {
       params: { format },
       responseType: 'blob'
     });
@@ -33,7 +33,7 @@ export const exportService = {
 
   // Get Export Templates
   getExportTemplates: async (category = null) => {
-    const response = await api.get('/api/export/templates', {
+    const response = await api.get('/api/api/export/templates', {
       params: { category }
     });
     return response.data;

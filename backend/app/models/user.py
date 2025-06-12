@@ -64,7 +64,13 @@ class User(Base):
     sessions = relationship('UserSession', back_populates='user', cascade='all, delete-orphan')
     preferences = relationship('UserPreference', back_populates='user', uselist=False, cascade='all, delete-orphan')
     password_reset_tokens = relationship('PasswordResetToken', back_populates='user', cascade='all, delete-orphan')
-    roles = relationship('Role', secondary=user_roles, back_populates='users')
+    roles = relationship(
+        "Role",
+        secondary="user_roles",
+        back_populates="users",
+        primaryjoin="User.id==user_roles.c.user_id",
+        secondaryjoin="Role.id==user_roles.c.role_id"
+    )
     
     # Self-referential relationships
     created_by_user = relationship('User', foreign_keys=[created_by], remote_side=[id])
@@ -226,7 +232,13 @@ class Permission(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    roles = relationship('Role', secondary=role_permissions, back_populates='permissions')
+    roles = relationship(
+        "Role",
+        secondary="user_roles",
+        back_populates="users",
+        primaryjoin="User.id==user_roles.c.user_id",
+        secondaryjoin="Role.id==user_roles.c.role_id"
+    )
     
     # Constraints
     __table_args__ = (
