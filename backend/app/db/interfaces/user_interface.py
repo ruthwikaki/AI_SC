@@ -10,26 +10,26 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
+# Simple User model class
 class User:
-    """User model class to match the database schema"""
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    def __init__(self, id, username, email, hashed_password, role, is_active, client_id=None):
+        self.id = id
+        self.username = username
+        self.email = email
+        self.hashed_password = hashed_password
+        self.role = role
+        self.is_active = is_active
+        self.client_id = client_id
 
 class UserInterface:
     """Interface for user-related database operations"""
     
-    def __init__(self, db: Optional[Session] = None, admin_db_client_id: Optional[str] = None):
-        # Import here to avoid circular imports
-        if db is None:
-            from app.db.database import get_db
-            self.db = next(get_db())
-        else:
-            self.db = db
+    def __init__(self, db: Session, admin_db_client_id: Optional[str] = None):
+        self.db = db
         self.admin_db_client_id = admin_db_client_id
     
     def get_user_by_username(self, username: str) -> Optional[User]:
-        """Get user by username - required for authentication"""
+        """Get user by username - SYNCHRONOUS"""
         try:
             result = self.db.execute(
                 text("SELECT * FROM users WHERE username = :username"),
@@ -41,13 +41,10 @@ class UserInterface:
                     id=str(result.id),
                     username=result.username,
                     email=result.email,
-                    hashed_password=result.password_hash,  # Map password_hash to hashed_password
-                    first_name=getattr(result, 'first_name', ''),
-                    last_name=getattr(result, 'last_name', ''),
+                    hashed_password=result.hashed_password,
                     role=getattr(result, 'role', 'user'),
                     is_active=getattr(result, 'is_active', True),
-                    created_at=getattr(result, 'created_at', None),
-                    updated_at=getattr(result, 'updated_at', None)
+                    client_id=getattr(result, 'client_id', None)
                 )
             return None
         except Exception as e:
@@ -55,7 +52,7 @@ class UserInterface:
             return None
     
     def get_user_by_email(self, email: str) -> Optional[User]:
-        """Get user by email - required for registration check"""
+        """Get user by email - SYNCHRONOUS"""
         try:
             result = self.db.execute(
                 text("SELECT * FROM users WHERE email = :email"),
@@ -67,96 +64,18 @@ class UserInterface:
                     id=str(result.id),
                     username=result.username,
                     email=result.email,
-                    hashed_password=result.password_hash,  # Map password_hash to hashed_password
-                    first_name=getattr(result, 'first_name', ''),
-                    last_name=getattr(result, 'last_name', ''),
+                    hashed_password=result.hashed_password,
                     role=getattr(result, 'role', 'user'),
                     is_active=getattr(result, 'is_active', True),
-                    created_at=getattr(result, 'created_at', None),
-                    updated_at=getattr(result, 'updated_at', None)
+                    client_id=getattr(result, 'client_id', None)
                 )
             return None
         except Exception as e:
             logger.error(f"Error getting user by email: {e}")
             return None
     
-    def create_user(self, username: str, email: str, hashed_password: str, 
-                         role: str = "user", client_id: Optional[str] = None) -> User:
-        """Create a new user - required for registration"""
-        try:
-            user_id = str(uuid.uuid4())
-            
-            user_data = {
-                "id": user_id,
-                "username": username,
-                "email": email,
-                "password_hash": hashed_password,  # Map hashed_password to password_hash
-                "role": role,
-                "is_active": True,
-                "created_at": datetime.now()
-            }
-            
-            self.db.execute(
-                text("""
-                INSERT INTO users (id, username, email, password_hash, role, is_active, created_at)
-                VALUES (:id, :username, :email, :password_hash, :role, :is_active, :created_at)
-                """),
-                user_data
-            )
-            
-            self.db.commit()
-            logger.info(f"Created new user: {username}")
-            
-            return User(
-                id=user_id,
-                username=username,
-                email=email,
-                hashed_password=hashed_password,
-                role=role,
-                is_active=True,
-                created_at=datetime.now()
-            )
-            
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"Error creating user: {e}")
-            raise e
-    
-    def update_user(self, user_id: str, update_data: Dict[str, Any]) -> Optional[User]:
-        """Update user data"""
-        try:
-            # Build dynamic update query
-            set_clauses = []
-            params = {"user_id": user_id, "updated_at": datetime.now()}
-            
-            for key, value in update_data.items():
-                # Map hashed_password to password_hash for database
-                db_key = "password_hash" if key == "hashed_password" else key
-                set_clauses.append(f"{db_key} = :{key}")
-                params[key] = value
-            
-            if not set_clauses:
-                return self.get_user_by_id(user_id)
-            
-            query = f"""
-            UPDATE users 
-            SET {', '.join(set_clauses)}, updated_at = :updated_at
-            WHERE id = :user_id
-            """
-            
-            self.db.execute(text(query), params)
-            self.db.commit()
-            
-            logger.info(f"Updated user: {user_id}")
-            return self.get_user_by_id(user_id)
-            
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"Error updating user: {e}")
-            return None
-    
     def get_user_by_id(self, user_id: str) -> Optional[User]:
-        """Get user by ID"""
+        """Get user by ID - SYNCHRONOUS"""
         try:
             result = self.db.execute(
                 text("SELECT * FROM users WHERE id = :user_id"),
@@ -168,40 +87,110 @@ class UserInterface:
                     id=str(result.id),
                     username=result.username,
                     email=result.email,
-                    hashed_password=result.password_hash,  # Map password_hash to hashed_password
-                    first_name=getattr(result, 'first_name', ''),
-                    last_name=getattr(result, 'last_name', ''),
+                    hashed_password=result.hashed_password,
                     role=getattr(result, 'role', 'user'),
                     is_active=getattr(result, 'is_active', True),
-                    created_at=getattr(result, 'created_at', None),
-                    updated_at=getattr(result, 'updated_at', None)
+                    client_id=getattr(result, 'client_id', None)
                 )
             return None
         except Exception as e:
-            logger.error(f"Error getting user by ID: {e}")
+            logger.error(f"Error getting user by id: {e}")
             return None
     
-    # Existing methods for dashboard functionality
-    def get_user_dashboard_preferences(self, user_id: str) -> Dict[str, Any]:
-        """Get user's dashboard preferences"""
+    def create_user(self, username: str, email: str, hashed_password: str, 
+                   role: str = "user", client_id: Optional[str] = None) -> Optional[User]:
+        """Create a new user - SYNCHRONOUS"""
+        try:
+            user_id = str(uuid.uuid4())
+            
+            self.db.execute(
+                text("""
+                INSERT INTO users (id, username, email, hashed_password, role, is_active, client_id, created_at)
+                VALUES (:id, :username, :email, :hashed_password, :role, :is_active, :client_id, :created_at)
+                """),
+                {
+                    "id": user_id,
+                    "username": username,
+                    "email": email,
+                    "hashed_password": hashed_password,
+                    "role": role,
+                    "is_active": True,
+                    "client_id": client_id,
+                    "created_at": datetime.now()
+                }
+            )
+            self.db.commit()
+            
+            return User(
+                id=user_id,
+                username=username,
+                email=email,
+                hashed_password=hashed_password,
+                role=role,
+                is_active=True,
+                client_id=client_id
+            )
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error creating user: {e}")
+            return None
+    
+    def update_user(self, user_id: str, update_data: Dict[str, Any]) -> Optional[User]:
+        """Update user data - SYNCHRONOUS"""
+        try:
+            # Build update query dynamically
+            set_clauses = []
+            params = {"user_id": user_id}
+            
+            for key, value in update_data.items():
+                if key in ["email", "password_hash", "role", "is_active"]:
+                    set_clauses.append(f"{key} = :{key}")
+                    params[key] = value
+            
+            if not set_clauses:
+                return None
+            
+            query = f"""
+                UPDATE users 
+                SET {', '.join(set_clauses)}, updated_at = :updated_at
+                WHERE id = :user_id
+            """
+            
+            params["updated_at"] = datetime.now()
+            
+            self.db.execute(text(query), params)
+            self.db.commit()
+            
+            return self.get_user_by_id(user_id)
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error updating user: {e}")
+            return None
+    
+    # Async methods for other operations
+    async def get_user_dashboard_preferences(self, user_id: str) -> Dict[str, Any]:
+        """Get user's dashboard preferences - ASYNC"""
         try:
             result = self.db.execute(
                 text("""
-                SELECT ui_preferences 
+                SELECT preference_value 
                 FROM user_preferences
-                WHERE user_id = :user_id
+                WHERE user_id = :user_id AND preference_key = 'dashboard_metrics'
                 """),
                 {"user_id": user_id}
             ).first()
             
-            if result and result.ui_preferences:
-                return result.ui_preferences
+            if result and result.preference_value:
+                pref_value = result.preference_value
+                if isinstance(pref_value, str):
+                    return json.loads(pref_value)
+                return pref_value
             
             # Return default preferences
             return {
                 "selected_metrics": [
                     "inventory_value",
-                    "order_fill_rate", 
+                    "order_fill_rate",
                     "on_time_delivery",
                     "supplier_performance"
                 ],
@@ -226,44 +215,49 @@ class UserInterface:
                 "time_frame": "last_month"
             }
     
-    def save_user_dashboard_preferences(self, user_id: str, preferences: Dict[str, Any]) -> bool:
-        """Save user's dashboard preferences"""
+    async def save_user_dashboard_preferences(
+        self, 
+        user_id: str, 
+        preferences: Dict[str, Any]
+    ) -> bool:
+        """Save user's dashboard preferences - ASYNC"""
         try:
-            # Check if user preferences exist
             check_result = self.db.execute(
-                text("SELECT id FROM user_preferences WHERE user_id = :user_id"),
+                text("""
+                SELECT id FROM user_preferences
+                WHERE user_id = :user_id AND preference_key = 'dashboard_metrics'
+                """),
                 {"user_id": user_id}
             ).first()
             
             if check_result:
-                # Update existing
                 self.db.execute(
                     text("""
                     UPDATE user_preferences
-                    SET ui_preferences = :preferences, updated_at = :updated_at
-                    WHERE user_id = :user_id
+                    SET preference_value = :value, updated_at = :updated_at
+                    WHERE user_id = :user_id AND preference_key = 'dashboard_metrics'
                     """),
                     {
                         "user_id": user_id,
-                        "preferences": json.dumps(preferences),
+                        "value": json.dumps(preferences),
                         "updated_at": datetime.now()
                     }
                 )
             else:
-                # Insert new
                 self.db.execute(
                     text("""
                     INSERT INTO user_preferences (
-                        id, user_id, ui_preferences, created_at
+                        id, user_id, preference_key, preference_value, created_at
                     )
                     VALUES (
-                        :id, :user_id, :preferences, :created_at
+                        :id, :user_id, :key, :value, :created_at
                     )
                     """),
                     {
                         "id": str(uuid.uuid4()),
                         "user_id": user_id,
-                        "preferences": json.dumps(preferences),
+                        "key": "dashboard_metrics",
+                        "value": json.dumps(preferences),
                         "created_at": datetime.now()
                     }
                 )
@@ -277,21 +271,20 @@ class UserInterface:
             logger.error(f"Error saving dashboard preferences: {str(e)}")
             return False
     
-    def get_user_accessible_metrics(self, user_id: str) -> List[str]:
-        """Get list of metrics accessible to the user based on their role"""
+    async def get_user_accessible_metrics(self, user_id: str) -> List[str]:
+        """Get list of metrics accessible to the user based on their role - ASYNC"""
         try:
-            user = self.get_user_by_id(user_id)
+            user = self.get_user_by_id(user_id)  # Use sync method
             if not user:
                 return []
             
             role = user.role
             
-            # Define metrics by role
             role_metrics = {
                 "admin": [
                     "inventory_value",
                     "order_fill_rate",
-                    "on_time_delivery", 
+                    "on_time_delivery",
                     "supplier_performance",
                     "total_revenue",
                     "cost_savings",

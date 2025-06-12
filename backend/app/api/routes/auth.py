@@ -1,4 +1,4 @@
-﻿# backend/app/api/routes/auth.py - WORKING VERSION
+# backend/app/api/routes/auth.py - WORKING VERSION
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -121,7 +121,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     user_interface = UserInterface(db)
     
     # Handle async method call
-    user = await user_interface.get_user_by_username(token_data.username)
+    user = user_interface.get_user_by_username(token_data.username)
     
     if user is None:
         logger.warning(f"User not found: {token_data.username}")
@@ -142,7 +142,7 @@ async def register_user(user_create: UserCreate, db: Session = Depends(get_db)):
     
     try:
         # Check if username already exists
-        existing_user = await user_interface.get_user_by_username(user_create.username)
+        existing_user = user_interface.get_user_by_username(user_create.username)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -150,7 +150,7 @@ async def register_user(user_create: UserCreate, db: Session = Depends(get_db)):
             )
         
         # Check if email already exists
-        existing_email = await user_interface.get_user_by_email(user_create.email)
+        existing_email = user_interface.get_user_by_email(user_create.email)
         if existing_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -161,7 +161,7 @@ async def register_user(user_create: UserCreate, db: Session = Depends(get_db)):
         password_hash = get_password_hash(user_create.password)
         
         # Create user in database
-        new_user = await user_interface.create_user(
+        new_user = user_interface.create_user(
             username=user_create.username,
             email=user_create.email,
             hashed_password=password_hash,
@@ -199,12 +199,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         logger.info(f"Login attempt for username: {form_data.username}")
         
         # Try to get user by username first, then by email
-        user = await user_interface.get_user_by_username(form_data.username)
+        user = user_interface.get_user_by_username(form_data.username)
         
         # If not found by username, try email
         if not user:
             logger.info(f"User not found by username, trying email: {form_data.username}")
-            user = await user_interface.get_user_by_email(form_data.username)
+            user = user_interface.get_user_by_email(form_data.username)
         
         # Debug logging
         if user:
@@ -312,7 +312,7 @@ async def update_user(
             update_data["password_hash"] = get_password_hash(update_data.pop("password"))
         
         # Update user in database
-        updated_user = await user_interface.update_user(current_user.id, update_data)
+        updated_user = user_interface.update_user(current_user.id, update_data)
         
         if not updated_user:
             raise HTTPException(
@@ -346,9 +346,9 @@ async def test_login(email: str, password: str, db: Session = Depends(get_db)):
     user_interface = UserInterface(db)
     
     # Try to find user
-    user = await user_interface.get_user_by_email(email)
+    user = user_interface.get_user_by_email(email)
     if not user:
-        user = await user_interface.get_user_by_username(email)
+        user = user_interface.get_user_by_username(email)
     
     result = {
         "user_found": user is not None,
