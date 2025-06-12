@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"Ollama URL: {os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')}")
     
     # Start background scheduler if enabled
-    if settings.enable_scheduler:
+    if hasattr(settings, "enable_scheduler") and settings.enable_scheduler:
         start_scheduler()
         logger.info("Background scheduler started")
     
@@ -91,7 +91,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Supply Chain AI-Powered API")
     
     # Stop scheduler if running
-    if settings.enable_scheduler:
+    if hasattr(settings, "enable_scheduler") and settings.enable_scheduler:
         stop_scheduler()
         logger.info("Background scheduler stopped")
     
