@@ -28,6 +28,29 @@ class UserInterface:
         self.db = db
         self.admin_db_client_id = admin_db_client_id
     
+    def _extract_password_hash(self, result) -> Optional[str]:
+        """Extract password hash from result, handling different column names"""
+        if not result:
+            return None
+            
+        # Try different possible column names
+        password_columns = ['hashed_password', 'password_hash', 'password', 'encrypted_password']
+        
+        for col in password_columns:
+            if hasattr(result, col):
+                return getattr(result, col)
+        
+        # If result is a dict-like object
+        try:
+            for col in password_columns:
+                if col in result:
+                    return result[col]
+        except:
+            pass
+            
+        logger.warning("No password column found in result")
+        return None
+    
     def get_user_by_username(self, username: str) -> Optional[User]:
         """Get user by username - SYNCHRONOUS"""
         try:
@@ -37,11 +60,13 @@ class UserInterface:
             ).first()
             
             if result:
+                password_hash = self._extract_password_hash(result)
+                
                 return User(
                     id=str(result.id),
                     username=result.username,
                     email=result.email,
-                    hashed_password=result.hashed_password,
+                    hashed_password=password_hash,
                     role=getattr(result, 'role', 'user'),
                     is_active=getattr(result, 'is_active', True),
                     client_id=getattr(result, 'client_id', None)
@@ -60,11 +85,13 @@ class UserInterface:
             ).first()
             
             if result:
+                password_hash = self._extract_password_hash(result)
+                
                 return User(
                     id=str(result.id),
                     username=result.username,
                     email=result.email,
-                    hashed_password=result.hashed_password,
+                    hashed_password=password_hash,
                     role=getattr(result, 'role', 'user'),
                     is_active=getattr(result, 'is_active', True),
                     client_id=getattr(result, 'client_id', None)
@@ -83,11 +110,13 @@ class UserInterface:
             ).first()
             
             if result:
+                password_hash = self._extract_password_hash(result)
+                
                 return User(
                     id=str(result.id),
                     username=result.username,
                     email=result.email,
-                    hashed_password=result.hashed_password,
+                    hashed_password=password_hash,
                     role=getattr(result, 'role', 'user'),
                     is_active=getattr(result, 'is_active', True),
                     client_id=getattr(result, 'client_id', None)
@@ -103,9 +132,23 @@ class UserInterface:
         try:
             user_id = str(uuid.uuid4())
             
-            self.db.execute(
+            # First, check which password column exists
+            columns_result = self.db.execute(
                 text("""
-                INSERT INTO users (id, username, email, hashed_password, role, is_active, client_id, created_at)
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'users' 
+                AND column_name IN ('hashed_password', 'password_hash', 'password')
+                """)
+            ).first()
+            
+            password_column = 'hashed_password'  # default
+            if columns_result:
+                password_column = columns_result[0]
+            
+            self.db.execute(
+                text(f"""
+                INSERT INTO users (id, username, email, {password_column}, role, is_active, client_id, created_at)
                 VALUES (:id, :username, :email, :hashed_password, :role, :is_active, :client_id, :created_at)
                 """),
                 {
@@ -142,8 +185,29 @@ class UserInterface:
             set_clauses = []
             params = {"user_id": user_id}
             
+            # Map password_hash to the correct column name
+            if "password_hash" in update_data:
+                # Check which password column exists
+                columns_result = self.db.execute(
+                    text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' 
+                    AND column_name IN ('hashed_password', 'password_hash', 'password')
+                    """)
+                ).first()
+                
+                password_column = 'hashed_password'  # default
+                if columns_result:
+                    password_column = columns_result[0]
+                
+                set_clauses.append(f"{password_column} = :password_hash")
+                params["password_hash"] = update_data["password_hash"]
+                update_data.pop("password_hash")
+            
+            # Handle other fields
             for key, value in update_data.items():
-                if key in ["email", "password_hash", "role", "is_active"]:
+                if key in ["email", "role", "is_active"]:
                     set_clauses.append(f"{key} = :{key}")
                     params[key] = value
             
