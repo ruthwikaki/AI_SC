@@ -1,6 +1,6 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Dict, Any
-from app.api.middleware.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.models.user import User
 
 router = APIRouter(prefix="/api/export", tags=["export"])
