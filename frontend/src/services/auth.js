@@ -1,119 +1,119 @@
-﻿console.log('AUTH.JS LOADED - FIXED VERSION');
+﻿// src/services/auth.js
 import api from './api';
 
-const authService = {
-  // Register new user
-  async register(userData) {
-    try {
-      const registrationData = {
-        username: userData.email.split('@')[0],
-        email: userData.email,
-        password: userData.password,
-      };
-      
-      const response = await api.post('/api/auth/register', registrationData);
-      return response.data;
-    } catch (error) {
-      console.error('Registration error:', error.response?.data);
-      if (error.response?.data?.detail) {
-        throw new Error(error.response.data.detail);
-      }
-      throw new Error('Registration failed. Please try again.');
-    }
-  },
+const AUTH_TOKEN_KEY = 'authToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+const USER_KEY = 'user';
 
-  // Login user
-  async login(email, password, rememberMe = true) {
+class AuthService {
+  async login(email, password) {
     try {
-      console.log('=== AUTH SERVICE LOGIN ===');
-      console.log('Email received:', email);
-      console.log('Password received:', password);
-      console.log('Email type:', typeof email);
+      console.log('Auth service - login attempt:', { email });
       
-      // Extract username from email
-      const username = email && typeof email === 'string' && email.includes('@') 
-        ? email.split('@')[0] 
-        : email;
-      
-      console.log('Extracted username:', username);
-      
+      // OAuth2PasswordRequestForm expects username and password
+      // We'll use email as username since that's what users enter
       const formData = new URLSearchParams();
-      formData.append('username', username);
+      formData.append('username', email);  // Send email as username
       formData.append('password', password);
-      
-      console.log('Sending to API:', formData.toString());
       
       const response = await api.post('/api/auth/token', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
+
+      console.log('Login successful:', response.data);
+
+      const { access_token, token_type, expires_at, user_id, role, permissions } = response.data;
+
+      // Store tokens
+      localStorage.setItem(AUTH_TOKEN_KEY, access_token);
       
-      console.log('Login successful!', response.data);
-      
-      if (response.data.access_token) {
-        const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem('authToken', response.data.access_token);
-        
-        if (response.data.refresh_token) {
-          storage.setItem('refreshToken', response.data.refresh_token);
-        }
-        
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
-        
-        // Get user details
-        const userResponse = await api.get('/api/auth/me');
-        const user = userResponse.data;
-        storage.setItem('user', JSON.stringify(user));
-        
-        return {
-          user,
-          token: response.data.access_token,
-          refreshToken: response.data.refresh_token
-        };
-      }
-      
-      throw new Error('Login failed - no access token received');
+      // Store user info
+      const user = {
+        id: user_id,
+        email: email,
+        role: role,
+        permissions: permissions || []
+      };
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+
+      return {
+        token: access_token,
+        user
+      };
     } catch (error) {
       console.error('Auth service - login error:', error);
       console.error('Error response:', error.response?.data);
       
       if (error.response?.status === 401) {
-        throw new Error(error.response.data?.detail || 'Invalid credentials');
+        throw new Error(error.response.data.detail || 'Invalid credentials');
       }
       
+      throw new Error('Login failed: ' + (error.response?.data?.detail || error.message));
+    }
+  }
+
+  async register(userData) {
+    try {
+      const response = await api.post('/api/auth/register', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw new Error(error.response?.data?.detail || 'Registration failed');
+    }
+  }
+
+  async logout() {
+    try {
+      await api.post('/api/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local storage regardless
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      sessionStorage.clear();
+    }
+  }
+
+  async getCurrentUser() {
+    try {
+      const response = await api.get('/api/auth/me');
+      return response.data;
+    } catch (error) {
+      console.error('Get current user error:', error);
       throw error;
     }
-  },
-
-  // Logout user
-  logout() {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('authToken');
-    sessionStorage.removeItem('refreshToken');
-    sessionStorage.removeItem('user');
-    delete api.defaults.headers.common['Authorization'];
-  },
-
-  // Get current user
-  getCurrentUser() {
-    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  },
-
-  // Check if authenticated
-  isAuthenticated() {
-    return !!(localStorage.getItem('authToken') || sessionStorage.getItem('authToken'));
   }
-};
 
-export default authService;
+  getStoredUser() {
+    const userStr = localStorage.getItem(USER_KEY);
+    return userStr ? JSON.parse(userStr) : null;
+  }
+
+  getToken() {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
+  }
+
+  isAuthenticated() {
+    return !!this.getToken();
+  }
+
+  hasPermission(permission) {
+    const user = this.getStoredUser();
+    return user?.permissions?.includes(permission) || false;
+  }
+
+  hasRole(role) {
+    const user = this.getStoredUser();
+    return user?.role === role;
+  }
+
+  isAdmin() {
+    return this.hasRole('admin');
+  }
+}
+
+export default new AuthService();

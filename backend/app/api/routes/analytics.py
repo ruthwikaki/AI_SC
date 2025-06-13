@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
@@ -24,7 +24,6 @@ from app.security.rbac_manager import check_permission
 from app.utils.logger import get_logger
 from app.db.schema.schema_discovery import discover_client_schema
 from app.llm.prompt.schema_provider import get_database_schema
-from app.llm.controller.active_model_manager import get_active_model
 from app.llm.prompt.template_manager import get_template
 from app.api.middleware.client_context import get_client_context
 
@@ -1162,7 +1161,6 @@ async def custom_analysis(
         schema_context = get_database_schema(schema)
         
         # Get active LLM model
-        llm_model = get_active_model()
         
         # Get prompt template
         template = get_template("custom_analysis")
@@ -1446,3 +1444,4 @@ async def get_dashboard_preferences(
             "preference_type": preference_type,
             "preferences": {}
         }
+

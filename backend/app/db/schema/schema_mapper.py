@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional, Tuple, Set
+﻿from typing import List, Dict, Any, Optional, Tuple, Set
 from datetime import datetime
 import asyncio
 import re
@@ -6,7 +6,6 @@ import json
 
 from app.utils.logger import get_logger
 from app.config import get_settings
-from app.llm.controller.active_model_manager import get_active_model
 from app.llm.prompt.template_manager import get_template
 
 # Initialize logger

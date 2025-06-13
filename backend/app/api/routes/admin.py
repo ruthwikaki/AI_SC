@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
@@ -11,7 +11,7 @@ from app.models.user import User as DBUser
 
 from app.security.rbac_manager import check_permission, get_role_permissions, update_role_permissions
 from app.security.audit_logger import get_audit_logs
-from app.llm.controller.active_model_manager import get_active_model, set_active_model, get_available_models
+from app.llm.config_manager import llm_config
 from app.utils.logger import get_logger
 from app.db.schema.schema_mapper import get_domain_mappings, update_domain_mappings
 from app.db.mirroring.change_monitor import get_sync_status, trigger_sync
@@ -1051,10 +1051,10 @@ async def get_models(
     
     try:
         # Get available models
-        models = get_available_models()
+        models = llm_config.get_full_config()['available_models']
         
         # Get active model
-        active_model = get_active_model()
+        active_model = llm_config.get_model_name()
         
         response = {
             "available_models": models,
@@ -1089,7 +1089,7 @@ async def set_active_model_endpoint(
     
     try:
         # Get available models
-        models = get_available_models()
+        models = llm_config.get_full_config()['available_models']
         
         # Check if model exists
         if model_name not in [m["name"] for m in models]:
@@ -1099,7 +1099,7 @@ async def set_active_model_endpoint(
             )
         
         # Set active model
-        success = set_active_model(model_name)
+        success = llm_config.update_model(model_name, request.headers.get("admin-password", ""))
         
         if not success:
             raise HTTPException(
