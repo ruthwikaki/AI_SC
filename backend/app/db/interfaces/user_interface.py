@@ -1,5 +1,6 @@
 ﻿# app/db/interfaces/user_interface.py
 from typing import Dict, Any, Optional, List
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime
@@ -8,6 +9,21 @@ import uuid
 import logging
 
 # Setup logger
+
+# User model class
+class User(BaseModel):
+    """User model for authentication"""
+    id: str
+    username: str
+    email: str
+    role: str
+    is_active: bool = True
+    client_id: Optional[str] = None
+    hashed_password: Optional[str] = None
+    
+    class Config:
+        orm_mode = True
+
 logger = logging.getLogger(__name__)
 
 # Simple User model class

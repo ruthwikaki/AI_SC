@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query
 from fastapi.responses import FileResponse
 from typing import Dict, Any, Optional, List, Union
 from pydantic import BaseModel
@@ -16,6 +16,7 @@ from app.visualization.chart_generators.network_graph import generate_network_gr
 from app.visualization.recommendation_engine import recommend_chart_type
 from app.visualization.export_manager import export_chart
 from app.utils.logger import get_logger
+from app.db.interfaces.user_interface import User
 from app.models.user import User
 
 from app.api.routes.auth import get_current_active_user
