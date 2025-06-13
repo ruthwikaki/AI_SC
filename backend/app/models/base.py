@@ -1,5 +1,10 @@
-﻿"""Shared database base for all models"""
+"""
+Base model for all database models
+"""
 from sqlalchemy.ext.declarative import declarative_base
 
-# Single shared Base for all models
+# Create a single Base instance to be used by all models
 Base = declarative_base()
+
+# Metadata for the database
+metadata = Base.metadata

@@ -1,4 +1,4 @@
-# app/models/extended_models.py
+# backend/app/models/extended_models.py
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, JSON, ForeignKey, Text, Enum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -23,9 +23,9 @@ class ForecastModel(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
-# Renamed from AnalyticsMetric to ExtendedAnalyticsMetric to avoid conflict
+# This is the AnalyticsMetric referenced by User model
 class ExtendedAnalyticsMetric(Base):
-    __tablename__ = "extended_analytics_metrics"  # Changed table name
+    __tablename__ = "extended_analytics_metrics"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     metric_type = Column(String(50), nullable=False)  # forecast, accuracy, kpi, etc.
@@ -34,13 +34,12 @@ class ExtendedAnalyticsMetric(Base):
     warehouse_id = Column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=True)
     metric_date = Column(DateTime(timezone=True), nullable=False)
     value = Column(Float, nullable=False)
-    meta_data = Column(JSONB)  # Changed from metadata to meta_data
+    meta_data = Column(JSONB)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
-    # Relationships - commented out until models exist
-    # warehouse = relationship("Warehouse", back_populates="analytics_metrics")
-    # creator = relationship("User", back_populates="analytics_metrics")
+    # Relationships
+    creator = relationship("User")
 
 class ExportJob(Base):
     __tablename__ = "export_jobs"
@@ -59,7 +58,8 @@ class ExportJob(Base):
     completed_at = Column(DateTime(timezone=True))
     
     # Relationships
-    # user = relationship("User", back_populates="export_jobs")
+    # No back_populates to avoid circular dependency issues
+    user = relationship("User")
 
 class ReportTemplate(Base):
     __tablename__ = "report_templates"
@@ -78,11 +78,11 @@ class ReportTemplate(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    # reports = relationship("ExtendedReport", back_populates="template")
+    reports = relationship("ExtendedReport", back_populates="template")
+    scheduled_reports = relationship("ScheduledReport", back_populates="template")
 
-# Renamed from Report to ExtendedReport to avoid conflict with analytics.py
 class ExtendedReport(Base):
-    __tablename__ = "extended_reports"  # Changed table name
+    __tablename__ = "extended_reports"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(200), nullable=False)
@@ -96,8 +96,8 @@ class ExtendedReport(Base):
     completed_at = Column(DateTime(timezone=True))
     
     # Relationships
-    # template = relationship("ReportTemplate", back_populates="reports")
-    # user = relationship("User", back_populates="reports")
+    template = relationship("ReportTemplate", back_populates="reports")
+    user = relationship("User")
 
 class ScheduledReport(Base):
     __tablename__ = "scheduled_reports"
@@ -116,8 +116,8 @@ class ScheduledReport(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    # template = relationship("ReportTemplate")
-    # user = relationship("User", back_populates="scheduled_reports")
+    template = relationship("ReportTemplate", back_populates="scheduled_reports")
+    user = relationship("User")
 
 class SystemSetting(Base):
     __tablename__ = "system_settings"
@@ -147,7 +147,7 @@ class NotificationSetting(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    # user = relationship("User", back_populates="notification_settings")
+    user = relationship("User")
 
 class WidgetType(Base):
     __tablename__ = "widget_types"
@@ -161,17 +161,3 @@ class WidgetType(Base):
     preview_image = Column(String(500))
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-
-class SyncHistory(Base):
-    """Track data synchronization history"""
-    __tablename__ = "sync_history"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    sync_type = Column(String(50), nullable=False)
-    started_at = Column(DateTime, default=datetime.utcnow)
-    completed_at = Column(DateTime)
-    status = Column(String(20))  # pending, running, completed, failed
-    records_processed = Column(Integer, default=0)
-    records_failed = Column(Integer, default=0)
-    error_message = Column(Text)
-    sync_metadata = Column(JSON)

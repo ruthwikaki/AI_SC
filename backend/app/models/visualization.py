@@ -1,6 +1,6 @@
+# backend/app/models/visualization.py
 """
 Visualization-related database models
-from app.models.base import Base
 """
 
 from datetime import datetime
@@ -127,7 +127,7 @@ class Dashboard(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)  # Added from new version
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
     layout_config = Column(JSONB, nullable=False, default={})
     theme = Column(String(50), default='default')
     refresh_interval = Column(Integer)  # seconds
@@ -138,11 +138,21 @@ class Dashboard(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    user = relationship('User', foreign_keys=[user_id])  # Added from new version
-    created_by_user = relationship('User', back_populates='created_dashboards', foreign_keys=[created_by])
+    # Relationships with explicit foreign keys
+    user = relationship(
+        'User', 
+        back_populates='owned_dashboards',
+        foreign_keys=[user_id]
+    )
+    
+    created_by_user = relationship(
+        'User', 
+        back_populates='created_dashboards', 
+        foreign_keys=[created_by]
+    )
+    
     charts = relationship('DashboardChart', back_populates='dashboard', cascade='all, delete-orphan')
-    widgets = relationship('DashboardWidget', back_populates='dashboard', cascade='all, delete-orphan')  # Added from new version
+    widgets = relationship('DashboardWidget', back_populates='dashboard', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f"<Dashboard(id={self.id}, name={self.name})>"
@@ -220,7 +230,7 @@ class DashboardChart(Base):
 
 
 class DashboardWidget(Base):
-    """Generic widgets within dashboards (Added from new version)"""
+    """Generic widgets within dashboards"""
     __tablename__ = 'dashboard_widgets'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)

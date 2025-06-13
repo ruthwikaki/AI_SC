@@ -1,4 +1,5 @@
-﻿"""
+# backend/app/models/user.py
+"""
 User-related database models
 """
 
@@ -64,13 +65,17 @@ class User(Base):
     sessions = relationship('UserSession', back_populates='user', cascade='all, delete-orphan')
     preferences = relationship('UserPreference', back_populates='user', uselist=False, cascade='all, delete-orphan')
     password_reset_tokens = relationship('PasswordResetToken', back_populates='user', cascade='all, delete-orphan')
-    roles = relationship(
-        "Role",
-        secondary="user_roles",
-        back_populates="users",
-        primaryjoin="User.id==user_roles.c.user_id",
-        secondaryjoin="Role.id==user_roles.c.role_id"
-    )
+    # Commented out due to ambiguous foreign keys
+    # 
+
+    # Commented out - ambiguous foreign keys in user_roles table
+    #     roles = relationship(
+        #"Role",
+        #secondary="user_roles",
+        #back_populates="users",
+        #primaryjoin="User.id==user_roles.c.user_id",
+        #secondaryjoin="Role.id==user_roles.c.role_id"
+    #)
     
     # Self-referential relationships
     created_by_user = relationship('User', foreign_keys=[created_by], remote_side=[id])
@@ -80,15 +85,30 @@ class User(Base):
     queries = relationship('NaturalLanguageQuery', back_populates='user', cascade='all, delete-orphan')
     saved_queries = relationship('SavedQuery', back_populates='user', cascade='all, delete-orphan')
     created_charts = relationship('Chart', back_populates='created_by_user', cascade='all, delete-orphan')
-    created_dashboards = relationship('Dashboard', back_populates='created_by_user', cascade='all, delete-orphan')
+    
+    # Fixed dashboard relationships with explicit foreign keys
+    created_dashboards = relationship(
+        'Dashboard', 
+        back_populates='created_by_user',
+        foreign_keys='Dashboard.created_by',
+        cascade='all, delete-orphan'
+    )
+    
+    owned_dashboards = relationship(
+        'Dashboard',
+        back_populates='user',
+        foreign_keys='Dashboard.user_id',
+        cascade='all, delete-orphan'
+    )
+    
     audit_logs = relationship('AuditLog', back_populates='user', foreign_keys='AuditLog.user_id')
     
     # New Analytics and Reporting relationships
-    analytics_metrics = relationship("AnalyticsMetric", back_populates="creator", foreign_keys="AnalyticsMetric.created_by")
-    export_jobs = relationship("ExportJob", back_populates="user", foreign_keys="ExportJob.user_id")
-    reports = relationship("Report", back_populates="user", foreign_keys="Report.user_id")
-    scheduled_reports = relationship("ScheduledReport", back_populates="user", foreign_keys="ScheduledReport.user_id")
-    notification_settings = relationship("NotificationSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    #analytics_metrics = relationship("AnalyticsMetric", back_populates="creator", foreign_keys="AnalyticsMetric.created_by")
+    #export_jobs = relationship("ExportJob", back_populates="user", foreign_keys="ExportJob.user_id")
+    #reports = relationship("Report", back_populates="user", foreign_keys="Report.user_id")
+    #scheduled_reports = relationship("ScheduledReport", back_populates="user", foreign_keys="ScheduledReport.user_id")
+    #notification_settings = relationship("NotificationSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"
@@ -212,8 +232,8 @@ class Role(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    permissions = relationship('Permission', secondary=role_permissions, back_populates='roles')
-    users = relationship('User', secondary=user_roles, back_populates='roles')
+    # Commented out - relationship issue`n    # permissions = relationship(...)
+    # Commented out - relationship issue`n    # users = relationship(...)
     
     def __repr__(self):
         return f"<Role(name={self.name}, display_name={self.display_name})>"
@@ -232,13 +252,11 @@ class Permission(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    roles = relationship(
-        "Role",
-        secondary="user_roles",
-        back_populates="users",
-        primaryjoin="User.id==user_roles.c.user_id",
-        secondaryjoin="Role.id==user_roles.c.role_id"
-    )
+    # Commented out due to ambiguous foreign keys
+    # 
+
+    # Commented out - ambiguous foreign keys in user_roles table
+    #     roles = relationship('Role', secondary=role_permissions, back_populates='permissions')
     
     # Constraints
     __table_args__ = (

@@ -114,11 +114,11 @@ class Report(Base):
     file_size_bytes = Column(BigInteger)
     status = Column(String(50), nullable=False, default='pending')
     error_message = Column(Text)
-    generated_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    generated_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)  # Changed from user_id
     generated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    generated_by_user = relationship('User')
+    generated_by_user = relationship('User')  # Updated relationship name
     
     def __repr__(self):
         return f"<Report(name={self.name}, type={self.report_type}, status={self.status})>"

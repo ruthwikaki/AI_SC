@@ -67,7 +67,7 @@ class Supplier(Base):
                                       foreign_keys='SupplierRelationship.parent_supplier_id',
                                       back_populates='parent_supplier')
     orders = relationship('Order', back_populates='supplier')
-    performance_metrics = relationship('SupplierPerformanceMetric', back_populates='supplier')
+    performance_metrics = relationship("app.models.analytics.SupplierPerformanceMetric", back_populates='supplier')
     products = relationship("Product", secondary=supplier_products, back_populates="suppliers")  # NEW
     analytics_metrics = relationship("AnalyticsMetric", back_populates="supplier")  # NEW
     
@@ -105,7 +105,7 @@ class SupplierTier(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    supplier = relationship('Supplier', back_populates='tiers')
+    supplier = relationship("app.models.supply_chain.Supplier", back_populates='tiers')
     
     def __repr__(self):
         return f"<SupplierTier(supplier_id={self.supplier_id}, tier_level={self.tier_level})>"
@@ -127,8 +127,8 @@ class SupplierRelationship(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    parent_supplier = relationship('Supplier', foreign_keys=[parent_supplier_id], back_populates='child_relationships')
-    child_supplier = relationship('Supplier', foreign_keys=[child_supplier_id], back_populates='parent_relationships')
+    parent_supplier = relationship("app.models.supply_chain.Supplier", foreign_keys=[parent_supplier_id], back_populates='child_relationships')
+    child_supplier = relationship("app.models.supply_chain.Supplier", foreign_keys=[child_supplier_id], back_populates='parent_relationships')
     
     # Constraints
     __table_args__ = (
@@ -167,7 +167,7 @@ class Product(Base):
     materials = relationship('ProductMaterial', back_populates='product', cascade='all, delete-orphan')
     inventory = relationship('Inventory', back_populates='product')
     order_items = relationship('OrderItem', back_populates='product')
-    suppliers = relationship("Supplier", secondary=supplier_products, back_populates="products")  # NEW
+    suppliers = relationship("app.models.supply_chain.Supplier", secondary=supplier_products, back_populates="products")  # NEW
     analytics_metrics = relationship("AnalyticsMetric", back_populates="product")  # NEW
     orders = relationship("Order", back_populates="product")  # NEW - for simple orders
     
@@ -378,7 +378,7 @@ class Order(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    supplier = relationship('Supplier', back_populates='orders')
+    supplier = relationship("app.models.supply_chain.Supplier", back_populates='orders')
     warehouse = relationship("Warehouse", back_populates="orders")  # NEW
     product = relationship("Product", back_populates="orders")  # NEW - for simple orders
     items = relationship('OrderItem', back_populates='order', cascade='all, delete-orphan')
@@ -543,7 +543,7 @@ class SupplierPerformanceMetric(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    supplier = relationship('Supplier', back_populates='performance_metrics')
+    supplier = relationship("app.models.supply_chain.Supplier", back_populates='performance_metrics')
     
     def __repr__(self):
         return f"<SupplierPerformanceMetric(supplier_id={self.supplier_id}, type={self.metric_type})>"
@@ -567,7 +567,7 @@ class AnalyticsMetric(Base):
     # Relationships
     warehouse = relationship("Warehouse", back_populates="analytics_metrics")
     product = relationship("Product", back_populates="analytics_metrics")
-    supplier = relationship("Supplier", back_populates="analytics_metrics")
+    supplier = relationship("app.models.supply_chain.Supplier", back_populates="analytics_metrics")
     
     def __repr__(self):
         return f"<AnalyticsMetric(type={self.metric_type}, value={self.metric_value}, date={self.metric_date})>"
