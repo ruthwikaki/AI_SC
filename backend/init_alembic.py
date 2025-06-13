@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Initialize Alembic for database migrations"""
 
 import os
@@ -34,7 +34,7 @@ def init_alembic():
         with open(alembic_ini, 'w') as f:
             f.write(content)
         
-        print("âœ… Alembic initialized successfully")
+        print("✅ Alembic initialized successfully")
     
     # Update env.py to import your models
     env_py = os.path.join(backend_dir, "alembic", "env.py")
@@ -60,7 +60,7 @@ target_metadata = Base.metadata
         with open(env_py, 'w') as f:
             f.writelines(lines)
         
-        print("âœ… Alembic env.py updated")
+        print("✅ Alembic env.py updated")
 
 if __name__ == "__main__":
     init_alembic()

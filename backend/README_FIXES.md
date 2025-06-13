@@ -1,4 +1,4 @@
-﻿# Backend Fixes Applied
+# Backend Fixes Applied
 
 This document lists all the fixes that were applied to the backend.
 

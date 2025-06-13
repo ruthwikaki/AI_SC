@@ -10,13 +10,30 @@ import logging
 from sqlalchemy import text
 from sqlalchemy import create_engine
 
-from app.api.routes import auth, queries, visualizations, database, analytics, admin, export, forecasting, reference_data
+# Import all route modules
+from app.api.routes import (
+    auth, 
+    queries, 
+    visualizations, 
+    database, 
+    analytics,
+    analytics_enhanced,  # Added
+    admin,
+    dashboards,         # Added
+    export,             # Added
+    multi_tier,         # Added
+    reference_data,     # Added
+    reports,            # Added
+    settings as settings_routes,  # Added - renamed to avoid conflict
+    suggestions         # Added
+)
 from app.api.middleware.auth import JWTAuthMiddleware, AdminOnlyMiddleware
 from app.api.middleware.error_handler import ErrorHandlerMiddleware
 from app.api.middleware.rate_limit import RateLimitMiddleware
 from app.api.middleware.client_context import ClientContextMiddleware
 from app.config import get_settings
 from app.utils.logger import get_logger, setup_logging
+from app.db.database import get_db
 
 # Get settings
 settings = get_settings()
@@ -37,28 +54,19 @@ app = FastAPI(
     redoc_url=None  # Disable default redoc URL
 )
 
-# IMPORTANT: Configure CORS FIRST before other middleware
-# Specific origins required for credentials
-origins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001", 
-    "http://127.0.0.1:5173",
-]
+# Configure CORS
+logger.info(f"CORS origins: {settings.cors_origins}")
 
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Specific origins, not "*"
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,
 )
 
-# Add custom middleware AFTER CORS
+# Add custom middleware
 app.add_middleware(ErrorHandlerMiddleware)
 app.add_middleware(JWTAuthMiddleware)
 app.add_middleware(AdminOnlyMiddleware, admin_path_prefix="/api/admin")
@@ -125,18 +133,151 @@ async def health_db():
             }
         )
 
-# Include routers
-# Test endpoints for debugging
+# Dashboard endpoints (custom endpoints that frontend is looking for)
+@app.get("/api/dashboard/overview", tags=["dashboard"])
+async def get_dashboard_overview(db = Depends(get_db)):
+    """Get dashboard overview metrics"""
+    try:
+        # This is a placeholder - implement actual logic based on your data
+        return {
+            "total_orders": 1234,
+            "pending_orders": 45,
+            "total_inventory_value": 987654.32,
+            "low_stock_items": 12,
+            "active_suppliers": 78,
+            "on_time_delivery_rate": 94.5,
+            "total_shipments": 567,
+            "in_transit": 23
+        }
+    except Exception as e:
+        logger.error(f"Error fetching dashboard overview: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/dashboard/recent-orders", tags=["dashboard"])
+async def get_recent_orders(db = Depends(get_db)):
+    """Get recent orders"""
+    try:
+        # Placeholder implementation
+        return {
+            "orders": [
+                {
+                    "id": "ORD-001",
+                    "customer": "Acme Corp",
+                    "date": "2025-06-12",
+                    "status": "Processing",
+                    "total": 5432.10
+                },
+                {
+                    "id": "ORD-002",
+                    "customer": "Global Industries",
+                    "date": "2025-06-12",
+                    "status": "Shipped",
+                    "total": 8765.43
+                }
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching recent orders: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/dashboard/inventory-alerts", tags=["dashboard"])
+async def get_inventory_alerts(db = Depends(get_db)):
+    """Get inventory alerts"""
+    try:
+        # Placeholder implementation
+        return {
+            "alerts": [
+                {
+                    "id": 1,
+                    "type": "low_stock",
+                    "product": "Widget A",
+                    "current_stock": 15,
+                    "reorder_point": 50,
+                    "severity": "high"
+                },
+                {
+                    "id": 2,
+                    "type": "overstock",
+                    "product": "Gadget B",
+                    "current_stock": 500,
+                    "max_stock": 200,
+                    "severity": "medium"
+                }
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching inventory alerts: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/dashboard/supplier-metrics", tags=["dashboard"])
+async def get_supplier_metrics(db = Depends(get_db)):
+    """Get supplier performance metrics"""
+    try:
+        # Placeholder implementation
+        return {
+            "metrics": {
+                "total_suppliers": 78,
+                "active_suppliers": 65,
+                "average_lead_time": 3.5,
+                "on_time_delivery_rate": 92.3,
+                "quality_rating": 4.2
+            },
+            "top_suppliers": [
+                {
+                    "name": "Supplier A",
+                    "rating": 4.8,
+                    "orders": 156
+                },
+                {
+                    "name": "Supplier B",
+                    "rating": 4.5,
+                    "orders": 134
+                }
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching supplier metrics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/dashboard/logistics-summary", tags=["dashboard"])
+async def get_logistics_summary(db = Depends(get_db)):
+    """Get logistics summary"""
+    try:
+        # Placeholder implementation
+        return {
+            "summary": {
+                "total_shipments": 567,
+                "in_transit": 23,
+                "delivered": 544,
+                "average_transit_time": 2.3,
+                "on_time_rate": 94.5
+            },
+            "shipments_by_status": {
+                "pending": 12,
+                "in_transit": 23,
+                "delivered": 544,
+                "delayed": 5
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error fetching logistics summary: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Include all routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(queries.router, prefix="/api")
 app.include_router(visualizations.router, prefix="/api")
 app.include_router(database.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
+app.include_router(analytics_enhanced.router, prefix="/api")  # Added
 app.include_router(admin.router, prefix="/api")
-app.include_router(export.router, prefix="/api")
-app.include_router(forecasting.router, prefix="/api")
-app.include_router(reference_data.router, prefix="/api")
+app.include_router(dashboards.router)  # Added (already has /api/dashboards prefix)
+app.include_router(export.router, prefix="/api")  # Added
+app.include_router(multi_tier.router, prefix="/api")  # Added
+app.include_router(reference_data.router, prefix="/api")  # Added
+app.include_router(reports.router, prefix="/api")  # Added
+app.include_router(settings_routes.router, prefix="/api")  # Added - using renamed import
+app.include_router(suggestions.router, prefix="/api")  # Added
 
 # Custom OpenAPI docs
 @app.get("/api/docs", include_in_schema=False)
@@ -176,7 +317,7 @@ async def not_found_exception_handler(request: Request, exc):
 async def startup_event():
     logger.info(f"Starting Supply Chain LLM API (version 1.0.0)")
     logger.info(f"Environment: {settings.environment}")
-    logger.info(f"CORS origins: {origins}")
+    logger.info(f"CORS origins: {settings.cors_origins}")
     logger.info("Database connected successfully")
 
 # Shutdown event handler
@@ -196,4 +337,3 @@ if __name__ == "__main__":
         port=8000,
         reload=True
     )
-

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Configuration loader.
 
 This module provides functions for loading and accessing application settings.

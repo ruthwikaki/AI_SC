@@ -1,4 +1,4 @@
-﻿"""
+"""
 Application entry point with LLM support and SQL execution.
 """
 
