@@ -17,9 +17,9 @@ from app.utils.logger import get_logger
 # Initialize logger
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/api/suggestions", tags=["suggestions"])
+router = APIRouter(prefix="/api/queries", tags=["suggestions"])
 
-@router.get("/queries")
+@router.get("/suggestions")
 async def get_query_suggestions(
     partial_query: str = Query(..., description="Partial query text"),
     limit: int = Query(10, le=20),
