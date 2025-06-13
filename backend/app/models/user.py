@@ -1,290 +1,187 @@
-# backend/app/models/user.py
 """
-User-related database models
+User model for authentication and authorization
+Located at: /backend/app/models/user.py
 """
+from sqlalchemy import Column, String, Boolean, JSON, Text, ForeignKey, Table, Enum
+from sqlalchemy.orm import relationship
+import enum
+from typing import Dict, Any
 
-from datetime import datetime
-from typing import List, Optional
-from uuid import uuid4
+from app.models.base import BaseModel
 
-from sqlalchemy import (
-    Column, String, Boolean, Integer, DateTime, ForeignKey,
-    Table, Text, JSON, BigInteger, CheckConstraint, UniqueConstraint
-)
-from sqlalchemy.dialects.postgresql import UUID, INET, JSONB
-from sqlalchemy.orm import relationship, backref
-
-from app.models.base import Base
-
-# Association tables
-role_permissions = Table(
-    'role_permissions',
-    Base.metadata,
-    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
-    Column('permission_id', UUID(as_uuid=True), ForeignKey('permissions.id', ondelete='CASCADE'), primary_key=True),
-    Column('granted_at', DateTime(timezone=True), default=datetime.utcnow),
-    Column('granted_by', UUID(as_uuid=True), ForeignKey('users.id'))
-)
-
+# Association table for user roles
 user_roles = Table(
     'user_roles',
-    Base.metadata,
-    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
-    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
-    Column('assigned_at', DateTime(timezone=True), default=datetime.utcnow),
-    Column('assigned_by', UUID(as_uuid=True), ForeignKey('users.id'))
+    BaseModel.metadata,
+    Column('user_id', String, ForeignKey('user.id'), primary_key=True),
+    Column('role_id', String, ForeignKey('role.id'), primary_key=True)
 )
 
-class User(Base):
-    """User model for authentication and profile management"""
-    __tablename__ = 'users'
+# Association table for user permissions
+user_permissions = Table(
+    'user_permissions',
+    BaseModel.metadata,
+    Column('user_id', String, ForeignKey('user.id'), primary_key=True),
+    Column('permission_id', String, ForeignKey('permission.id'), primary_key=True)
+)
+
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    MANAGER = "manager"
+    ANALYST = "analyst"
+    VIEWER = "viewer"
+    GUEST = "guest"
+
+class User(BaseModel):
+    """User model with authentication and profile information"""
+    __tablename__ = "user"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    email = Column(String(255), unique=True, nullable=False, index=True)
-    username = Column(String(100), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=False)
-    first_name = Column(String(100))
-    last_name = Column(String(100))
-    role = Column(String(50), nullable=False, default='user')
-    department = Column(String(100))
-    phone = Column(String(50))
-    avatar_url = Column(Text)
-    is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
-    email_verified_at = Column(DateTime(timezone=True))
-    last_login = Column(DateTime(timezone=True))
-    failed_login_attempts = Column(Integer, default=0)
-    locked_until = Column(DateTime(timezone=True))
-    user_metadata = Column(JSONB, default={})
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-    updated_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    # Authentication fields
+    email = Column(String, unique=True, nullable=False, index=True)
+    username = Column(String, unique=True, nullable=False, index=True)
+    hashed_password = Column(String, nullable=False)
+    
+    # Profile fields
+    full_name = Column(String, nullable=True)
+    phone_number = Column(String, nullable=True)
+    department = Column(String, nullable=True)
+    job_title = Column(String, nullable=True)
+    avatar_url = Column(String, nullable=True)
+    
+    # Status fields
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_superuser = Column(Boolean, default=False, nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    
+    # Role and permissions
+    role = Column(Enum(UserRole), default=UserRole.VIEWER, nullable=False)
+    roles = relationship("Role", secondary=user_roles, back_populates="users")
+    permissions = relationship("Permission", secondary=user_permissions, back_populates="users")
+    
+    # Settings and preferences
+    preferences = Column(JSON, default=dict, nullable=True)
+    notification_settings = Column(JSON, default=dict, nullable=True)
+    
+    # Security fields
+    last_login = Column(String, nullable=True)
+    last_login_ip = Column(String, nullable=True)
+    failed_login_attempts = Column(String, default=0, nullable=False)
+    locked_until = Column(String, nullable=True)
+    
+    # API keys
+    api_key = Column(String, unique=True, nullable=True, index=True)
+    api_key_created_at = Column(String, nullable=True)
     
     # Relationships
-    sessions = relationship('UserSession', back_populates='user', cascade='all, delete-orphan')
-    preferences = relationship('UserPreference', back_populates='user', uselist=False, cascade='all, delete-orphan')
-    password_reset_tokens = relationship('PasswordResetToken', back_populates='user', cascade='all, delete-orphan')
-    # Commented out due to ambiguous foreign keys
-    # 
-
-    # Commented out - ambiguous foreign keys in user_roles table
-    #     roles = relationship(
-        #"Role",
-        #secondary="user_roles",
-        #back_populates="users",
-        #primaryjoin="User.id==user_roles.c.user_id",
-        #secondaryjoin="Role.id==user_roles.c.role_id"
-    #)
+    queries = relationship("NaturalLanguageQuery", back_populates="user", cascade="all, delete-orphan")
+    dashboards = relationship("Dashboard", back_populates="user", cascade="all, delete-orphan")
+    saved_charts = relationship("SavedChart", back_populates="user", cascade="all, delete-orphan")
+    audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
     
-    # Self-referential relationships
-    created_by_user = relationship('User', foreign_keys=[created_by], remote_side=[id])
-    updated_by_user = relationship('User', foreign_keys=[updated_by], remote_side=[id])
-    
-    # Other relationships
-    queries = relationship('NaturalLanguageQuery', back_populates='user', cascade='all, delete-orphan')
-    saved_queries = relationship('SavedQuery', back_populates='user', cascade='all, delete-orphan')
-    created_charts = relationship('Chart', back_populates='created_by_user', cascade='all, delete-orphan')
-    
-    # Fixed dashboard relationships with explicit foreign keys
-    created_dashboards = relationship(
-        'Dashboard', 
-        back_populates='created_by_user',
-        foreign_keys='Dashboard.created_by',
-        cascade='all, delete-orphan'
-    )
-    
-    owned_dashboards = relationship(
-        'Dashboard',
-        back_populates='user',
-        foreign_keys='Dashboard.user_id',
-        cascade='all, delete-orphan'
-    )
-    
-    audit_logs = relationship('AuditLog', back_populates='user', foreign_keys='AuditLog.user_id')
-    
-    # New Analytics and Reporting relationships
-    #analytics_metrics = relationship("AnalyticsMetric", back_populates="creator", foreign_keys="AnalyticsMetric.created_by")
-    #export_jobs = relationship("ExportJob", back_populates="user", foreign_keys="ExportJob.user_id")
-    #reports = relationship("Report", back_populates="user", foreign_keys="Report.user_id")
-    #scheduled_reports = relationship("ScheduledReport", back_populates="user", foreign_keys="ScheduledReport.user_id")
-    #notification_settings = relationship("NotificationSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    
-    def __repr__(self):
-        return f"<User(id={self.id}, email={self.email}, username={self.username})>"
-    
-    @property
-    def full_name(self):
-        """Get user's full name"""
-        if self.first_name and self.last_name:
-            return f"{self.first_name} {self.last_name}"
-        return self.username
-    
-    def has_role(self, role_name: str) -> bool:
-        """Check if user has a specific role"""
-        return any(role.name == role_name for role in self.roles)
-    
-    def has_permission(self, resource: str, action: str) -> bool:
-        """Check if user has a specific permission"""
+    def has_permission(self, permission_name: str) -> bool:
+        """Check if user has specific permission"""
+        if self.is_superuser:
+            return True
+        
+        # Check direct permissions
+        for permission in self.permissions:
+            if permission.name == permission_name:
+                return True
+        
+        # Check role permissions
         for role in self.roles:
             for permission in role.permissions:
-                if permission.resource == resource and permission.action == action:
+                if permission.name == permission_name:
                     return True
+        
         return False
-
-
-class UserSession(Base):
-    """User session management for JWT tokens"""
-    __tablename__ = 'user_sessions'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    token_hash = Column(String(255), nullable=False, unique=True, index=True)
-    refresh_token_hash = Column(String(255))
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    refresh_expires_at = Column(DateTime(timezone=True))
-    ip_address = Column(INET)
-    user_agent = Column(Text)
-    device_id = Column(String(255))
-    is_active = Column(Boolean, default=True)
-    revoked_at = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    def has_role(self, role_name: str) -> bool:
+        """Check if user has specific role"""
+        if self.is_superuser:
+            return True
+        
+        if self.role.value == role_name:
+            return True
+        
+        for role in self.roles:
+            if role.name == role_name:
+                return True
+        
+        return False
     
-    # Relationships
-    user = relationship('User', back_populates='sessions')
+    def get_preferences(self) -> Dict[str, Any]:
+        """Get user preferences with defaults"""
+        defaults = {
+            "theme": "light",
+            "language": "en",
+            "timezone": "UTC",
+            "date_format": "YYYY-MM-DD",
+            "chart_type": "line",
+            "page_size": 20,
+            "enable_notifications": True,
+            "enable_tooltips": True,
+            "compact_view": False
+        }
+        
+        if self.preferences:
+            defaults.update(self.preferences)
+        
+        return defaults
     
-    def __repr__(self):
-        return f"<UserSession(id={self.id}, user_id={self.user_id}, expires_at={self.expires_at})>"
-    
-    @property
-    def is_expired(self) -> bool:
-        """Check if session is expired"""
-        return datetime.utcnow() > self.expires_at
-    
-    @property
-    def is_valid(self) -> bool:
-        """Check if session is valid"""
-        return self.is_active and not self.is_expired and self.revoked_at is None
-
-
-class PasswordResetToken(Base):
-    """Password reset token management"""
-    __tablename__ = 'password_reset_tokens'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    token_hash = Column(String(255), nullable=False, unique=True, index=True)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    used_at = Column(DateTime(timezone=True))
-    ip_address = Column(INET)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User', back_populates='password_reset_tokens')
-    
-    @property
-    def is_expired(self) -> bool:
-        """Check if token is expired"""
-        return datetime.utcnow() > self.expires_at
-    
-    @property
-    def is_valid(self) -> bool:
-        """Check if token is valid"""
-        return not self.is_expired and self.used_at is None
-
-
-class UserPreference(Base):
-    """User preferences and settings"""
-    __tablename__ = 'user_preferences'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
-    theme = Column(String(50), default='light')
-    language = Column(String(10), default='en')
-    timezone = Column(String(50), default='UTC')
-    date_format = Column(String(20), default='MM/DD/YYYY')
-    number_format = Column(String(20), default='en-US')
-    default_chart_type = Column(String(50), default='bar')
-    dashboard_layout = Column(JSONB, default={})
-    notification_preferences = Column(JSONB, default={})
-    ui_preferences = Column(JSONB, default={})
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User', back_populates='preferences')
+    def update_preferences(self, new_preferences: Dict[str, Any]):
+        """Update user preferences"""
+        current = self.get_preferences()
+        current.update(new_preferences)
+        self.preferences = current
     
     def __repr__(self):
-        return f"<UserPreference(user_id={self.user_id}, theme={self.theme})>"
+        return f"<User(id={self.id}, username={self.username}, email={self.email})>"
 
-
-class Role(Base):
-    """Roles for role-based access control"""
-    __tablename__ = 'roles'
+class Role(BaseModel):
+    """Role model for RBAC"""
+    __tablename__ = "role"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    name = Column(String(50), unique=True, nullable=False)
-    display_name = Column(String(100))
-    description = Column(Text)
-    is_system = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    is_system = Column(Boolean, default=False, nullable=False)  # System roles cannot be deleted
     
     # Relationships
-    # Commented out - relationship issue`n    # permissions = relationship(...)
-    # Commented out - relationship issue`n    # users = relationship(...)
-    
-    def __repr__(self):
-        return f"<Role(name={self.name}, display_name={self.display_name})>"
+    users = relationship("User", secondary=user_roles, back_populates="roles")
+    permissions = relationship("Permission", secondary="role_permissions", back_populates="roles")
 
-
-class Permission(Base):
-    """Permissions for fine-grained access control"""
-    __tablename__ = 'permissions'
+class Permission(BaseModel):
+    """Permission model for fine-grained access control"""
+    __tablename__ = "permission"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    resource = Column(String(100), nullable=False)
-    action = Column(String(50), nullable=False)
-    display_name = Column(String(200))
-    description = Column(Text)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    name = Column(String, unique=True, nullable=False)
+    resource = Column(String, nullable=False)  # e.g., "query", "dashboard", "user"
+    action = Column(String, nullable=False)    # e.g., "create", "read", "update", "delete"
+    description = Column(Text, nullable=True)
     
     # Relationships
-    # Commented out due to ambiguous foreign keys
-    # 
+    users = relationship("User", secondary=user_permissions, back_populates="permissions")
+    roles = relationship("Role", secondary="role_permissions", back_populates="permissions")
 
-    # Commented out - ambiguous foreign keys in user_roles table
-    #     roles = relationship('Role', secondary=role_permissions, back_populates='permissions')
-    
-    # Constraints
-    __table_args__ = (
-        UniqueConstraint('resource', 'action', name='uq_permission_resource_action'),
-    )
-    
-    def __repr__(self):
-        return f"<Permission(resource={self.resource}, action={self.action})>"
+# Association table for role permissions
+role_permissions = Table(
+    'role_permissions',
+    BaseModel.metadata,
+    Column('role_id', String, ForeignKey('role.id'), primary_key=True),
+    Column('permission_id', String, ForeignKey('permission.id'), primary_key=True)
+)
 
-
-class AuditLog(Base):
-    """Audit log for tracking system changes"""
-    __tablename__ = 'audit_logs'
+class AuditLog(BaseModel):
+    """Audit log for tracking user actions"""
+    __tablename__ = "audit_log"
     
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-    action = Column(String(100), nullable=False)
-    resource_type = Column(String(100), nullable=False)
-    resource_id = Column(String(255))
-    old_values = Column(JSONB)
-    new_values = Column(JSONB)
-    ip_address = Column(INET)
-    user_agent = Column(Text)
-    user_metadata = Column(JSONB, default={})
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    user_id = Column(String, ForeignKey('user.id'), nullable=False)
+    action = Column(String, nullable=False)  # e.g., "login", "query", "export"
+    resource_type = Column(String, nullable=True)  # e.g., "dashboard", "report"
+    resource_id = Column(String, nullable=True)
+    details = Column(JSON, nullable=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
     
     # Relationships
-    user = relationship('User', back_populates='audit_logs', foreign_keys=[user_id])
-    
-    def __repr__(self):
-        return f"<AuditLog(id={self.id}, action={self.action}, resource_type={self.resource_type})>"
+    user = relationship("User", back_populates="audit_logs")

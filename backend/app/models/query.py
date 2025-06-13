@@ -1,193 +1,194 @@
 """
-Query-related database models
+Query models for natural language processing and SQL generation
+Located at: /backend/app/models/query.py
 """
-
-from datetime import datetime
-from typing import List, Optional
-from uuid import uuid4
-from decimal import Decimal
-
-from sqlalchemy import (
-    Column, String, Boolean, Integer, DateTime, ForeignKey,
-    Text, Float, DECIMAL, ARRAY, Index
-)
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, Text, Integer, Float, Boolean, JSON, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
-from app.models.base import Base
+from app.models.base import BaseModel
 
-class NaturalLanguageQuery(Base):
-    """Natural language query history and results"""
-    __tablename__ = 'natural_language_queries'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False, index=True)
-    query_text = Column(Text, nullable=False)
-    intent_classification = Column(String(100))
-    generated_sql = Column(Text)
-    sql_parameters = Column(JSONB, default=list)
-    execution_time_ms = Column(Integer)
-    result_count = Column(Integer)
-    error_message = Column(Text)
-    status = Column(String(50), nullable=False, default='pending')
-    model_used = Column(String(100))
-    tokens_used = Column(Integer)
-    confidence_score = Column(DECIMAL(3, 2))
-    query_metadata = Column(JSONB, default={})
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
-    
-    # Relationships
-    user = relationship('User', back_populates='queries')
-    charts = relationship('Chart', back_populates='query')
-    
-    # Indexes
+class NaturalLanguageQuery(BaseModel):
+    """Model for storing natural language queries and their SQL translations"""
+    __tablename__ = "natural_language_query"
     __table_args__ = (
-        Index('idx_nl_queries_search', 'query_text', postgresql_using='gin'),
+        Index('idx_nlq_user_created', 'user_id', 'created_at'),
+        Index('idx_nlq_success', 'success'),
     )
     
-    def __repr__(self):
-        return f"<NaturalLanguageQuery(id={self.id}, query_text={self.query_text[:50]}...)>"
+    # Query fields
+    user_id = Column(String, ForeignKey('user.id'), nullable=False)
+    natural_language_query = Column(Text, nullable=False)
+    generated_sql = Column(Text, nullable=True)
     
-    @property
-    def is_successful(self) -> bool:
-        """Check if query was successful"""
-        return self.status == 'completed' and self.error_message is None
+    # Execution details
+    execution_time = Column(Float, nullable=True)  # in seconds
+    result_count = Column(Integer, nullable=True)
+    success = Column(Boolean, default=False, nullable=False)
+    error_message = Column(Text, nullable=True)
     
-    @property
-    def execution_time_seconds(self) -> Optional[float]:
-        """Get execution time in seconds"""
-        if self.execution_time_ms:
-            return self.execution_time_ms / 1000.0
-        return None
-
-
-class SavedQuery(Base):
-    """User-saved queries for reuse"""
-    __tablename__ = 'saved_queries'
+    # Query metadata
+    database_name = Column(String, nullable=True)
+    tables_accessed = Column(JSON, nullable=True)  # List of tables used in query
+    columns_accessed = Column(JSON, nullable=True)  # List of columns used
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False, index=True)
-    name = Column(String(255), nullable=False)
-    description = Column(Text)
-    query_text = Column(Text, nullable=False)
-    generated_sql = Column(Text)
-    parameters = Column(JSONB, default={})
-    tags = Column(ARRAY(Text), default=[])
-    is_public = Column(Boolean, default=False)
-    is_favorite = Column(Boolean, default=False)
-    execution_count = Column(Integer, default=0)
-    last_executed_at = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    # LLM metadata
+    llm_model = Column(String, nullable=True)
+    llm_confidence = Column(Float, nullable=True)
+    llm_response_time = Column(Float, nullable=True)
+    prompt_tokens = Column(Integer, nullable=True)
+    completion_tokens = Column(Integer, nullable=True)
+    
+    # Additional metadata
+    metadata = Column(JSON, nullable=True)
+    tags = Column(JSON, nullable=True)  # User or system tags
+    
+    # Caching
+    cache_key = Column(String, nullable=True, index=True)
+    cached = Column(Boolean, default=False, nullable=False)
     
     # Relationships
-    user = relationship('User', back_populates='saved_queries')
+    user = relationship("User", back_populates="queries")
+    feedbacks = relationship("QueryFeedback", back_populates="query", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<SavedQuery(id={self.id}, name={self.name})>"
-    
-    def increment_execution_count(self):
-        """Increment execution count and update last executed time"""
-        self.execution_count += 1
-        self.last_executed_at = datetime.utcnow()
+        return f"<NaturalLanguageQuery(id={self.id}, query='{self.natural_language_query[:50]}...')>"
 
-
-class QueryResultCache(Base):
-    """Cache for query results to improve performance"""
-    __tablename__ = 'query_results_cache'
+class QueryFeedback(BaseModel):
+    """Model for storing user feedback on query results"""
+    __tablename__ = "query_feedback"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    query_hash = Column(String(64), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-    query_text = Column(Text)
-    sql_query = Column(Text)
-    result_data = Column(JSONB, nullable=False)
-    result_count = Column(Integer)
-    execution_time_ms = Column(Integer)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    query_id = Column(String, ForeignKey('natural_language_query.id'), nullable=False)
+    user_id = Column(String, ForeignKey('user.id'), nullable=False)
+    
+    # Feedback
+    rating = Column(Integer, nullable=True)  # 1-5 rating
+    helpful = Column(Boolean, nullable=True)
+    accurate = Column(Boolean, nullable=True)
+    
+    # Detailed feedback
+    feedback_text = Column(Text, nullable=True)
+    suggested_improvement = Column(Text, nullable=True)
+    
+    # Categorized issues
+    issues = Column(JSON, nullable=True)  # List of issue types
     
     # Relationships
-    user = relationship('User')
-    
-    def __repr__(self):
-        return f"<QueryResultCache(id={self.id}, query_hash={self.query_hash})>"
-    
-    @property
-    def is_expired(self) -> bool:
-        """Check if cache entry is expired"""
-        return datetime.utcnow() > self.expires_at
-    
-    @property
-    def age_seconds(self) -> float:
-        """Get age of cache entry in seconds"""
-        return (datetime.utcnow() - self.created_at).total_seconds()
+    query = relationship("NaturalLanguageQuery", back_populates="feedbacks")
+    user = relationship("User")
 
-
-class QueryTemplate(Base):
-    """Pre-built query templates for common use cases"""
-    __tablename__ = 'query_templates'
+class SavedQuery(BaseModel):
+    """Model for saved/bookmarked queries"""
+    __tablename__ = "saved_query"
+    __table_args__ = (
+        Index('idx_saved_query_user', 'user_id'),
+        Index('idx_saved_query_shared', 'is_shared'),
+    )
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    name = Column(String(255), nullable=False)
-    category = Column(String(100), nullable=False)
-    description = Column(Text)
+    user_id = Column(String, ForeignKey('user.id'), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    
+    # Query content
+    natural_language_query = Column(Text, nullable=False)
+    sql_query = Column(Text, nullable=True)
+    
+    # Sharing settings
+    is_shared = Column(Boolean, default=False, nullable=False)
+    shared_with_roles = Column(JSON, nullable=True)  # List of role IDs
+    shared_with_users = Column(JSON, nullable=True)  # List of user IDs
+    
+    # Organization
+    category = Column(String, nullable=True)
+    tags = Column(JSON, nullable=True)
+    
+    # Usage tracking
+    use_count = Column(Integer, default=0, nullable=False)
+    last_used_at = Column(String, nullable=True)
+    
+    # Parameters for parameterized queries
+    parameters = Column(JSON, nullable=True)
+    
+    # Relationships
+    user = relationship("User")
+    schedules = relationship("QuerySchedule", back_populates="saved_query", cascade="all, delete-orphan")
+
+class QuerySchedule(BaseModel):
+    """Model for scheduled query execution"""
+    __tablename__ = "query_schedule"
+    
+    saved_query_id = Column(String, ForeignKey('saved_query.id'), nullable=False)
+    user_id = Column(String, ForeignKey('user.id'), nullable=False)
+    
+    # Schedule configuration
+    cron_expression = Column(String, nullable=True)  # For cron-based scheduling
+    frequency = Column(String, nullable=True)  # daily, weekly, monthly
+    next_run_at = Column(String, nullable=True)
+    last_run_at = Column(String, nullable=True)
+    
+    # Execution settings
+    is_active = Column(Boolean, default=True, nullable=False)
+    timeout_seconds = Column(Integer, default=300, nullable=False)
+    
+    # Notification settings
+    notify_on_success = Column(Boolean, default=False, nullable=False)
+    notify_on_failure = Column(Boolean, default=True, nullable=False)
+    notification_emails = Column(JSON, nullable=True)
+    
+    # Output settings
+    export_format = Column(String, nullable=True)  # csv, excel, pdf
+    export_destination = Column(String, nullable=True)  # email, s3, etc.
+    
+    # Relationships
+    saved_query = relationship("SavedQuery", back_populates="schedules")
+    user = relationship("User")
+    executions = relationship("ScheduledQueryExecution", back_populates="schedule", cascade="all, delete-orphan")
+
+class ScheduledQueryExecution(BaseModel):
+    """Model for tracking scheduled query executions"""
+    __tablename__ = "scheduled_query_execution"
+    
+    schedule_id = Column(String, ForeignKey('query_schedule.id'), nullable=False)
+    
+    # Execution details
+    started_at = Column(String, nullable=False)
+    completed_at = Column(String, nullable=True)
+    status = Column(String, nullable=False)  # pending, running, success, failed
+    
+    # Results
+    result_count = Column(Integer, nullable=True)
+    execution_time = Column(Float, nullable=True)
+    error_message = Column(Text, nullable=True)
+    
+    # Output details
+    output_location = Column(String, nullable=True)
+    output_size = Column(Integer, nullable=True)
+    
+    # Relationships
+    schedule = relationship("QuerySchedule", back_populates="executions")
+
+class QueryTemplate(BaseModel):
+    """Model for query templates"""
+    __tablename__ = "query_template"
+    
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String, nullable=True)
+    
+    # Template content
     template_text = Column(Text, nullable=False)
-    parameters_schema = Column(JSONB, default={})
-    example_usage = Column(Text)
-    tags = Column(ARRAY(Text), default=[])
-    is_active = Column(Boolean, default=True)
-    usage_count = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    parameters = Column(JSON, nullable=True)  # Parameter definitions
     
-    def __repr__(self):
-        return f"<QueryTemplate(id={self.id}, name={self.name}, category={self.category})>"
+    # Example usage
+    example_query = Column(Text, nullable=True)
+    example_parameters = Column(JSON, nullable=True)
     
-    def increment_usage_count(self):
-        """Increment usage count"""
-        self.usage_count += 1
+    # Visibility
+    is_system = Column(Boolean, default=False, nullable=False)
+    is_public = Column(Boolean, default=True, nullable=False)
     
-    def render(self, parameters: dict) -> str:
-        """Render template with parameters"""
-        # Simple template rendering - in production, use Jinja2 or similar
-        result = self.template_text
-        for key, value in parameters.items():
-            result = result.replace(f"{{{key}}}", str(value))
-        return result
-
-
-class QuerySuggestion(Base):
-    """Query suggestions for users"""
-    __tablename__ = 'query_suggestions'
+    # Usage tracking
+    use_count = Column(Integer, default=0, nullable=False)
+    rating = Column(Float, nullable=True)
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    suggestion_text = Column(Text, nullable=False)
-    category = Column(String(100))
-    context_keywords = Column(ARRAY(Text), default=[])
-    display_order = Column(Integer, default=0)
-    usage_count = Column(Integer, default=0)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f"<QuerySuggestion(id={self.id}, suggestion_text={self.suggestion_text[:50]}...)>"
-    
-    def increment_usage_count(self):
-        """Increment usage count"""
-        self.usage_count += 1
-    
-    def matches_keywords(self, keywords: List[str]) -> bool:
-        """Check if suggestion matches given keywords"""
-        if not self.context_keywords:
-            return True
-        
-        # Case-insensitive matching
-        context_lower = [k.lower() for k in self.context_keywords]
-        keywords_lower = [k.lower() for k in keywords]
-        
-        # Check if any keyword matches
-        return any(keyword in context_lower for keyword in keywords_lower)
-
-
-
+    # Tags for discovery
+    tags = Column(JSON, nullable=True)

@@ -1,35 +1,51 @@
 """
-Authentication and user management schemas
+Authentication schemas for request/response validation
+Located at: /backend/app/schemas/auth.py
 """
-
-from typing import Optional, List, Dict, Any, Annotated
+from pydantic import BaseModel, EmailStr, Field, validator
+from typing import Optional, List, Dict, Any
 from datetime import datetime
-from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field, field_validator, StringConstraints
 
+# Token schemas
+class Token(BaseModel):
+    """Token response schema"""
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    refresh_token: Optional[str] = None
 
-# =====================================================
-# User Schemas
-# =====================================================
+class TokenData(BaseModel):
+    """Token data extracted from JWT"""
+    user_id: str
+    username: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    permissions: Optional[List[str]] = []
 
-class UserBase(BaseModel):
-    """Base user schema"""
+# User authentication schemas
+class UserLogin(BaseModel):
+    """User login request schema"""
+    username: str = Field(..., description="Username or email")
+    password: str = Field(..., min_length=6)
+    remember_me: bool = False
+
+class UserRegister(BaseModel):
+    """User registration request schema"""
     email: EmailStr
-    username: Annotated[str, StringConstraints(min_length=3, max_length=100, pattern='^[a-zA-Z0-9_-]+$')]
-    first_name: Optional[str] = Field(None, max_length=100)
-    last_name: Optional[str] = Field(None, max_length=100)
-    department: Optional[str] = Field(None, max_length=100)
-    phone: Optional[str] = Field(None, max_length=50)
-    role: str = Field(default='user', max_length=50)
-
-
-class UserCreate(UserBase):
-    """Schema for creating a new user"""
-    password: Annotated[str, StringConstraints(min_length=8, max_length=100)]
+    username: str = Field(..., min_length=3, max_length=50, regex="^[a-zA-Z0-9_-]+$")
+    password: str = Field(..., min_length=8)
+    confirm_password: str
+    full_name: Optional[str] = None
+    department: Optional[str] = None
     
-    @field_validator('password')
-    @classmethod
-    def validate_password(cls, v):
+    @validator('confirm_password')
+    def passwords_match(cls, v, values):
+        if 'password' in values and v != values['password']:
+            raise ValueError('Passwords do not match')
+        return v
+    
+    @validator('password')
+    def password_strength(cls, v):
         """Validate password strength"""
         if not any(char.isdigit() for char in v):
             raise ValueError('Password must contain at least one digit')
@@ -39,323 +55,163 @@ class UserCreate(UserBase):
             raise ValueError('Password must contain at least one lowercase letter')
         return v
 
-
-class UserUpdate(BaseModel):
-    """Schema for updating user information"""
-    email: Optional[EmailStr] = None
-    username: Optional[Annotated[str, StringConstraints(min_length=3, max_length=100, pattern='^[a-zA-Z0-9_-]+$')]] = None
-    first_name: Optional[str] = Field(None, max_length=100)
-    last_name: Optional[str] = Field(None, max_length=100)
-    department: Optional[str] = Field(None, max_length=100)
-    phone: Optional[str] = Field(None, max_length=50)
-    avatar_url: Optional[str] = None
-    is_active: Optional[bool] = None
-
-
-class UserInDB(UserBase):
-    """User schema with database fields"""
-    id: UUID
-    is_active: bool = True
-    is_verified: bool = False
-    email_verified_at: Optional[datetime] = None
-    last_login: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
+class PasswordChange(BaseModel):
+    """Password change request schema"""
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+    confirm_password: str
     
-    class Config:
-        from_attributes = True  # Changed from orm_mode
+    @validator('confirm_password')
+    def passwords_match(cls, v, values):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError('Passwords do not match')
+        return v
 
-
-class UserResponse(BaseModel):
-    """User response schema"""
-    id: UUID
-    email: str
-    username: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    full_name: Optional[str] = None
-    department: Optional[str] = None
-    phone: Optional[str] = None
-    avatar_url: Optional[str] = None
-    role: str
-    is_active: bool
-    is_verified: bool
-    last_login: Optional[datetime] = None
-    created_at: datetime
-    roles: List['RoleResponse'] = []
-    
-    class Config:
-        from_attributes = True  # Changed from orm_mode
-
-
-# =====================================================
-# Authentication Schemas
-# =====================================================
-
-class UserLogin(BaseModel):
-    """Login request schema"""
-    email: EmailStr
-    password: str
-    remember_me: bool = False
-
-
-class TokenResponse(BaseModel):
-    """JWT token response schema"""
-    access_token: str
-    refresh_token: Optional[str] = None
-    token_type: str = "bearer"
-    expires_in: int
-    user: UserResponse
-
-
-class TokenData(BaseModel):
-    """Token payload data"""
-    user_id: UUID
-    username: str
-    role: str
-    exp: datetime
-    
-    class Config:
-        json_encoders = {
-            UUID: str
-        }
-
-
-# =====================================================
-# Password Reset Schemas
-# =====================================================
-
-class PasswordResetRequest(BaseModel):
+class PasswordReset(BaseModel):
     """Password reset request schema"""
     email: EmailStr
 
-
-class PasswordReset(BaseModel):
-    """Password reset schema"""
+class PasswordResetConfirm(BaseModel):
+    """Password reset confirmation schema"""
     token: str
-    new_password: Annotated[str, StringConstraints(min_length=8, max_length=100)]
+    new_password: str = Field(..., min_length=8)
+    confirm_password: str
     
-    @field_validator('new_password')
-    @classmethod
-    def validate_password(cls, v):
-        """Validate password strength"""
-        if not any(char.isdigit() for char in v):
-            raise ValueError('Password must contain at least one digit')
-        if not any(char.isupper() for char in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not any(char.islower() for char in v):
-            raise ValueError('Password must contain at least one lowercase letter')
+    @validator('confirm_password')
+    def passwords_match(cls, v, values):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError('Passwords do not match')
         return v
 
+# User profile schemas
+class UserBase(BaseModel):
+    """Base user schema"""
+    email: EmailStr
+    username: str
+    full_name: Optional[str] = None
+    department: Optional[str] = None
+    job_title: Optional[str] = None
+    phone_number: Optional[str] = None
 
-class PasswordChangeRequest(BaseModel):
-    """Password change request schema"""
-    current_password: str
-    new_password: Annotated[str, StringConstraints(min_length=8, max_length=100)]
+class UserCreate(UserBase):
+    """User creation schema (admin)"""
+    password: str = Field(..., min_length=8)
+    role: str = "viewer"
+    is_active: bool = True
+    is_verified: bool = False
+
+class UserUpdate(BaseModel):
+    """User update schema"""
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    department: Optional[str] = None
+    job_title: Optional[str] = None
+    phone_number: Optional[str] = None
+    avatar_url: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = None
+    notification_settings: Optional[Dict[str, Any]] = None
+
+class UserInDB(UserBase):
+    """User in database schema"""
+    id: str
+    role: str
+    is_active: bool
+    is_verified: bool
+    is_superuser: bool
+    created_at: datetime
+    updated_at: datetime
+    last_login: Optional[datetime] = None
     
-    @field_validator('new_password')
-    @classmethod
-    def validate_password(cls, v):
-        """Validate password strength"""
-        if not any(char.isdigit() for char in v):
-            raise ValueError('Password must contain at least one digit')
-        if not any(char.isupper() for char in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not any(char.islower() for char in v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        return v
+    class Config:
+        from_attributes = True
 
+class UserResponse(UserBase):
+    """User response schema"""
+    id: str
+    role: str
+    is_active: bool
+    is_verified: bool
+    created_at: datetime
+    preferences: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        from_attributes = True
 
-# =====================================================
-# Role and Permission Schemas
-# =====================================================
-
+# Permission and role schemas
 class PermissionBase(BaseModel):
     """Base permission schema"""
-    resource: str = Field(..., max_length=100)
-    action: str = Field(..., max_length=50)
-    display_name: Optional[str] = Field(None, max_length=200)
+    name: str
+    resource: str
+    action: str
     description: Optional[str] = None
 
+class PermissionCreate(PermissionBase):
+    """Permission creation schema"""
+    pass
 
 class PermissionResponse(PermissionBase):
     """Permission response schema"""
-    id: UUID
-    is_active: bool
+    id: str
+    created_at: datetime
     
     class Config:
-        from_attributes = True  # Changed from orm_mode
-
+        from_attributes = True
 
 class RoleBase(BaseModel):
     """Base role schema"""
-    name: Annotated[str, StringConstraints(min_length=3, max_length=50, pattern='^[a-zA-Z0-9_-]+$')]
-    display_name: Optional[str] = Field(None, max_length=100)
+    name: str
     description: Optional[str] = None
-
+    is_system: bool = False
 
 class RoleCreate(RoleBase):
     """Role creation schema"""
-    permission_ids: List[UUID] = []
-
+    permissions: List[str] = []  # List of permission IDs
 
 class RoleUpdate(BaseModel):
     """Role update schema"""
-    display_name: Optional[str] = Field(None, max_length=100)
+    name: Optional[str] = None
     description: Optional[str] = None
-    permission_ids: Optional[List[UUID]] = None
-    is_active: Optional[bool] = None
-
+    permissions: Optional[List[str]] = None
 
 class RoleResponse(RoleBase):
     """Role response schema"""
-    id: UUID
-    is_system: bool
-    is_active: bool
+    id: str
+    created_at: datetime
     permissions: List[PermissionResponse] = []
-    created_at: datetime
     
     class Config:
-        from_attributes = True  # Changed from orm_mode
+        from_attributes = True
 
+# API Key schemas
+class APIKeyCreate(BaseModel):
+    """API key creation request"""
+    name: str = Field(..., description="Name for the API key")
+    expires_in_days: Optional[int] = Field(None, description="Expiration in days (None for no expiration)")
 
-class RoleAssignment(BaseModel):
-    """Role assignment schema"""
-    user_id: UUID
-    role_id: UUID
+class APIKeyResponse(BaseModel):
+    """API key response"""
+    key: str = Field(..., description="The API key (only shown once)")
+    name: str
+    created_at: datetime
     expires_at: Optional[datetime] = None
-
-
-# =====================================================
-# User Preferences Schemas
-# =====================================================
-
-class UserPreferencesUpdate(BaseModel):
-    """User preferences update schema"""
-    theme: Optional[Annotated[str, StringConstraints(pattern='^(light|dark|auto)$')]] = None
-    language: Optional[Annotated[str, StringConstraints(pattern='^[a-z]{2}(-[A-Z]{2})?$')]] = None
-    timezone: Optional[str] = None
-    date_format: Optional[str] = None
-    number_format: Optional[str] = None
-    default_chart_type: Optional[str] = None
-    dashboard_layout: Optional[Dict[str, Any]] = None
-    notification_preferences: Optional[Dict[str, Any]] = None
-    ui_preferences: Optional[Dict[str, Any]] = None
-
-
-class UserPreferencesResponse(UserPreferencesUpdate):
-    """User preferences response schema"""
-    id: UUID
-    user_id: UUID
-    created_at: datetime
-    updated_at: datetime
     
-    class Config:
-        from_attributes = True  # Changed from orm_mode
-
-
-# =====================================================
-# Notification Settings Schemas
-# =====================================================
-
-class NotificationSettingsUpdate(BaseModel):
-    """Notification settings update schema"""
-    email_enabled: Optional[bool] = None
-    push_enabled: Optional[bool] = None
-    sms_enabled: Optional[bool] = None
-    notification_types: Optional[Dict[str, bool]] = None
-    quiet_hours: Optional[Dict[str, str]] = None
-
-
-class NotificationSettingsResponse(NotificationSettingsUpdate):
-    """Notification settings response schema"""
-    id: UUID
-    user_id: UUID
+class APIKeyList(BaseModel):
+    """API key list item"""
+    id: str
+    name: str
     created_at: datetime
-    updated_at: datetime
-    
-    class Config:
-        from_attributes = True  # Changed from orm_mode
-
-
-# =====================================================
-# Session Management Schemas
-# =====================================================
-
-class SessionInfo(BaseModel):
-    """Session information schema"""
-    id: UUID
-    user_id: UUID
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    device_id: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    last_used: Optional[datetime] = None
     is_active: bool
+
+# Session schemas
+class SessionInfo(BaseModel):
+    """Session information"""
+    id: str
+    user_id: str
+    ip_address: str
+    user_agent: str
     created_at: datetime
+    last_activity: datetime
     expires_at: datetime
-    
-    class Config:
-        from_attributes = True  # Changed from orm_mode
-
-
-class ActiveSessionsResponse(BaseModel):
-    """Active sessions response"""
-    sessions: List[SessionInfo]
-    total: int
-
-
-# =====================================================
-# Audit Log Schemas
-# =====================================================
-
-class AuditLogEntry(BaseModel):
-    """Audit log entry schema"""
-    id: int
-    user_id: Optional[UUID] = None
-    action: str
-    resource_type: str
-    resource_id: Optional[str] = None
-    old_values: Optional[Dict[str, Any]] = None
-    new_values: Optional[Dict[str, Any]] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    metadata: Dict[str, Any] = {}
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True  # Changed from orm_mode
-
-
-class AuditLogFilter(BaseModel):
-    """Audit log filter schema"""
-    user_id: Optional[UUID] = None
-    action: Optional[str] = None
-    resource_type: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    skip: int = 0
-    limit: int = 100
-
-
-# =====================================================
-# User Statistics Schemas
-# =====================================================
-
-class UserStatistics(BaseModel):
-    """User statistics schema"""
-    total_queries: int
-    saved_queries: int
-    dashboards: int
-    charts_created: int
-    last_activity: Optional[datetime] = None
-    storage_used_mb: float = 0.0
-    api_calls_today: int = 0
-    api_calls_this_month: int = 0
-
-
-class UserActivity(BaseModel):
-    """User activity schema"""
-    date: str
-    queries_count: int
-    charts_created: int
-    dashboards_viewed: int
-    analytics_run: int
+    is_current: bool = False

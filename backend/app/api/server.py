@@ -1,339 +1,284 @@
-﻿from fastapi import FastAPI, Request, Depends, HTTPException, status
+﻿"""
+FastAPI application factory and configuration
+Located at: /backend/app/api/server.py
+"""
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.openapi.utils import get_openapi
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 import time
+from typing import Callable
 import os
-from datetime import datetime
-import logging
-from sqlalchemy import text
-from sqlalchemy import create_engine
 
-# Import all route modules
-from app.api.routes import (
-    auth, 
-    queries, 
-    visualizations, 
-    database, 
-    analytics,
-    analytics_enhanced,  # Added
-    admin,
-    dashboards,         # Added
-    export,             # Added
-    multi_tier,         # Added
-    reference_data,     # Added
-    reports,            # Added
-    settings as settings_routes,  # Added - renamed to avoid conflict
-    suggestions         # Added
-)
-from app.api.middleware.auth import JWTAuthMiddleware, AdminOnlyMiddleware
-from app.api.middleware.error_handler import ErrorHandlerMiddleware
-from app.api.middleware.rate_limit import RateLimitMiddleware
-from app.api.middleware.client_context import ClientContextMiddleware
 from app.config import get_settings
-from app.utils.logger import get_logger, setup_logging
-from app.db.database import get_db
+from app.utils.logger import setup_logger
+from app.db.database import engine, init_db
+from app.api.middleware.error_handler import add_exception_handlers
+from app.api.middleware.rate_limit import RateLimitMiddleware
+from app.api.middleware.auth import AuthMiddleware
+from app.api.middleware.client_context import ClientContextMiddleware
 
-# Get settings
-settings = get_settings()
-
-# Setup logging
-setup_logging()
-logger = get_logger(__name__)
-
-# Create database engine for health checks
-engine = create_engine(settings.database_url, echo=False)
-
-# Create FastAPI application
-app = FastAPI(
-    title="Supply Chain LLM API",
-    description="API for the Supply Chain LLM SaaS platform",
-    version="1.0.0",
-    docs_url=None,  # Disable default docs URL
-    redoc_url=None  # Disable default redoc URL
+# Import all routers
+from app.api.routes import (
+    auth, queries, analytics, analytics_enhanced, dashboards,
+    database, export, forecasting, multi_tier, reference_data,
+    reports, settings as settings_router, suggestions, visualizations, admin
 )
 
-# Configure CORS
-logger.info(f"CORS origins: {settings.cors_origins}")
+logger = setup_logger(__name__)
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Add custom middleware
-app.add_middleware(ErrorHandlerMiddleware)
-app.add_middleware(JWTAuthMiddleware)
-app.add_middleware(AdminOnlyMiddleware, admin_path_prefix="/api/admin")
-app.add_middleware(RateLimitMiddleware)
-app.add_middleware(ClientContextMiddleware)
-
-# Request timing middleware
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
-
-# Root endpoint
-@app.get("/")
-async def root():
-    """Root endpoint that redirects to API documentation."""
-    return {
-        "message": "Supply Chain LLM API",
-        "version": "1.0.0",
-        "docs": "/api/docs",
-        "health": "/api/health",
-        "status": "running"
-    }
-
-# Health check endpoint
-@app.get("/api/health", tags=["system"])
-async def health_check():
-    """
-    Health check endpoint to verify the API is running.
-    """
-    return {
-        "status": "healthy",
-        "version": "1.0.0",
-        "timestamp": datetime.now().isoformat(),
-        "environment": settings.environment,
-    }
-
-# Database health check endpoint
-@app.get("/api/health/db", tags=["system"])
-async def health_db():
-    """
-    Database health check endpoint to verify database connectivity.
-    """
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application startup and shutdown"""
+    # Startup
+    logger.info("Starting up Supply Chain AI Backend...")
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "timestamp": datetime.now().isoformat()
-        }
+        # Initialize database
+        init_db()
+        logger.info("Database initialized successfully")
+        
+        # Initialize schema cache
+        from app.db.schema.schema_discovery import SchemaDiscovery
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+        schema_discovery = SchemaDiscovery(db)
+        schema_discovery.discover_schema()  # Pre-cache schema
+        db.close()
+        logger.info("Schema cache initialized")
+        
+        # Initialize analytics engine
+        if get_settings().enable_analytics:
+            from app.analytics.inventory_optimization.forecast_engine import ForecastEngine
+            forecast_engine = ForecastEngine()
+            logger.info("Analytics engine initialized")
+        
+        # Initialize multi-tier network
+        from app.multiTier.supplier_mapping.network_builder import NetworkBuilder
+        network_builder = NetworkBuilder()
+        logger.info("Multi-tier network initialized")
+        
     except Exception as e:
-        logger.error(f"Database health check failed: {str(e)}")
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "unhealthy",
-                "database": "disconnected",
-                "error": str(e),
-                "timestamp": datetime.now().isoformat()
-            }
+        logger.error(f"Startup failed: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down...")
+    
+    # Close database connections
+    await engine.dispose()
+    
+    # Stop background jobs
+    try:
+        from app.jobs.scheduler import JobScheduler
+        scheduler = JobScheduler()
+        scheduler.shutdown()
+    except:
+        pass
+    
+    # Clear caches
+    try:
+        from app.cache.cache_invalidation import CacheInvalidator
+        invalidator = CacheInvalidator()
+        await invalidator.clear_all()
+    except:
+        pass
+    
+    logger.info("Shutdown complete")
+
+# Global app instance
+app = None
+
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application"""
+    global app
+    
+    if app is not None:
+        return app
+    
+    settings = get_settings()
+    
+    # Create FastAPI instance
+    app = FastAPI(
+        title=settings.app_name,
+        description="AI-powered Supply Chain Management System",
+        version=settings.version,
+        debug=settings.debug,
+        lifespan=lifespan,
+        docs_url="/api/docs" if settings.debug else None,
+        redoc_url="/api/redoc" if settings.debug else None,
+        openapi_url="/api/openapi.json" if settings.debug else None,
+        swagger_ui_parameters={
+            "defaultModelsExpandDepth": -1,
+            "syntaxHighlight.theme": "obsidian",
+            "tryItOutEnabled": True,
+        }
+    )
+    
+    # Add middlewares in correct order (outermost to innermost)
+    
+    # CORS middleware (should be first)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=settings.cors_allow_credentials,
+        allow_methods=settings.cors_allow_methods,
+        allow_headers=settings.cors_allow_headers,
+        expose_headers=["X-Total-Count", "X-Page", "X-Per-Page"],
+    )
+    
+    # Trusted host middleware
+    if settings.environment == "production":
+        app.add_middleware(
+            TrustedHostMiddleware,
+            allowed_hosts=settings.cors_origins
         )
-
-# Dashboard endpoints (custom endpoints that frontend is looking for)
-@app.get("/api/dashboard/overview", tags=["dashboard"])
-async def get_dashboard_overview(db = Depends(get_db)):
-    """Get dashboard overview metrics"""
-    try:
-        # This is a placeholder - implement actual logic based on your data
+    
+    # GZip compression
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    
+    # Custom middlewares
+    app.add_middleware(ClientContextMiddleware)
+    app.add_middleware(AuthMiddleware)
+    app.add_middleware(RateLimitMiddleware)
+    
+    # Request timing middleware
+    @app.middleware("http")
+    async def add_process_time_header(request: Request, call_next: Callable) -> Response:
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        return response
+    
+    # Add exception handlers
+    add_exception_handlers(app)
+    
+    # Mount static files if upload directory exists
+    if os.path.exists(settings.upload_dir):
+        app.mount("/static", StaticFiles(directory=settings.upload_dir), name="static")
+    
+    # Root endpoints
+    @app.get("/", tags=["Root"])
+    async def root():
         return {
-            "total_orders": 1234,
-            "pending_orders": 45,
-            "total_inventory_value": 987654.32,
-            "low_stock_items": 12,
-            "active_suppliers": 78,
-            "on_time_delivery_rate": 94.5,
-            "total_shipments": 567,
-            "in_transit": 23
-        }
-    except Exception as e:
-        logger.error(f"Error fetching dashboard overview: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/dashboard/recent-orders", tags=["dashboard"])
-async def get_recent_orders(db = Depends(get_db)):
-    """Get recent orders"""
-    try:
-        # Placeholder implementation
-        return {
-            "orders": [
-                {
-                    "id": "ORD-001",
-                    "customer": "Acme Corp",
-                    "date": "2025-06-12",
-                    "status": "Processing",
-                    "total": 5432.10
-                },
-                {
-                    "id": "ORD-002",
-                    "customer": "Global Industries",
-                    "date": "2025-06-12",
-                    "status": "Shipped",
-                    "total": 8765.43
-                }
-            ]
-        }
-    except Exception as e:
-        logger.error(f"Error fetching recent orders: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/dashboard/inventory-alerts", tags=["dashboard"])
-async def get_inventory_alerts(db = Depends(get_db)):
-    """Get inventory alerts"""
-    try:
-        # Placeholder implementation
-        return {
-            "alerts": [
-                {
-                    "id": 1,
-                    "type": "low_stock",
-                    "product": "Widget A",
-                    "current_stock": 15,
-                    "reorder_point": 50,
-                    "severity": "high"
-                },
-                {
-                    "id": 2,
-                    "type": "overstock",
-                    "product": "Gadget B",
-                    "current_stock": 500,
-                    "max_stock": 200,
-                    "severity": "medium"
-                }
-            ]
-        }
-    except Exception as e:
-        logger.error(f"Error fetching inventory alerts: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/dashboard/supplier-metrics", tags=["dashboard"])
-async def get_supplier_metrics(db = Depends(get_db)):
-    """Get supplier performance metrics"""
-    try:
-        # Placeholder implementation
-        return {
-            "metrics": {
-                "total_suppliers": 78,
-                "active_suppliers": 65,
-                "average_lead_time": 3.5,
-                "on_time_delivery_rate": 92.3,
-                "quality_rating": 4.2
-            },
-            "top_suppliers": [
-                {
-                    "name": "Supplier A",
-                    "rating": 4.8,
-                    "orders": 156
-                },
-                {
-                    "name": "Supplier B",
-                    "rating": 4.5,
-                    "orders": 134
-                }
-            ]
-        }
-    except Exception as e:
-        logger.error(f"Error fetching supplier metrics: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/dashboard/logistics-summary", tags=["dashboard"])
-async def get_logistics_summary(db = Depends(get_db)):
-    """Get logistics summary"""
-    try:
-        # Placeholder implementation
-        return {
-            "summary": {
-                "total_shipments": 567,
-                "in_transit": 23,
-                "delivered": 544,
-                "average_transit_time": 2.3,
-                "on_time_rate": 94.5
-            },
-            "shipments_by_status": {
-                "pending": 12,
-                "in_transit": 23,
-                "delivered": 544,
-                "delayed": 5
+            "message": "Supply Chain AI Backend API",
+            "version": settings.version,
+            "status": "operational",
+            "documentation": {
+                "interactive": "/api/docs" if settings.debug else "Disabled",
+                "redoc": "/api/redoc" if settings.debug else "Disabled",
+                "openapi": "/api/openapi.json" if settings.debug else "Disabled"
             }
         }
-    except Exception as e:
-        logger.error(f"Error fetching logistics summary: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Include all routers
-app.include_router(auth.router, prefix="/api")
-app.include_router(queries.router, prefix="/api")
-app.include_router(visualizations.router, prefix="/api")
-app.include_router(database.router, prefix="/api")
-app.include_router(analytics.router, prefix="/api")
-app.include_router(analytics_enhanced.router, prefix="/api")  # Added
-app.include_router(admin.router, prefix="/api")
-app.include_router(dashboards.router)  # Added (already has /api/dashboards prefix)
-app.include_router(export.router, prefix="/api")  # Added
-app.include_router(multi_tier.router, prefix="/api")  # Added
-app.include_router(reference_data.router, prefix="/api")  # Added
-app.include_router(reports.router, prefix="/api")  # Added
-app.include_router(settings_routes.router, prefix="/api")  # Added - using renamed import
-app.include_router(suggestions.router, prefix="/api")  # Added
-
-# Custom OpenAPI docs
-@app.get("/api/docs", include_in_schema=False)
-async def custom_swagger_ui_html():
-    return get_swagger_ui_html(
-        openapi_url="/api/openapi.json",
-        title=f"{app.title} - API Documentation",
-        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css",
-    )
-
-@app.get("/api/openapi.json", include_in_schema=False)
-async def get_open_api_endpoint():
-    return get_openapi(
-        title=app.title,
-        version=app.version,
-        description=app.description,
-        routes=app.routes,
-    )
-
-# Error handlers
-@app.exception_handler(404)
-async def not_found_exception_handler(request: Request, exc):
-    return JSONResponse(
-        status_code=404,
-        content={
-            "error": {
-                "code": "not_found",
-                "message": "The requested resource was not found",
+    
+    @app.get("/health", tags=["Health"])
+    async def health_check():
+        """Health check endpoint for monitoring"""
+        from app.db.database import check_database_health
+        
+        db_healthy = await check_database_health()
+        
+        health_status = {
+            "status": "healthy" if db_healthy else "degraded",
+            "version": settings.version,
+            "environment": settings.environment,
+            "database": "connected" if db_healthy else "disconnected",
+            "timestamp": time.time()
+        }
+        
+        # Check optional services
+        if settings.redis_url:
+            try:
+                from app.cache.query_cache import QueryCache
+                cache = QueryCache()
+                await cache.ping()
+                health_status["cache"] = "connected"
+            except:
+                health_status["cache"] = "disconnected"
+                health_status["status"] = "degraded"
+        
+        if settings.llm_provider:
+            try:
+                from app.services.llm_service import get_llm_service
+                llm = get_llm_service()
+                health_status["llm"] = "connected"
+            except:
+                health_status["llm"] = "disconnected"
+                health_status["status"] = "degraded"
+        
+        status_code = 200 if health_status["status"] == "healthy" else 503
+        return JSONResponse(content=health_status, status_code=status_code)
+    
+    @app.get("/metrics", tags=["Monitoring"])
+    async def metrics():
+        """Basic metrics endpoint"""
+        from app.utils.metrics import get_application_metrics
+        return await get_application_metrics()
+    
+    # Include all routers
+    app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+    app.include_router(queries.router, prefix="/api/queries", tags=["Natural Language Queries"])
+    app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
+    app.include_router(analytics_enhanced.router, prefix="/api/analytics-enhanced", tags=["Enhanced Analytics"])
+    app.include_router(dashboards.router, prefix="/api/dashboards", tags=["Dashboards"])
+    app.include_router(database.router, prefix="/api/database", tags=["Database Management"])
+    app.include_router(export.router, prefix="/api/export", tags=["Data Export"])
+    app.include_router(forecasting.router, prefix="/api/forecasting", tags=["Forecasting"])
+    app.include_router(multi_tier.router, prefix="/api/multi-tier", tags=["Multi-Tier Supply Chain"])
+    app.include_router(reference_data.router, prefix="/api/reference-data", tags=["Reference Data"])
+    app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
+    app.include_router(settings_router.router, prefix="/api/settings", tags=["User Settings"])
+    app.include_router(suggestions.router, prefix="/api/suggestions", tags=["Query Suggestions"])
+    app.include_router(visualizations.router, prefix="/api/visualizations", tags=["Data Visualizations"])
+    app.include_router(admin.router, prefix="/api/admin", tags=["Administration"])
+    
+    # Custom error handlers
+    @app.exception_handler(404)
+    async def not_found_handler(request: Request, exc):
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "Not Found",
+                "message": f"The requested URL {request.url.path} was not found on this server.",
                 "path": request.url.path
             }
+        )
+    
+    @app.exception_handler(500)
+    async def internal_error_handler(request: Request, exc):
+        logger.error(f"Internal server error: {exc}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal Server Error",
+                "message": "An unexpected error occurred. Please try again later.",
+                "request_id": request.state.request_id if hasattr(request.state, 'request_id') else None
+            }
+        )
+    
+    # API versioning preparation
+    @app.get("/api/version", tags=["Version"])
+    async def api_version():
+        return {
+            "api_version": "1.0",
+            "app_version": settings.version,
+            "minimum_client_version": "1.0",
+            "deprecated_endpoints": [],
+            "new_features": [
+                "Natural Language Queries",
+                "Multi-Tier Supply Chain Visualization",
+                "Advanced Forecasting Models",
+                "Real-time Analytics"
+            ]
         }
-    )
+    
+    logger.info(f"FastAPI app created successfully in {settings.environment} mode")
+    return app
 
-# Startup event handler
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"Starting Supply Chain LLM API (version 1.0.0)")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"CORS origins: {settings.cors_origins}")
-    logger.info("Database connected successfully")
-
-# Shutdown event handler
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Shutting down Supply Chain LLM API")
-    engine.dispose()
-
-# Export the app for ASGI servers (like Uvicorn)
-api_app = app
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app.api.server:api_app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+# Create app instance for uvicorn
+app = create_app()
