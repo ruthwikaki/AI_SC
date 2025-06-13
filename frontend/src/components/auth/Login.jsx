@@ -31,7 +31,7 @@ const Login = () => {
     console.log('Login form data:', formData); // Debug log
 
     try {
-      await login(formData);
+      await login(formData.email, formData.password);
       navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
@@ -134,3 +134,4 @@ const Login = () => {
 };
 
 export default Login;
+

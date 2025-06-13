@@ -1,16 +1,47 @@
-﻿import api from './api';
+﻿console.log('AUTH.JS LOADED - FIXED VERSION');
+import api from './api';
 
 const authService = {
-  async login(credentials) {
+  // Register new user
+  async register(userData) {
     try {
-      console.log('Auth service - login attempt with:', credentials);
+      const registrationData = {
+        username: userData.email.split('@')[0],
+        email: userData.email,
+        password: userData.password,
+      };
       
-      // OAuth2PasswordRequestForm expects form data with 'username' field
+      const response = await api.post('/api/auth/register', registrationData);
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error.response?.data);
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      throw new Error('Registration failed. Please try again.');
+    }
+  },
+
+  // Login user
+  async login(email, password, rememberMe = true) {
+    try {
+      console.log('=== AUTH SERVICE LOGIN ===');
+      console.log('Email received:', email);
+      console.log('Password received:', password);
+      console.log('Email type:', typeof email);
+      
+      // Extract username from email
+      const username = email && typeof email === 'string' && email.includes('@') 
+        ? email.split('@')[0] 
+        : email;
+      
+      console.log('Extracted username:', username);
+      
       const formData = new URLSearchParams();
-      formData.append('username', credentials.email);
-      formData.append('password', credentials.password);
+      formData.append('username', username);
+      formData.append('password', password);
       
-      console.log('Sending login request to /api/auth/token');
+      console.log('Sending to API:', formData.toString());
       
       const response = await api.post('/api/auth/token', formData, {
         headers: {
@@ -18,81 +49,71 @@ const authService = {
         },
       });
       
-      console.log('Login successful:', response.data);
+      console.log('Login successful!', response.data);
       
-      const { access_token, token_type, expires_at, user_id, role, permissions } = response.data;
+      if (response.data.access_token) {
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem('authToken', response.data.access_token);
+        
+        if (response.data.refresh_token) {
+          storage.setItem('refreshToken', response.data.refresh_token);
+        }
+        
+        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+        
+        // Get user details
+        const userResponse = await api.get('/api/auth/me');
+        const user = userResponse.data;
+        storage.setItem('user', JSON.stringify(user));
+        
+        return {
+          user,
+          token: response.data.access_token,
+          refreshToken: response.data.refresh_token
+        };
+      }
       
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('token_type', token_type);
-      localStorage.setItem('expires_at', expires_at);
-      localStorage.setItem('user_id', user_id);
-      localStorage.setItem('user_role', role);
-      localStorage.setItem('user_permissions', JSON.stringify(permissions));
-      
-      api.defaults.headers.common['Authorization'] = `${token_type} ${access_token}`;
-      
-      return response.data;
+      throw new Error('Login failed - no access token received');
     } catch (error) {
       console.error('Auth service - login error:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
+      console.error('Error response:', error.response?.data);
+      
+      if (error.response?.status === 401) {
+        throw new Error(error.response.data?.detail || 'Invalid credentials');
       }
+      
       throw error;
     }
   },
-  
-  async register(userData) {
-    try {
-      const response = await api.post('/api/auth/register', userData);
-      return response.data;
-    } catch (error) {
-      console.error('Auth service - register error:', error);
-      throw error;
+
+  // Logout user
+  logout() {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('refreshToken');
+    sessionStorage.removeItem('user');
+    delete api.defaults.headers.common['Authorization'];
+  },
+
+  // Get current user
+  getCurrentUser() {
+    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
     }
+    return null;
   },
-  
-  async logout() {
-    try {
-      await api.post('/api/auth/logout');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('token_type');
-      localStorage.removeItem('expires_at');
-      localStorage.removeItem('user_id');
-      localStorage.removeItem('user_role');
-      localStorage.removeItem('user_permissions');
-      delete api.defaults.headers.common['Authorization'];
-      return true;
-    } catch (error) {
-      console.error('Auth service - logout error:', error);
-      throw error;
-    }
-  },
-  
-  async getCurrentUser() {
-    try {
-      const response = await api.get('/api/auth/me');
-      return response.data;
-    } catch (error) {
-      console.error('Auth service - get current user error:', error);
-      throw error;
-    }
-  },
-  
-  getStoredToken() {
-    return localStorage.getItem('access_token');
-  },
-  
+
+  // Check if authenticated
   isAuthenticated() {
-    const token = this.getStoredToken();
-    const expiresAt = localStorage.getItem('expires_at');
-    
-    if (!token || !expiresAt) {
-      return false;
-    }
-    
-    const expiryDate = new Date(expiresAt);
-    return expiryDate > new Date();
-  },
+    return !!(localStorage.getItem('authToken') || sessionStorage.getItem('authToken'));
+  }
 };
 
 export default authService;
