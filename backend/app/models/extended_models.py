@@ -196,19 +196,3 @@ class APIKey(Base):
     # Relationships
     user = relationship('User')
 
-class AuditLog(Base):
-    """Audit log for tracking system changes"""
-    __tablename__ = 'audit_logs'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-    action = Column(String(50), nullable=False)  # 'create', 'update', 'delete', 'export'
-    resource_type = Column(String(50), nullable=False)  # Model name
-    resource_id = Column(UUID(as_uuid=True))
-    changes = Column(JSONB)  # Before/after values
-    ip_address = Column(String(45))
-    user_agent = Column(Text)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User')

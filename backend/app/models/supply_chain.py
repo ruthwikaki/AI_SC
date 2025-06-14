@@ -273,3 +273,74 @@ class Shipment(Base):
     
     def __repr__(self):
         return f"<Shipment(shipment_number={self.shipment_number}, status={self.status})>"
+class SupplierTier(Base):
+    """SupplierTier model"""
+    __tablename__ = 'supplier_tiers'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<SupplierTier(id={self.id})>"
+
+class SupplierRelationship(Base):
+    """SupplierRelationship model"""
+    __tablename__ = 'supplier_relationships'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<SupplierRelationship(id={self.id})>"
+
+class Material(Base):
+    """Material model"""
+    __tablename__ = 'materials'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<Material(id={self.id})>"
+
+class ProductMaterial(Base):
+    """ProductMaterial model"""
+    __tablename__ = 'product_materials'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ProductMaterial(id={self.id})>"
+
+class InventoryHistory(Base):
+    """InventoryHistory model"""
+    __tablename__ = 'inventory_history'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<InventoryHistory(id={self.id})>"
+
+class ShipmentItem(Base):
+    """ShipmentItem model"""
+    __tablename__ = 'shipment_items'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ShipmentItem(id={self.id})>"

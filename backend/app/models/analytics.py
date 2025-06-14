@@ -134,3 +134,222 @@ class AnalyticsMetric(Base):
     
     def __repr__(self):
         return f"<AnalyticsMetric(name={self.name}, type={self.metric_type})>"
+class ScheduledAnalytic(Base):
+    """ScheduledAnalytic model"""
+    __tablename__ = 'scheduled_analytics'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ScheduledAnalytic(id={self.id})>"
+
+class AnalyticsTemplate(Base):
+    """AnalyticsTemplate model"""
+    __tablename__ = 'analytics_templates'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<AnalyticsTemplate(id={self.id})>"
+
+class ReportSchedule(Base):
+    """ReportSchedule model"""
+    __tablename__ = 'report_schedules'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ReportSchedule(id={self.id})>"
+
+class SupplierPerformanceMetric(Base):
+    """SupplierPerformanceMetric model"""
+    __tablename__ = 'supplier_performance_metrics'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<SupplierPerformanceMetric(id={self.id})>"
+
+class InventoryMetric(Base):
+    """InventoryMetric model"""
+    __tablename__ = 'inventory_metrics'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<InventoryMetric(id={self.id})>"
+
+class DeliveryPerformance(Base):
+    """DeliveryPerformance model"""
+    __tablename__ = 'delivery_performance'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<DeliveryPerformance(id={self.id})>"
+
+class RiskAssessment(Base):
+    """RiskAssessment model"""
+    __tablename__ = 'risk_assessments'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<RiskAssessment(id={self.id})>"
+
+class ComplianceCheck(Base):
+    """ComplianceCheck model"""
+    __tablename__ = 'compliance_checks'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ComplianceCheck(id={self.id})>"
+
+class ABCAnalysisResult(Base):
+    """ABCAnalysisResult model"""
+    __tablename__ = 'abc_analysis_results'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ABCAnalysisResult(id={self.id})>"
+
+class ForecastResult(Base):
+    """ForecastResult model"""
+    __tablename__ = 'forecast_results'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ForecastResult(id={self.id})>"
+
+class SafetyStockCalculation(Base):
+    """SafetyStockCalculation model"""
+    __tablename__ = 'safety_stock_calculations'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<SafetyStockCalculation(id={self.id})>"
+
+class SupplyChainNetwork(Base):
+    """SupplyChainNetwork model"""
+    __tablename__ = 'supply_chain_networks'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<SupplyChainNetwork(id={self.id})>"
+
+class NetworkNode(Base):
+    """NetworkNode model"""
+    __tablename__ = 'network_nodes'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<NetworkNode(id={self.id})>"
+
+class NetworkEdge(Base):
+    """NetworkEdge model"""
+    __tablename__ = 'network_edges'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<NetworkEdge(id={self.id})>"
+
+class BottleneckAnalysis(Base):
+    """BottleneckAnalysis model"""
+    __tablename__ = 'bottleneck_analysis'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<BottleneckAnalysis(id={self.id})>"
+
+class RiskPropagationScenario(Base):
+    """RiskPropagationScenario model"""
+    __tablename__ = 'risk_propagation_scenarios'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<RiskPropagationScenario(id={self.id})>"
+
+class DisruptionImpact(Base):
+    """DisruptionImpact model"""
+    __tablename__ = 'disruption_impacts'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<DisruptionImpact(id={self.id})>"
+
+class Report(Base):
+    """Report model"""
+    __tablename__ = 'reports'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    report_type = Column(String(50))
+    parameters = Column(JSONB, default={})
+    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<Report(id={self.id}, name={self.name})>"

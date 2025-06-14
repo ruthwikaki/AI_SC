@@ -1,4 +1,4 @@
-﻿"""
+"""
 Visualization and charting models
 """
 
@@ -14,6 +14,70 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
+
+
+
+
+class ChartType(Base):
+    """Chart type definitions"""
+    __tablename__ = 'chart_types'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(50), unique=True, nullable=False)
+    display_name = Column(String(100))
+    description = Column(Text)
+    config_schema = Column(JSONB)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ChartType(name={self.name})>"
+
+
+class SavedChart(Base):
+    """User saved charts"""
+    __tablename__ = 'saved_charts'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    chart_id = Column(UUID(as_uuid=True), ForeignKey('charts.id'), nullable=False)
+    name = Column(String(255))
+    is_favorite = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship('User', back_populates='saved_charts')
+    chart = relationship('Chart')
+    
+    # Unique constraint
+    __table_args__ = (
+        UniqueConstraint('user_id', 'chart_id', name='uq_user_saved_chart'),
+    )
+    
+    def __repr__(self):
+        return f"<SavedChart(user_id={self.user_id}, chart_id={self.chart_id})>"
+
+
+class DashboardChart(Base):
+    """Charts in dashboards"""
+    __tablename__ = 'dashboard_charts'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    dashboard_id = Column(UUID(as_uuid=True), ForeignKey('dashboards.id'), nullable=False)
+    chart_id = Column(UUID(as_uuid=True), ForeignKey('charts.id'), nullable=False)
+    position_x = Column(Integer, default=0)
+    position_y = Column(Integer, default=0)
+    width = Column(Integer, default=6)
+    height = Column(Integer, default=4)
+    config_overrides = Column(JSONB)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    dashboard = relationship('Dashboard', back_populates='charts')
+    chart = relationship('Chart')
+    
+    def __repr__(self):
+        return f"<DashboardChart(dashboard_id={self.dashboard_id}, chart_id={self.chart_id})>"
 
 
 class Chart(Base):
