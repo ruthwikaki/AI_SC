@@ -1,4 +1,4 @@
-﻿"""
+"""
 Query models for natural language processing and SQL generation
 """
 
