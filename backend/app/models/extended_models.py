@@ -1,137 +1,163 @@
-﻿"""
-Extended models for additional functionality
-"""
+﻿# app/models/extended_models.py
 
-from datetime import datetime
-from decimal import Decimal
-from uuid import uuid4
-from typing import Optional
-
-from sqlalchemy import (
-    Column, String, Integer, Numeric, Boolean, DateTime, 
-    ForeignKey, Text, JSON, Float, Index
-)
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, JSON, ForeignKey, Text, Enum, Numeric
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
+from datetime import datetime
+from uuid import uuid4
 
 from app.models.base import Base
-from app.models.analytics import AnalyticsMetric
 
-
-class ExtendedAnalyticsMetric(AnalyticsMetric):
-    """Extended analytics metric model that inherits from AnalyticsMetric"""
-    __tablename__ = 'extended_analytics_metrics'
+class ForecastModel(Base):
+    __tablename__ = "forecast_models"
     
-    # Additional fields beyond base AnalyticsMetric
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(100), unique=True, nullable=False)
+    display_name = Column(String(200))
+    description = Column(Text)
+    model_type = Column(String(50))  # arima, lstm, prophet, etc.
+    average_accuracy = Column(Float, default=0.0)
+    best_use_cases = Column(Text)  # comma-separated list
+    default_parameters = Column(JSONB)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# ExtendedAnalyticsMetric - No inheritance, standalone model
+class ExtendedAnalyticsMetric(Base):
+    __tablename__ = "extended_analytics_metrics"
+    __table_args__ = {"extend_existing": True}
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(100), nullable=False)
+    metric_type = Column(String(50), nullable=False)  # forecast, accuracy, kpi, etc.
+    entity_type = Column(String(50))  # product, warehouse, supplier
+    entity_id = Column(UUID(as_uuid=True))
+    warehouse_id = Column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=True)
+    metric_date = Column(DateTime(timezone=True), nullable=False)
+    value = Column(Float, nullable=False)
+    meta_data = Column(JSONB)
+    # Extended fields
     forecast_accuracy = Column(Numeric(5, 2))  # Percentage
     confidence_level = Column(Numeric(5, 2))  # Percentage
     anomaly_detected = Column(Boolean, default=False)
     anomaly_score = Column(Numeric(5, 2))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
     def __repr__(self):
         return f"<ExtendedAnalyticsMetric(name={self.name}, type={self.metric_type})>"
 
+# Alias for compatibility
+AnalyticsMetric = ExtendedAnalyticsMetric
 
-class Report(Base):
-    """Report model for generating and storing reports"""
-    __tablename__ = 'reports'
+class ExportJob(Base):
+    __tablename__ = "export_jobs"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    export_type = Column(String(50), nullable=False)
+    format = Column(String(20), nullable=False)  # csv, xlsx, pdf, json
+    parameters = Column(JSONB)
+    status = Column(Enum('pending', 'processing', 'completed', 'failed', name='export_status'), default='pending')
+    file_path = Column(String(500))
+    file_size = Column(Integer)
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+
+class ReportTemplate(Base):
+    __tablename__ = "report_templates"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(200), nullable=False)
     description = Column(Text)
-    report_type = Column(String(50), nullable=False)  # 'inventory', 'sales', 'performance', etc.
-    format = Column(String(20), default='pdf')  # 'pdf', 'excel', 'csv'
-    config = Column(JSONB, default={})  # Report configuration and parameters
-    template_id = Column(UUID(as_uuid=True))  # Optional template reference
-    data = Column(JSONB)  # Cached report data
-    file_path = Column(Text)  # Path to generated file
-    status = Column(String(20), default='pending')  # 'pending', 'generating', 'completed', 'failed'
-    error_message = Column(Text)
-    generated_at = Column(DateTime(timezone=True))
-    expires_at = Column(DateTime(timezone=True))
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    category = Column(String(50))
+    template_type = Column(String(50))
+    parameters = Column(JSONB)  # Required parameters for the template
+    layout_config = Column(JSONB)  # Layout configuration
+    preview_image = Column(String(500))
+    estimated_generation_time = Column(Integer)  # in seconds
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Report model - matches what reports.py expects
+class Report(Base):
+    __tablename__ = "reports"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255), nullable=False)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("report_templates.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    parameters = Column(JSONB)
+    status = Column(String(50), nullable=False, default='generating')
+    file_path = Column(String(500))
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    completed_at = Column(DateTime(timezone=True))
     
     # Relationships
-    user = relationship('User', foreign_keys=[user_id])
+    template = relationship("ReportTemplate", foreign_keys=[template_id])
+    user = relationship("User", foreign_keys=[user_id])
     
     def __repr__(self):
-        return f"<Report(name={self.name}, type={self.report_type})>"
+        return f"<Report(name={self.name}, status={self.status})>"
 
+# ExtendedReport as alias for backwards compatibility
+ExtendedReport = Report
 
 class ScheduledReport(Base):
-    """Scheduled report model for recurring reports"""
-    __tablename__ = 'scheduled_reports'
+    __tablename__ = "scheduled_reports"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    report_id = Column(UUID(as_uuid=True), ForeignKey('reports.id'))
-    schedule = Column(String(50))  # Cron expression
-    frequency = Column(String(20))  # 'daily', 'weekly', 'monthly'
-    next_run = Column(DateTime(timezone=True))
-    last_run = Column(DateTime(timezone=True))
+    name = Column(String(200), nullable=False)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("report_templates.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    schedule_type = Column(String(50))  # daily, weekly, monthly
+    schedule_config = Column(JSONB)  # Cron expression or specific config
+    parameters = Column(JSONB)
+    recipients = Column(JSONB)  # List of email addresses
     is_active = Column(Boolean, default=True)
-    recipients = Column(JSONB, default=[])  # Email addresses
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User', foreign_keys=[user_id])
-    report = relationship('Report')
-    
-    def __repr__(self):
-        return f"<ScheduledReport(report_id={self.report_id}, frequency={self.frequency})>"
-
-
-class ExportJob(Base):
-    """Export job model for tracking data exports"""
-    __tablename__ = 'export_jobs'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    status = Column(String(20), default='pending')  # 'pending', 'processing', 'completed', 'failed'
-    export_type = Column(String(50))  # 'full_backup', 'filtered_data', 'report'
-    format = Column(String(20))  # 'csv', 'excel', 'json'
-    filters = Column(JSONB, default={})
-    progress = Column(Integer, default=0)  # Percentage
-    file_path = Column(Text)
-    file_size = Column(Integer)  # Bytes
-    error_message = Column(Text)
-    started_at = Column(DateTime(timezone=True))
-    completed_at = Column(DateTime(timezone=True))
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    last_run = Column(DateTime(timezone=True))
+    next_run = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    user = relationship('User', foreign_keys=[user_id])
-    
-    def __repr__(self):
-        return f"<ExportJob(type={self.export_type}, status={self.status})>"
+    template = relationship("ReportTemplate")
+    user = relationship("User", foreign_keys=[user_id])
 
 
 class NotificationSetting(Base):
-    """Notification settings model for user preferences"""
-    __tablename__ = 'notification_settings'
+    __tablename__ = "notification_settings"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), unique=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), unique=True, nullable=False)
     email_enabled = Column(Boolean, default=True)
-    email_frequency = Column(String(20), default='immediate')  # 'immediate', 'daily', 'weekly'
     push_enabled = Column(Boolean, default=False)
     sms_enabled = Column(Boolean, default=False)
-    notification_types = Column(JSONB, default={})  # {alert_type: enabled}
+    notification_types = Column(JSONB)  # Dict of notification type -> enabled
     quiet_hours_start = Column(String(5))  # HH:MM format
     quiet_hours_end = Column(String(5))  # HH:MM format
-    timezone = Column(String(50), default='UTC')
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = relationship('User', back_populates='notification_settings')
-    
-    def __repr__(self):
-        return f"<NotificationSetting(user_id={self.user_id})>"
+    user = relationship("User", back_populates="notification_settings")
 
+class WidgetType(Base):
+    __tablename__ = "widget_types"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(100), unique=True, nullable=False)
+    display_name = Column(String(200))
+    category = Column(String(50))
+    description = Column(Text)
+    default_config = Column(JSONB)
+    preview_image = Column(String(500))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
 class DataSource(Base):
     """Data source configuration model"""
@@ -150,10 +176,6 @@ class DataSource(Base):
     sync_frequency = Column(Integer)  # Minutes
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    def __repr__(self):
-        return f"<DataSource(name={self.name}, type={self.source_type})>"
-
 
 class APIKey(Base):
     """API key model for external access"""
@@ -173,10 +195,6 @@ class APIKey(Base):
     
     # Relationships
     user = relationship('User')
-    
-    def __repr__(self):
-        return f"<APIKey(name={self.name}, user_id={self.user_id})>"
-
 
 class AuditLog(Base):
     """Audit log for tracking system changes"""
@@ -194,16 +212,3 @@ class AuditLog(Base):
     
     # Relationships
     user = relationship('User')
-    
-    # Indexes
-    __table_args__ = (
-        Index('idx_audit_log_user', 'user_id', 'created_at'),
-        Index('idx_audit_log_resource', 'resource_type', 'resource_id'),
-    )
-    
-    def __repr__(self):
-        return f"<AuditLog(action={self.action}, resource_type={self.resource_type})>"
-
-
-# For backward compatibility - alias ExtendedAnalyticsMetric as AnalyticsMetric
-# AnalyticsMetric = ExtendedAnalyticsMetric

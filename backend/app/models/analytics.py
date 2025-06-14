@@ -20,6 +20,7 @@ from app.models.base import Base
 class AnalyticsMetric(Base):
     """Analytics metrics tracking model"""
     __tablename__ = 'analytics_metrics'
+    __table_args__ = {"extend_existing": True}
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(100), nullable=False)
@@ -92,3 +93,44 @@ class KPIDefinition(Base):
     
     def __repr__(self):
         return f"<KPIDefinition(code={self.code}, name={self.name})>"
+
+# Added missing models that other parts of the code expect
+
+class AnalyticsResult(Base):
+    """Stored analytics computation results"""
+    __tablename__ = 'analytics_results'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    analytics_type = Column(String(100), nullable=False)
+    parameters = Column(JSONB, nullable=False, default={})
+    result_data = Column(JSONB, nullable=False)
+    summary = Column(JSONB, default={})
+    recommendations = Column(JSONB, default=list)
+    execution_time_ms = Column(Integer)
+    status = Column(String(50), nullable=False, default='completed')
+    error_message = Column(Text)
+    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<AnalyticsResult(id={self.id}, type={self.analytics_type}, status={self.status})>"
+
+class AnalyticsMetric(Base):
+    """Analytics metrics model"""
+    __tablename__ = 'analytics_metrics'
+    __table_args__ = {"extend_existing": True}
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(100), nullable=False)
+    metric_type = Column(String(50), nullable=False)
+    value = Column(Numeric(20, 4), nullable=False)
+    unit = Column(String(20))
+    period_start = Column(DateTime(timezone=True))
+    period_end = Column(DateTime(timezone=True))
+    calculated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    meta_data = Column(JSONB, default={})
+    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<AnalyticsMetric(name={self.name}, type={self.metric_type})>"

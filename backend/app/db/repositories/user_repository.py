@@ -1,4 +1,4 @@
-"""
+﻿"""
 User repository for user-related database operations
 """
 
@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from uuid import UUID
 import logging
-from app.models.user import Role
+from app.models.user import UserRole
 
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_
@@ -50,11 +50,11 @@ class UserRepository:
             preferences = UserPreference(user_id=user.id)
             self.db.add(preferences)
             
-            # Assign default role
+            # Assign default UserRole
             if 'role_name' in user_data:
-                role = self.db.query(Role).filter_by(name=user_data['role_name']).first()
-                if role:
-                    user.roles.append(role)
+                UserRole = self.db.query(UserRole).filter_by(name=user_data['role_name']).first()
+                if UserRole:
+                    user.roles.append(UserRole)
             
             self.db.commit()
             self.db.refresh(user)
@@ -78,7 +78,7 @@ class UserRepository:
         """Get user by ID"""
         query = self.db.query(User)
         if include_roles:
-            query = query.options(joinedload(User.roles).joinedload(Role.permissions))
+            query = query.options(joinedload(User.roles).joinedload(UserRole.permissions))
         return query.filter(User.id == user_id).first()
     
     def get_user_by_email(self, email: str) -> Optional[User]:
@@ -94,7 +94,7 @@ class UserRepository:
         ).first()
     
     def get_users(
-        self, skip: int = 0, limit: int = 100, search: Optional[str] = None, role: Optional[str] = None, is_active: Optional[bool] = None, department: Optional[str] = None
+        self, skip: int = 0, limit: int = 100, search: Optional[str] = None, UserRole: Optional[str] = None, is_active: Optional[bool] = None, department: Optional[str] = None
     ) -> List[User]:
         """Get users with filters"""
         query = self.db.query(User)
@@ -108,8 +108,8 @@ class UserRepository:
                 )
             )
         
-        if role:
-            query = query.filter(User.role == role)
+        if UserRole:
+            query = query.filter(User.UserRole == UserRole)
         
         if is_active is not None:
             query = query.filter(User.is_active == is_active)
@@ -354,49 +354,49 @@ class UserRepository:
         return preferences
     
     # =====================================================
-    # Role and Permission Operations
+    # UserRole and Permission Operations
     # =====================================================
     
     def assign_role_to_user(
         self, user_id: UUID, role_id: UUID, assigned_by: UUID, expires_at: Optional[datetime] = None
     ) -> bool:
-        """Assign role to user"""
+        """Assign UserRole to user"""
         user = self.get_user_by_id(user_id)
-        role = self.db.query(Role).filter(Role.id == role_id).first()
+        UserRole = self.db.query(UserRole).filter(UserRole.id == role_id).first()
         
-        if not user or not role:
+        if not user or not UserRole:
             return False
         
         # Check if already assigned
-        if role in user.roles:
+        if UserRole in user.roles:
             return True
         
-        user.roles.append(role)
+        user.roles.append(UserRole)
         self.db.commit()
         
         # Create audit log
         self._create_audit_log(
-            user_id=assigned_by, action="role_assigned", resource_type="user", resource_id=str(user_id), new_values={"role_id": str(role_id), "role_name": role.name}
+            user_id=assigned_by, action="role_assigned", resource_type="user", resource_id=str(user_id), new_values={"role_id": str(role_id), "role_name": UserRole.name}
         )
         
         return True
     
     def remove_role_from_user(self, user_id: UUID, role_id: UUID, removed_by: UUID) -> bool:
-        """Remove role from user"""
+        """Remove UserRole from user"""
         user = self.get_user_by_id(user_id, include_roles=True)
         if not user:
             return False
         
-        role = next((r for r in user.roles if r.id == role_id), None)
-        if not role:
+        UserRole = next((r for r in user.roles if r.id == role_id), None)
+        if not UserRole:
             return False
         
-        user.roles.remove(role)
+        user.roles.remove(UserRole)
         self.db.commit()
         
         # Create audit log
         self._create_audit_log(
-            user_id=removed_by, action="role_removed", resource_type="user", resource_id=str(user_id), old_values={"role_id": str(role_id), "role_name": role.name}
+            user_id=removed_by, action="role_removed", resource_type="user", resource_id=str(user_id), old_values={"role_id": str(role_id), "role_name": UserRole.name}
         )
         
         return True
@@ -408,8 +408,8 @@ class UserRepository:
             return []
         
         permissions = []
-        for role in user.roles:
-            permissions.extend(role.permissions)
+        for UserRole in user.roles:
+            permissions.extend(UserRole.permissions)
         
         # Remove duplicates
         return list({p.id: p for p in permissions}.values())
