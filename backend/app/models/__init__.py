@@ -8,7 +8,7 @@ from .user import (
     Role, Permission, AuditLog
 )
 
-from .query import (
+from .query import Query, QueryResult, NaturalLanguageQuery, SavedQuery, QueryTemplate, QueryHistory
     NaturalLanguageQuery, SavedQuery, QueryResultCache,
     QueryTemplate, QuerySuggestion
 )
@@ -18,10 +18,19 @@ from .visualization import (
 )
 
 from .supply_chain import (
-    Supplier, SupplierTier, SupplierRelationship,
-    Product, Material, ProductMaterial,
-    Inventory, InventoryHistory,
-    Order, OrderItem, Shipment, ShipmentItem
+    Inventory,
+    InventoryHistory,
+    Material,
+    Order,
+    OrderItem,
+    Product,
+    ProductMaterial,
+    Shipment,
+    ShipmentItem,
+    Supplier,
+    SupplierRelationship,
+    SupplierTier,
+    Warehouse
 )
 
 from .analytics import (
@@ -51,36 +60,64 @@ from .extended_models import (
 
 # Re-export all models
 __all__ = [
-    # User models
-    'User', 'UserSession', 'PasswordResetToken', 'UserPreference', 'UserProfile', 
-      
-    
-    # Query models
-    'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',
-    'QueryTemplate', 'QuerySuggestion',
-    
-    # Visualization models
-    'ChartType', 'Chart', 'SavedChart', 'Dashboard', 'DashboardChart',
-    
-    # Supply chain models
-    'Supplier', 'SupplierTier', 'SupplierRelationship',
-    'Product', 'Material', 'ProductMaterial',
-    'Inventory', 'InventoryHistory',
-    'Order', 'OrderItem', 'Shipment', 'ShipmentItem',
-    
-    # Analytics models
-    'AnalyticsResult', 'ScheduledAnalytic', 'AnalyticsTemplate',
-    'Report', 'ReportSchedule',
-    'SupplierPerformanceMetric', 'InventoryMetric',
-    'DeliveryPerformance', 'RiskAssessment', 'ComplianceCheck',
-    'ABCAnalysisResult', 'ForecastResult', 'SafetyStockCalculation',
-    'SupplyChainNetwork', 'NetworkNode', 'NetworkEdge',
-    'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact',
-    
-    # Extended models
-            'APIKey',
-'DataSource',
-'ForecastModel', 'ExtendedAnalyticsMetric', 'ExportJob',
-    'ReportTemplate', 'ScheduledReport',
-    'SystemSetting', 'NotificationSetting', 'WidgetType'
+    "ABCAnalysisResult",
+    "APIKey",
+    "AnalyticsResult",
+    "AnalyticsTemplate",
+    "BottleneckAnalysis",
+    "Chart",
+    "ChartType",
+    "ComplianceCheck",
+    "Dashboard",
+    "DashboardChart",
+    "DataSource",
+    "DeliveryPerformance",
+    "DisruptionImpact",
+    "ExportJob",
+    "ExtendedAnalyticsMetric",
+    "ForecastModel",
+    "ForecastResult",
+    "Inventory",
+    "InventoryHistory",
+    "InventoryMetric",
+    "Material",
+    "NaturalLanguageQuery",
+    "NetworkEdge",
+    "NetworkNode",
+    "NotificationSetting",
+    "Order",
+    "OrderItem",
+    "PasswordResetToken",
+    "Product",
+    "ProductMaterial",
+    "Query",
+    "QueryHistory",
+    "QueryResult",
+    "QueryResultCache",
+    "QuerySuggestion",
+    "QueryTemplate",
+    "Report",
+    "ReportSchedule",
+    "ReportTemplate",
+    "RiskAssessment",
+    "RiskPropagationScenario",
+    "SafetyStockCalculation",
+    "SavedChart",
+    "SavedQuery",
+    "ScheduledAnalytic",
+    "ScheduledReport",
+    "Shipment",
+    "ShipmentItem",
+    "Supplier",
+    "SupplierPerformanceMetric",
+    "SupplierRelationship",
+    "SupplierTier",
+    "SupplyChainNetwork",
+    "SystemSetting",
+    "User",
+    "UserPreference",
+    "UserProfile",
+    "UserSession",
+    "Warehouse",
+    "WidgetType"
 ]

@@ -1,5 +1,4 @@
-// frontend/src/hooks/useAuth.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
+﻿import { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/auth';
 import api from '../services/api';
 
@@ -11,8 +10,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Check if user is logged in on mount
-    const token = localStorage.getItem('authToken');
-    const refreshToken = localStorage.getItem('refreshToken');
+    const token = authService.getToken();
     const savedUser = authService.getCurrentUser();
     
     if (token && savedUser) {
@@ -24,9 +22,9 @@ export function AuthProvider({ children }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email, password, rememberMe = true) => {
+  const login = async (credentials) => {
     try {
-      const response = await authService.login(email, password, rememberMe);
+      const response = await authService.login(credentials);
       setUser(response.user);
       return response;
     } catch (error) {
@@ -35,18 +33,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (firstName, lastName, email, password, company, jobTitle) => {
+  const register = async (userData) => {
     try {
-      const response = await authService.register({
-        firstName,
-        lastName,
-        email,
-        password,
-        company,
-        jobTitle
-      });
-      
-      // Don't auto-login after registration, let user login manually
+      const response = await authService.register(userData);
       return response;
     } catch (error) {
       console.error('Registration failed:', error);
@@ -59,20 +48,6 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const refreshAccessToken = async () => {
-    try {
-      const response = await authService.refreshToken();
-      if (response.user) {
-        setUser(response.user);
-      }
-      return response.token;
-    } catch (error) {
-      // If refresh fails, logout the user
-      logout();
-      throw error;
-    }
-  };
-
   // Add isAuthenticated computed value
   const isAuthenticated = !!user;
 
@@ -82,9 +57,8 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
-      refreshAccessToken,
       isLoading,
-      loading: isLoading, // Provide both for compatibility
+      loading: isLoading,
       isAuthenticated
     }}>
       {children}

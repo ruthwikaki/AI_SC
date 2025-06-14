@@ -28,14 +28,11 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    console.log('Login form data:', formData); // Debug log
-
     try {
-      await login(formData.email, formData.password);
+      await login(formData);
       navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
-      console.error('Error response:', err.response?.data);
       
       if (err.response?.data?.detail) {
         setError(err.response.data.detail);
@@ -90,7 +87,7 @@ const Login = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="test@example.com"
+                  placeholder="user@example.com"
                 />
               </div>
               
@@ -122,16 +119,9 @@ const Login = () => {
             </CardFooter>
           </form>
         </Card>
-        
-        <div className="text-center text-sm text-gray-600">
-          <p>Test credentials:</p>
-          <p className="font-mono">Email: test@example.com</p>
-          <p className="font-mono">Password: password123</p>
-        </div>
       </div>
     </div>
   );
 };
 
 export default Login;
-

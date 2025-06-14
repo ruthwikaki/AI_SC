@@ -1,4 +1,4 @@
-# app/db/interfaces/user_interface.py
+﻿# app/db/interfaces/user_interface.py
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -6,58 +6,29 @@ from datetime import datetime
 import json
 import uuid
 import logging
-from app.models.user import User as UserModel
+from app.models.user import User
 from app.db.database import get_db
 
 # Setup logger
 logger = logging.getLogger(__name__)
 
-class User:
-    """User data class for auth compatibility"""
-    def __init__(self, **kwargs):
-        self.id = kwargs.get('id')
-        self.username = kwargs.get('username')
-        self.email = kwargs.get('email')
-        self.hashed_password = kwargs.get('hashed_password') or kwargs.get('password_hash')
-        self.role = kwargs.get('role', 'user')
-        self.is_active = kwargs.get('is_active', True)
-        self.is_verified = kwargs.get('is_verified', False)
-        self.first_name = kwargs.get('first_name')
-        self.last_name = kwargs.get('last_name')
-        
-    def dict(self):
-        return {
-            "id": self.id,
-            "username": self.username,
-            "email": self.email,
-            "role": self.role,
-            "is_active": self.is_active
-        }
-
 class UserInterface:
     """Interface for user-related database operations"""
     
     def __init__(self, db: Session = None, admin_db_client_id: Optional[str] = None):
-        self.db = db or next(get_db())
+        self.db = db
         self.admin_db_client_id = admin_db_client_id
+        if not self.db:
+            # This will be set when used with dependency injection
+            self.db = None
     
     async def get_user_by_username(self, username: str) -> Optional[User]:
         """Get user by username"""
         try:
-            result = self.db.query(UserModel).filter(UserModel.username == username).first()
-            if result:
-                return User(
-                    id=str(result.id),
-                    username=result.username,
-                    email=result.email,
-                    hashed_password=result.password_hash,
-                    role=result.role,
-                    is_active=result.is_active,
-                    is_verified=result.is_verified,
-                    first_name=result.first_name,
-                    last_name=result.last_name
-                )
-            return None
+            if not self.db:
+                return None
+            user = self.db.query(User).filter(User.username == username).first()
+            return user
         except Exception as e:
             logger.error(f"Error getting user by username: {e}")
             return None
@@ -65,86 +36,86 @@ class UserInterface:
     async def get_user_by_email(self, email: str) -> Optional[User]:
         """Get user by email"""
         try:
-            result = self.db.query(UserModel).filter(UserModel.email == email).first()
-            if result:
-                return User(
-                    id=str(result.id),
-                    username=result.username,
-                    email=result.email,
-                    hashed_password=result.password_hash,
-                    role=result.role,
-                    is_active=result.is_active,
-                    is_verified=result.is_verified,
-                    first_name=result.first_name,
-                    last_name=result.last_name
-                )
-            return None
+            if not self.db:
+                return None
+            user = self.db.query(User).filter(User.email == email).first()
+            return user
         except Exception as e:
             logger.error(f"Error getting user by email: {e}")
             return None
     
-    async def create_user(self, username: str, email: str, hashed_password: str, 
-                         role: str = "user", client_id: Optional[str] = None) -> User:
+    async def create_user(
+        self, 
+        username: str, 
+        email: str, 
+        password_hash: str, 
+        role: str = "user",
+        client_id: Optional[str] = None
+    ) -> User:
         """Create a new user"""
         try:
-            db_user = UserModel(
+            if not self.db:
+                raise Exception("Database session not available")
+            
+            new_user = User(
+                id=uuid.uuid4(),
                 username=username,
                 email=email,
-                password_hash=hashed_password,
+                password_hash=password_hash,
                 role=role,
-                is_active=True
+                is_active=True,
+                created_at=datetime.utcnow()
             )
-            self.db.add(db_user)
-            self.db.commit()
-            self.db.refresh(db_user)
             
-            return User(
-                id=str(db_user.id),
-                username=db_user.username,
-                email=db_user.email,
-                role=db_user.role,
-                is_active=db_user.is_active
-            )
+            self.db.add(new_user)
+            self.db.commit()
+            self.db.refresh(new_user)
+            
+            logger.info(f"Created new user: {username}")
+            return new_user
+            
         except Exception as e:
-            logger.error(f"Error creating user: {e}")
             self.db.rollback()
+            logger.error(f"Error creating user: {e}")
             raise
     
     async def update_user(self, user_id: str, update_data: Dict[str, Any]) -> Optional[User]:
         """Update user information"""
         try:
-            db_user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
-            if not db_user:
+            if not self.db:
                 return None
             
-            # Map hashed_password to password_hash if present
-            if 'hashed_password' in update_data:
-                update_data['password_hash'] = update_data.pop('hashed_password')
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return None
             
             for key, value in update_data.items():
-                if hasattr(db_user, key):
-                    setattr(db_user, key, value)
+                if hasattr(user, key):
+                    setattr(user, key, value)
             
-            db_user.updated_at = datetime.utcnow()
+            user.updated_at = datetime.utcnow()
             self.db.commit()
-            self.db.refresh(db_user)
+            self.db.refresh(user)
             
-            return User(
-                id=str(db_user.id),
-                username=db_user.username,
-                email=db_user.email,
-                role=db_user.role,
-                is_active=db_user.is_active
-            )
+            return user
+            
         except Exception as e:
-            logger.error(f"Error updating user: {e}")
             self.db.rollback()
+            logger.error(f"Error updating user: {e}")
             return None
     
-    # Keep existing methods for dashboard preferences
     async def get_user_dashboard_preferences(self, user_id: str) -> Dict[str, Any]:
-        """Get user's dashboard preferences."""
+        """
+        Get user's dashboard preferences.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            Dictionary with dashboard preferences
+        """
         try:
+            # Direct query approach for simplicity
             result = self.db.execute(
                 text("""
                 SELECT preference_value 
@@ -155,11 +126,13 @@ class UserInterface:
             ).first()
             
             if result and result.preference_value:
+                # Parse JSON preference value
                 pref_value = result.preference_value
                 if isinstance(pref_value, str):
                     return json.loads(pref_value)
                 return pref_value
             
+            # Return default preferences
             return {
                 "selected_metrics": [
                     "inventory_value",
@@ -167,7 +140,7 @@ class UserInterface:
                     "on_time_delivery",
                     "supplier_performance"
                 ],
-                "refresh_interval": 300,
+                "refresh_interval": 300,  # 5 minutes
                 "time_frame": "last_month",
                 "chart_preferences": {
                     "show_trends": True,
@@ -177,6 +150,7 @@ class UserInterface:
             
         except Exception as e:
             logger.error(f"Error getting dashboard preferences: {str(e)}")
+            # Return defaults on error
             return {
                 "selected_metrics": [
                     "inventory_value",
@@ -193,8 +167,18 @@ class UserInterface:
         user_id: str, 
         preferences: Dict[str, Any]
     ) -> bool:
-        """Save user's dashboard preferences."""
+        """
+        Save user's dashboard preferences.
+        
+        Args:
+            user_id: User ID
+            preferences: Dashboard preferences dictionary
+            
+        Returns:
+            True if saved successfully, False otherwise
+        """
         try:
+            # Check if preferences exist
             check_result = self.db.execute(
                 text("""
                 SELECT id FROM user_preferences
@@ -204,6 +188,7 @@ class UserInterface:
             ).first()
             
             if check_result:
+                # Update existing
                 self.db.execute(
                     text("""
                     UPDATE user_preferences
@@ -217,6 +202,7 @@ class UserInterface:
                     }
                 )
             else:
+                # Insert new
                 self.db.execute(
                     text("""
                     INSERT INTO user_preferences (
@@ -245,14 +231,24 @@ class UserInterface:
             return False
     
     async def get_user_accessible_metrics(self, user_id: str) -> List[str]:
-        """Get list of metrics accessible to the user based on their role."""
+        """
+        Get list of metrics accessible to the user based on their role.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            List of accessible metric keys
+        """
         try:
+            # Get user to check role
             user = await self.get_user_by_id(user_id)
             if not user:
                 return []
             
-            role = user.get('role', 'user')
+            role = user.role if hasattr(user, 'role') else 'user'
             
+            # Define metrics by role
             role_metrics = {
                 "admin": [
                     "inventory_value",
@@ -286,29 +282,20 @@ class UserInterface:
             
         except Exception as e:
             logger.error(f"Error getting accessible metrics: {str(e)}")
-            return ["inventory_value", "order_fill_rate"]
+            return ["inventory_value", "order_fill_rate"]  # Minimum defaults
     
-    async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+    async def get_user_by_id(self, user_id: str) -> Optional[User]:
         """Get user by ID"""
         try:
-            result = self.db.query(UserModel).filter(UserModel.id == user_id).first()
-            
-            if result:
-                return {
-                    "id": str(result.id),
-                    "username": result.username,
-                    "email": result.email,
-                    "first_name": getattr(result, 'first_name', ''),
-                    "last_name": getattr(result, 'last_name', ''),
-                    "role": getattr(result, 'role', 'user'),
-                    "is_active": getattr(result, 'is_active', True)
-                }
-            return None
+            if not self.db:
+                return None
+            user = self.db.query(User).filter(User.id == user_id).first()
+            return user
         except Exception as e:
             logger.error(f"Error getting user: {e}")
             return None
     
-    async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+    async def get_user(self, user_id: str) -> Optional[User]:
         """Alias for get_user_by_id for backward compatibility"""
         return await self.get_user_by_id(user_id)
 
@@ -316,5 +303,3 @@ class UserInterface:
 async def get_connector_for_client(client_id: str):
     """Placeholder for connector pattern - not used in direct approach"""
     return None
-
-# Import this User class in auth.py as DBUser
