@@ -3,7 +3,6 @@ Database Models Package
 Exports all database models for easy importing
 """
 
-# Import from individual modules with relative imports
 from .user import (
     User, UserSession, PasswordResetToken, UserPreference,
     Role, Permission, AuditLog
@@ -15,7 +14,7 @@ from .query import (
 )
 
 from .visualization import (
-    ChartType, Chart, SavedChart, Dashboard, DashboardChart, DashboardWidget
+    ChartType, Chart, SavedChart, Dashboard, DashboardChart
 )
 
 from .supply_chain import (
@@ -35,33 +34,41 @@ from .analytics import (
     BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
 )
 
-from .extended_models import (
-    ForecastModel,
-    ExtendedAnalyticsMetric,
-    ExportJob,
-    ReportTemplate,
-    ExtendedReport,
-    ScheduledReport,
-    SystemSetting,
-    NotificationSetting,
-    WidgetType
-)
+# Try to import extended models
+try:
+    from .extended_models import (
+        ForecastModel,
+        AnalyticsMetric,
+        ExportJob,
+        ReportTemplate,
+        ScheduledReport,
+        SystemSetting,
+        NotificationSetting,
+        WidgetType
+    )
+    HAS_EXTENDED_MODELS = True
+except ImportError:
+    HAS_EXTENDED_MODELS = False
 
-# Only export what's actually imported above
+# Re-export all models
 __all__ = [
-        # User models
+    # User models
     'User', 'UserSession', 'PasswordResetToken', 'UserPreference',
     'Role', 'Permission', 'AuditLog',
+    
     # Query models
     'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',
     'QueryTemplate', 'QuerySuggestion',
+    
     # Visualization models
-    'ChartType', 'Chart', 'SavedChart', 'Dashboard', 'DashboardChart', 'DashboardWidget',
+    'ChartType', 'Chart', 'SavedChart', 'Dashboard', 'DashboardChart',
+    
     # Supply chain models
     'Supplier', 'SupplierTier', 'SupplierRelationship',
     'Product', 'Material', 'ProductMaterial',
     'Inventory', 'InventoryHistory',
     'Order', 'OrderItem', 'Shipment', 'ShipmentItem',
+    
     # Analytics models
     'AnalyticsResult', 'ScheduledAnalytic', 'AnalyticsTemplate',
     'Report', 'ReportSchedule',
@@ -70,8 +77,11 @@ __all__ = [
     'ABCAnalysisResult', 'ForecastResult', 'SafetyStockCalculation',
     'SupplyChainNetwork', 'NetworkNode', 'NetworkEdge',
     'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact',
-    # Extended models
-    'ForecastModel', 'ExtendedAnalyticsMetric', 'ExportJob',
-    'ReportTemplate', 'ExtendedReport', 'ScheduledReport',
-    'SystemSetting', 'NotificationSetting', 'WidgetType'
 ]
+
+if HAS_EXTENDED_MODELS:
+    __all__.extend([
+        'ForecastModel', 'AnalyticsMetric', 'ExportJob',
+        'ReportTemplate', 'ScheduledReport',
+        'SystemSetting', 'NotificationSetting', 'WidgetType'
+    ])

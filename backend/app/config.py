@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     
     # General settings
     app_name: str = "Supply Chain LLM API"
+    version: str = "1.0.0"
+    # CORS settings
+    cors_origins: list = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"]
+    cors_allow_credentials: bool = True
+    cors_allow_methods: list = ["*"]
+    cors_allow_headers: list = ["*"]
+
     api_version: str = "1.0.0"
     environment: str = "development"
     debug: bool = False
@@ -82,6 +89,22 @@ class Settings(BaseSettings):
     )
     default_model: str = "mistral-medium"
     active_model: Optional[str] = None
+
+    # Additional settings
+    llm_provider: str = ""  # TODO: Set appropriate default
+    redis_url: str = ""  # TODO: Set appropriate default
+    upload_dir: str = "uploads"
+    # Feature flags
+    enable_analytics: bool = True
+    enable_export: bool = True
+    enable_multi_tier: bool = True
+    enable_forecasting: bool = True
+    enable_ai_insights: bool = True
+
+    # Analytics settings
+    analytics_retention_days: int = 90
+    analytics_batch_size: int = 1000
+
     model_config_path: str = "app/llm/config"
     llama3_model_path: Optional[str] = Field(
         default=None,

@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import logging
 import time
 
-from sqlalchemy import create_engine, event, pool
+from sqlalchemy import create_engine, text, event, pool
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from sqlalchemy.pool import NullPool, QueuePool
@@ -173,3 +173,44 @@ def import_all_models():
 
 # Initialize models on module load
 import_all_models()
+
+
+def init_db():
+    """Initialize database tables"""
+    try:
+        # Import all models to ensure they're registered with Base
+        import_all_models()
+        
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        print("Database tables created successfully")
+        
+        # Test connection
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        print("Database connection successful")
+        
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
+        raise
+
+def drop_db():
+    """Drop all database tables - Use with caution!"""
+    try:
+        Base.metadata.drop_all(bind=engine)
+        print("All database tables dropped")
+    except Exception as e:
+        print(f"Failed to drop tables: {e}")
+        raise
+
+# Health check function
+async def check_database_health() -> bool:
+    """Check if database is accessible"""
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        return True
+    except Exception as e:
+        print(f"Database health check failed: {e}")
+        return False

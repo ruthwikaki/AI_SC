@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     
     # Database - Note: using lowercase for consistency
     database_url: str = Field(
-        default="postgresql://postgres:123456789@localhost:5432/supplychain_ai",
+        default="postgresql://postgres:123456789@localhost:5432/Supplychain_AI",
         env="DATABASE_URL"
     )
     database_echo: bool = Field(default=False, env="DATABASE_ECHO")
@@ -92,9 +92,7 @@ class Settings(BaseSettings):
     def validate_database_url(cls, v):
         if not v:
             raise ValueError("DATABASE_URL must be set")
-        # Ensure consistent database naming
-        if "Supplychain_AI" in v:
-            v = v.replace("Supplychain_AI", "supplychain_ai")
+        
         return v
     
     @validator("secret_key")

@@ -11,7 +11,7 @@ from app.models.base import Base
 class ForecastModel(Base):
     __tablename__ = "forecast_models"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(100), unique=True, nullable=False)
     display_name = Column(String(200))
     description = Column(Text)
@@ -27,16 +27,16 @@ class ForecastModel(Base):
 class ExtendedAnalyticsMetric(Base):
     __tablename__ = "extended_analytics_metrics"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     metric_type = Column(String(50), nullable=False)  # forecast, accuracy, kpi, etc.
     entity_type = Column(String(50))  # product, warehouse, supplier
-    entity_id = Column(UUID(as_uuid=True))
-    warehouse_id = Column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=True)
+    entity_id = Column(UUID)
+    warehouse_id = Column(UUID, ForeignKey("warehouses.id"), nullable=True)
     metric_date = Column(DateTime(timezone=True), nullable=False)
     value = Column(Float, nullable=False)
     meta_data = Column(JSONB)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    created_by = Column(String(50), ForeignKey("user.id"))
     
     # Relationships
     creator = relationship("User")
@@ -44,8 +44,8 @@ class ExtendedAnalyticsMetric(Base):
 class ExportJob(Base):
     __tablename__ = "export_jobs"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    user_id = Column(String(50), ForeignKey("user.id"), nullable=False)
     export_type = Column(String(50), nullable=False)
     format = Column(String(20), nullable=False)  # csv, xlsx, pdf, json
     parameters = Column(JSONB)
@@ -64,7 +64,7 @@ class ExportJob(Base):
 class ReportTemplate(Base):
     __tablename__ = "report_templates"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(200), nullable=False)
     description = Column(Text)
     category = Column(String(50))
@@ -84,10 +84,10 @@ class ReportTemplate(Base):
 class ExtendedReport(Base):
     __tablename__ = "extended_reports"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(200), nullable=False)
-    template_id = Column(UUID(as_uuid=True), ForeignKey("report_templates.id"), nullable=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    template_id = Column(UUID, ForeignKey("report_templates.id"), nullable=True)
+    user_id = Column(String(50), ForeignKey("user.id"), nullable=False)
     parameters = Column(JSONB)
     status = Column(Enum('generating', 'completed', 'failed', name='extended_report_status'), default='generating')
     file_path = Column(String(500))
@@ -102,10 +102,10 @@ class ExtendedReport(Base):
 class ScheduledReport(Base):
     __tablename__ = "scheduled_reports"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(200), nullable=False)
-    template_id = Column(UUID(as_uuid=True), ForeignKey("report_templates.id"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    template_id = Column(UUID, ForeignKey("report_templates.id"), nullable=False)
+    user_id = Column(String(50), ForeignKey("user.id"), nullable=False)
     schedule_type = Column(String(50))  # daily, weekly, monthly
     schedule_config = Column(JSONB)  # Cron expression or specific config
     parameters = Column(JSONB)
@@ -122,7 +122,7 @@ class ScheduledReport(Base):
 class SystemSetting(Base):
     __tablename__ = "system_settings"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     key = Column(String(100), unique=True, nullable=False)
     value = Column(Text)
     value_type = Column(String(20), default='string')
@@ -130,13 +130,13 @@ class SystemSetting(Base):
     category = Column(String(50))
     is_public = Column(Boolean, default=False)  # Whether non-admins can read
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    updated_by = Column(UUID, ForeignKey("user.id"))
 
 class NotificationSetting(Base):
     __tablename__ = "notification_settings"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), unique=True, nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    user_id = Column(String(50), ForeignKey("user.id"), unique=True, nullable=False)
     email_enabled = Column(Boolean, default=True)
     push_enabled = Column(Boolean, default=False)
     sms_enabled = Column(Boolean, default=False)
@@ -152,7 +152,7 @@ class NotificationSetting(Base):
 class WidgetType(Base):
     __tablename__ = "widget_types"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(100), unique=True, nullable=False)
     display_name = Column(String(200))
     category = Column(String(50))

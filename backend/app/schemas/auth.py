@@ -1,3 +1,4 @@
+from uuid import UUID
 """
 Authentication schemas for request/response validation
 Located at: /backend/app/schemas/auth.py
@@ -32,7 +33,7 @@ class UserLogin(BaseModel):
 class UserRegister(BaseModel):
     """User registration request schema"""
     email: EmailStr
-    username: str = Field(..., min_length=3, max_length=50, regex="^[a-zA-Z0-9_-]+$")
+    username: str = Field(..., min_length=3, max_length=50, pattern="^[a-zA-Z0-9_-]+$")
     password: str = Field(..., min_length=8)
     confirm_password: str
     full_name: Optional[str] = None
@@ -215,3 +216,44 @@ class SessionInfo(BaseModel):
     last_activity: datetime
     expires_at: datetime
     is_current: bool = False
+
+
+class UserPreferencesUpdate(BaseModel):
+    """User preferences update schema"""
+    theme: Optional[str] = Field(None, pattern='^(light|dark|auto)$')
+    language: Optional[str] = Field(None, pattern='^[a-z]{2}(-[A-Z]{2})?$')
+    timezone: Optional[str] = None
+    date_format: Optional[str] = None
+    number_format: Optional[str] = None
+    default_chart_type: Optional[str] = None
+    dashboard_layout: Optional[Dict[str, Any]] = None
+    notification_preferences: Optional[Dict[str, Any]] = None
+    ui_preferences: Optional[Dict[str, Any]] = None
+
+
+class UserPreferencesResponse(UserPreferencesUpdate):
+    """User preferences response schema"""
+    id: UUID
+    user_id: UUID
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Settings update schemas
+class UserPreferencesUpdate(BaseModel):
+    """Schema for updating user preferences"""
+    theme: Optional[str] = None
+    language: Optional[str] = None
+    timezone: Optional[str] = None
+    date_format: Optional[str] = None
+    notifications_enabled: Optional[bool] = None
+
+class NotificationSettingsUpdate(BaseModel):
+    """Schema for updating notification settings"""
+    email_notifications: Optional[bool] = None
+    push_notifications: Optional[bool] = None
+    sms_notifications: Optional[bool] = None
+    notification_frequency: Optional[str] = None
+    notification_types: Optional[List[str]] = None

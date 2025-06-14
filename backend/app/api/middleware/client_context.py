@@ -1,92 +1,38 @@
+"""
+Client context middleware for multi-tenant support
+"""
 from fastapi import Request
+from typing import Callable
+import logging
 from typing import Optional, Dict, Any
-import json
-from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.utils.logger import get_logger
+logger = logging.getLogger(__name__)
 
-# Initialize logger
-logger = get_logger(__name__)
 
-class ClientContextMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware for handling client context resolution.
+class ClientContextMiddleware:
+    """Middleware for handling client context"""
     
-    This middleware determines the client context for each request, which is 
-    needed for accessing the correct database, enforcing client isolation,
-    and ensuring proper multi-tenancy.
-    """
+    def __init__(self, app):
+        self.app = app
     
-    async def dispatch(self, request: Request, call_next):
-        # Initialize client context in request state
-        request.state.client_id = None
-        request.state.connection_id = None
-        request.state.client_settings = None
+    async def __call__(self, request: Request, call_next: Callable):
+        # Extract client ID from header or query params
+        client_id = (
+            request.headers.get("X-Client-ID") or 
+            request.query_params.get("client_id") or
+            "default"
+        )
         
-        # Try to resolve client context from multiple sources, in order of priority
+        # Store in request state
+        request.state.client_id = client_id
         
-        # 1. From authenticated user
-        user = getattr(request.state, "user", None)
-        if user and user.get("client_id"):
-            request.state.client_id = user.get("client_id")
-        
-        # 2. From request header
-        if not request.state.client_id:
-            client_id = request.headers.get("X-Client-ID")
-            if client_id:
-                request.state.client_id = client_id
-        
-        # 3. From query parameter (lowest priority, mostly for testing)
-        if not request.state.client_id:
-            client_id = request.query_params.get("client_id")
-            if client_id:
-                request.state.client_id = client_id
-        
-        # Try to get connection ID for database access
-        connection_id = request.headers.get("X-Connection-ID") or request.query_params.get("connection_id")
-        if connection_id:
-            request.state.connection_id = connection_id
-        
-        # If we have a client ID, load client settings
-        if request.state.client_id:
-            # Simple mapping for now
-            if request.state.client_id == "client-1":
-                request.state.client_settings = {
-                    "name": "Acme Corporation",
-                    "domain": "manufacturing",
-                    "default_connection_id": "conn-1",
-                    "features": {
-                        "multi_tier_enabled": True,
-                        "advanced_analytics": True
-                    }
-                }
-            elif request.state.client_id == "client-2":
-                request.state.client_settings = {
-                    "name": "TechStart Inc",
-                    "domain": "electronics",
-                    "default_connection_id": "conn-2",
-                    "features": {
-                        "multi_tier_enabled": False,
-                        "advanced_analytics": False
-                    }
-                }
-        
-        # If connection ID wasn't specified but we have client settings, use default
-        if not request.state.connection_id and request.state.client_settings:
-            request.state.connection_id = request.state.client_settings.get("default_connection_id")
-        
-        # Log client context
-        if request.state.client_id:
-            logger.debug(
-                f"Client context: client_id={request.state.client_id}, "
-                f"connection_id={request.state.connection_id}"
-            )
-        
-        # Continue with request processing
+        # Add to response headers
         response = await call_next(request)
+        response.headers["X-Client-ID"] = client_id
+        
         return response
 
-# Helper functions remain the same
+# Helper functions
 async def get_client_context(request: Request) -> Optional[str]:
     """Get the client ID from the request context."""
     return getattr(request.state, "client_id", None)

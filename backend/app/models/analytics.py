@@ -10,8 +10,18 @@ from uuid import uuid4
 from decimal import Decimal
 
 from sqlalchemy import (
-    Column, String, Boolean, Integer, DateTime, ForeignKey,
-    Text, Date, DECIMAL, BigInteger, UniqueConstraint, CheckConstraint
+    String,
+    Column,
+    Boolean,
+    Integer,
+    DateTime,
+    ForeignKey,
+    Text,
+    Date,
+    DECIMAL,
+    BigInteger,
+    UniqueConstraint,
+    CheckConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
@@ -22,7 +32,7 @@ class AnalyticsResult(Base):
     """Stored analytics computation results"""
     __tablename__ = 'analytics_results'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     analytics_type = Column(String(100), nullable=False)
     parameters = Column(JSONB, nullable=False, default={})
     result_data = Column(JSONB, nullable=False)
@@ -31,7 +41,7 @@ class AnalyticsResult(Base):
     execution_time_ms = Column(Integer)
     status = Column(String(50), nullable=False, default='completed')
     error_message = Column(Text)
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    created_by = Column(String(50), ForeignKey('user.id'), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -53,7 +63,7 @@ class ScheduledAnalytic(Base):
     """Scheduled analytics jobs"""
     __tablename__ = 'scheduled_analytics'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     analytics_type = Column(String(100), nullable=False)
     parameters = Column(JSONB, nullable=False, default={})
@@ -63,7 +73,7 @@ class ScheduledAnalytic(Base):
     last_run_at = Column(DateTime(timezone=True))
     next_run_at = Column(DateTime(timezone=True))
     notification_config = Column(JSONB, default={})
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    created_by = Column(String(50), ForeignKey('user.id'), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -85,7 +95,7 @@ class AnalyticsTemplate(Base):
     """Pre-configured analytics templates"""
     __tablename__ = 'analytics_templates'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     category = Column(String(100), nullable=False)
     analytics_type = Column(String(100), nullable=False)
@@ -104,7 +114,7 @@ class Report(Base):
     """Generated reports"""
     __tablename__ = 'reports'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     report_type = Column(String(100), nullable=False)
     format = Column(String(50), nullable=False, default='pdf')
@@ -114,7 +124,7 @@ class Report(Base):
     file_size_bytes = Column(BigInteger)
     status = Column(String(50), nullable=False, default='pending')
     error_message = Column(Text)
-    generated_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)  # Changed from user_id
+    generated_by = Column(String(50), ForeignKey('user.id'), nullable=False)  # Changed from user_id
     generated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -133,7 +143,7 @@ class ReportSchedule(Base):
     """Scheduled report generation"""
     __tablename__ = 'report_schedules'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     report_type = Column(String(100), nullable=False)
     parameters = Column(JSONB, nullable=False, default={})
@@ -144,7 +154,7 @@ class ReportSchedule(Base):
     is_active = Column(Boolean, default=True)
     last_generated_at = Column(DateTime(timezone=True))
     next_run_at = Column(DateTime(timezone=True))
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    created_by = Column(String(50), ForeignKey('user.id'), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -158,8 +168,8 @@ class SupplierPerformanceMetric(Base):
     """Supplier performance metrics over time"""
     __tablename__ = 'supplier_performance_metrics'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    supplier_id = Column(UUID(as_uuid=True), ForeignKey('suppliers.id'), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    supplier_id = Column(UUID, ForeignKey('suppliers.id'), nullable=False)
     metric_date = Column(Date, nullable=False)
     on_time_delivery_rate = Column(DECIMAL(5, 2))
     quality_score = Column(DECIMAL(5, 2))
@@ -193,7 +203,7 @@ class InventoryMetric(Base):
     """Inventory performance metrics"""
     __tablename__ = 'inventory_metrics'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     metric_date = Column(Date, nullable=False)
     location_code = Column(String(100))
     total_inventory_value = Column(DECIMAL(15, 2))
@@ -223,8 +233,8 @@ class DeliveryPerformance(Base):
     """Delivery and logistics performance tracking"""
     __tablename__ = 'delivery_performance'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    shipment_id = Column(UUID(as_uuid=True), ForeignKey('shipments.id'))
+    id = Column(UUID, primary_key=True, default=uuid4)
+    shipment_id = Column(UUID, ForeignKey('shipments.id'))
     carrier_name = Column(String(255))
     route_code = Column(String(100))
     scheduled_delivery = Column(DateTime(timezone=True))
@@ -248,9 +258,9 @@ class RiskAssessment(Base):
     """Risk assessments for suppliers and supply chain"""
     __tablename__ = 'risk_assessments'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     assessment_date = Column(Date, nullable=False)
-    supplier_id = Column(UUID(as_uuid=True), ForeignKey('suppliers.id'))
+    supplier_id = Column(UUID, ForeignKey('suppliers.id'))
     risk_category = Column(String(100), nullable=False)
     risk_level = Column(String(50), nullable=False)
     risk_score = Column(DECIMAL(5, 2), nullable=False)
@@ -258,7 +268,7 @@ class RiskAssessment(Base):
     probability_score = Column(DECIMAL(5, 2))
     risk_factors = Column(JSONB, default=list)
     mitigation_actions = Column(JSONB, default=list)
-    assessment_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    assessment_by = Column(UUID, ForeignKey('user.id'))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -278,9 +288,9 @@ class ComplianceCheck(Base):
     """Compliance tracking for suppliers"""
     __tablename__ = 'compliance_checks'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     check_date = Column(Date, nullable=False)
-    supplier_id = Column(UUID(as_uuid=True), ForeignKey('suppliers.id'))
+    supplier_id = Column(UUID, ForeignKey('suppliers.id'))
     compliance_type = Column(String(100), nullable=False)
     status = Column(String(50), nullable=False)
     score = Column(DECIMAL(5, 2))
@@ -288,7 +298,7 @@ class ComplianceCheck(Base):
     required_actions = Column(JSONB, default=list)
     due_date = Column(Date)
     completed_date = Column(Date)
-    checked_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    checked_by = Column(UUID, ForeignKey('user.id'))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -315,11 +325,11 @@ class ABCAnalysisResult(Base):
     """ABC inventory analysis results"""
     __tablename__ = 'abc_analysis_results'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     analysis_date = Column(Date, nullable=False)
     analysis_type = Column(String(50), nullable=False)
     item_type = Column(String(50), nullable=False)
-    item_id = Column(UUID(as_uuid=True), nullable=False)
+    item_id = Column(UUID, nullable=False)
     category = Column(String(1), nullable=False)
     annual_value = Column(DECIMAL(15, 2))
     annual_quantity = Column(DECIMAL(15, 3))
@@ -341,17 +351,17 @@ class ForecastResult(Base):
     """Demand forecasting results"""
     __tablename__ = 'forecast_results'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     forecast_date = Column(Date, nullable=False)
     item_type = Column(String(50), nullable=False)
-    item_id = Column(UUID(as_uuid=True), nullable=False)
+    item_id = Column(UUID, nullable=False)
     forecast_method = Column(String(100), nullable=False)
     forecast_horizon_days = Column(Integer, nullable=False)
     forecasted_values = Column(JSONB, nullable=False)
     confidence_intervals = Column(JSONB, default={})
     accuracy_metrics = Column(JSONB, default={})
     model_parameters = Column(JSONB, default={})
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    created_by = Column(String(50), ForeignKey('user.id'))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -373,10 +383,10 @@ class SafetyStockCalculation(Base):
     """Safety stock calculation results"""
     __tablename__ = 'safety_stock_calculations'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     calculation_date = Column(Date, nullable=False)
-    product_id = Column(UUID(as_uuid=True), ForeignKey('products.id'))
-    material_id = Column(UUID(as_uuid=True), ForeignKey('materials.id'))
+    product_id = Column(UUID, ForeignKey('products.id'))
+    material_id = Column(UUID, ForeignKey('materials.id'))
     location_code = Column(String(100))
     service_level = Column(DECIMAL(5, 2), nullable=False)
     lead_time_days = Column(Integer, nullable=False)
@@ -418,13 +428,13 @@ class SupplyChainNetwork(Base):
     """Supply chain network configurations"""
     __tablename__ = 'supply_chain_networks'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     description = Column(Text)
     network_type = Column(String(100), nullable=False)
     is_active = Column(Boolean, default=True)
     configuration = Column(JSONB, default={})
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    created_by = Column(String(50), ForeignKey('user.id'))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -453,10 +463,10 @@ class NetworkNode(Base):
     """Nodes in supply chain network"""
     __tablename__ = 'network_nodes'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    network_id = Column(UUID(as_uuid=True), ForeignKey('supply_chain_networks.id', ondelete='CASCADE'), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    network_id = Column(UUID, ForeignKey('supply_chain_networks.id', ondelete='CASCADE'), nullable=False)
     node_type = Column(String(100), nullable=False)
-    entity_id = Column(UUID(as_uuid=True), nullable=False)
+    entity_id = Column(UUID, nullable=False)
     entity_type = Column(String(100), nullable=False)
     tier_level = Column(Integer)
     position_x = Column(DECIMAL(10, 2))
@@ -477,10 +487,10 @@ class NetworkEdge(Base):
     """Edges/connections in supply chain network"""
     __tablename__ = 'network_edges'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    network_id = Column(UUID(as_uuid=True), ForeignKey('supply_chain_networks.id', ondelete='CASCADE'), nullable=False)
-    source_node_id = Column(UUID(as_uuid=True), ForeignKey('network_nodes.id'), nullable=False)
-    target_node_id = Column(UUID(as_uuid=True), ForeignKey('network_nodes.id'), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    network_id = Column(UUID, ForeignKey('supply_chain_networks.id', ondelete='CASCADE'), nullable=False)
+    source_node_id = Column(UUID, ForeignKey('network_nodes.id'), nullable=False)
+    target_node_id = Column(UUID, ForeignKey('network_nodes.id'), nullable=False)
     edge_type = Column(String(100), nullable=False)
     weight = Column(DECIMAL(10, 3), default=1.0)
     capacity = Column(DECIMAL(15, 3))
@@ -508,17 +518,17 @@ class BottleneckAnalysis(Base):
     """Bottleneck identification in supply chain networks"""
     __tablename__ = 'bottleneck_analysis'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    network_id = Column(UUID(as_uuid=True), ForeignKey('supply_chain_networks.id'), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    network_id = Column(UUID, ForeignKey('supply_chain_networks.id'), nullable=False)
     analysis_date = Column(DateTime(timezone=True), nullable=False)
     bottleneck_type = Column(String(100), nullable=False)
-    node_id = Column(UUID(as_uuid=True), ForeignKey('network_nodes.id'))
-    edge_id = Column(UUID(as_uuid=True), ForeignKey('network_edges.id'))
+    node_id = Column(UUID, ForeignKey('network_nodes.id'))
+    edge_id = Column(UUID, ForeignKey('network_edges.id'))
     severity_score = Column(DECIMAL(5, 2), nullable=False)
     impact_assessment = Column(JSONB, nullable=False, default={})
     affected_paths = Column(JSONB, default=list)
     mitigation_options = Column(JSONB, default=list)
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    created_by = Column(String(50), ForeignKey('user.id'))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -540,15 +550,15 @@ class RiskPropagationScenario(Base):
     """Risk propagation scenarios for network analysis"""
     __tablename__ = 'risk_propagation_scenarios'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
-    network_id = Column(UUID(as_uuid=True), ForeignKey('supply_chain_networks.id'), nullable=False)
+    network_id = Column(UUID, ForeignKey('supply_chain_networks.id'), nullable=False)
     scenario_type = Column(String(100), nullable=False)
-    disruption_source_nodes = Column(ARRAY(UUID(as_uuid=True)))
+    disruption_source_nodes = Column(ARRAY(UUID))
     disruption_parameters = Column(JSONB, nullable=False, default={})
     propagation_model = Column(String(100), nullable=False)
     simulation_results = Column(JSONB, default={})
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    created_by = Column(String(50), ForeignKey('user.id'))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -564,9 +574,9 @@ class DisruptionImpact(Base):
     """Impact analysis for disruption scenarios"""
     __tablename__ = 'disruption_impacts'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    scenario_id = Column(UUID(as_uuid=True), ForeignKey('risk_propagation_scenarios.id'), nullable=False)
-    affected_node_id = Column(UUID(as_uuid=True), ForeignKey('network_nodes.id'))
+    id = Column(UUID, primary_key=True, default=uuid4)
+    scenario_id = Column(UUID, ForeignKey('risk_propagation_scenarios.id'), nullable=False)
+    affected_node_id = Column(UUID, ForeignKey('network_nodes.id'))
     impact_type = Column(String(100), nullable=False)
     impact_level = Column(String(50), nullable=False)
     time_to_impact_hours = Column(DECIMAL(10, 2))

@@ -1,163 +1,60 @@
-# backend/app/api/middleware/rate_limit.py
+"""
+Rate limiting middleware
+"""
 from fastapi import Request, HTTPException, status
-from fastapi.responses import JSONResponse
-from typing import Dict, Optional
-import time
-import asyncio
-from starlette.middleware.base import BaseHTTPMiddleware
-from collections import defaultdict, deque
+from typing import Callable, Dict
+from datetime import datetime, timedelta
+import logging
 
-from app.utils.logger import get_logger
-from app.config import get_settings
+logger = logging.getLogger(__name__)
 
-# Initialize logger
-logger = get_logger(__name__)
 
-# Get settings
-settings = get_settings()
-
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    """
-    Rate limiting middleware that works properly with ASGI.
-    """
+class RateLimitMiddleware:
+    """Simple in-memory rate limiting middleware"""
     
-    def __init__(self, app, requests_per_minute: int = None):
-        super().__init__(app)
+    def __init__(self, app, requests_per_minute: int = 60):
+        self.app = app
+        self.requests_per_minute = requests_per_minute
+        self.request_counts: Dict[str, list] = {}
+    
+    async def __call__(self, request: Request, call_next: Callable):
+        # Skip rate limiting for certain paths
+        skip_paths = ["/health", "/api/health", "/metrics"]
+        if request.url.path in skip_paths:
+            return await call_next(request)
         
-        # Set limits based on environment
-        if settings.environment == "development":
-            self.requests_per_minute = 1000  # Very high for development
-        else:
-            self.requests_per_minute = requests_per_minute or settings.rate_limit_requests or 100
+        # Get client identifier (IP address)
+        client_ip = request.client.host if request.client else "unknown"
         
-        # Storage for request timestamps
-        self.requests = defaultdict(lambda: deque())
-        self.locks = {}
+        # Initialize or get request timestamps for this client
+        now = datetime.now()
+        if client_ip not in self.request_counts:
+            self.request_counts[client_ip] = []
         
-        # Whitelist paths that shouldn't be rate limited
-        self.whitelist_paths = [
-            "/api/health",
-            "/api/health/db",
-            "/api/docs",
-            "/api/openapi.json",
-            "/favicon.ico"
+        # Remove timestamps older than 1 minute
+        minute_ago = now - timedelta(minutes=1)
+        self.request_counts[client_ip] = [
+            ts for ts in self.request_counts[client_ip] 
+            if ts > minute_ago
         ]
         
-        # Different limits for different endpoints
-        self.endpoint_limits = {
-            "/api/auth/login": 10,  # Stricter for login attempts
-            "/api/auth/register": 5,  # Even stricter for registration
-            "/api/queries/execute": 30,  # Lower limit for expensive operations
-            "/api/export": 10,  # Lower limit for export operations
-        }
+        # Check rate limit
+        if len(self.request_counts[client_ip]) >= self.requests_per_minute:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Rate limit exceeded"
+            )
         
-        logger.info(f"Rate limiter initialized: {self.requests_per_minute} requests/minute, environment: {settings.environment}")
-    
-    async def get_lock(self, key: str) -> asyncio.Lock:
-        """Get or create a lock for the given key."""
-        if key not in self.locks:
-            self.locks[key] = asyncio.Lock()
-        return self.locks[key]
-    
-    def get_client_key(self, request: Request) -> str:
-        """Get a unique key to identify the client."""
-        # Try to get from user state
-        if hasattr(request.state, "user"):
-            user = request.state.user
-            if isinstance(user, dict) and user.get("id"):
-                return f"user:{user.get('id')}"
+        # Add current request timestamp
+        self.request_counts[client_ip].append(now)
         
-        # Fall back to IP address
-        client_host = request.client.host if request.client else "unknown"
-        
-        # Handle forwarded IPs
-        forwarded_for = request.headers.get("X-Forwarded-For")
-        if forwarded_for:
-            client_host = forwarded_for.split(",")[0].strip()
-        
-        return f"ip:{client_host}"
-    
-    def get_endpoint_limit(self, path: str) -> int:
-        """Get the rate limit for a specific endpoint."""
-        # Check if path matches any specific endpoint limits
-        for endpoint_pattern, limit in self.endpoint_limits.items():
-            if path.startswith(endpoint_pattern):
-                return limit
-        return self.requests_per_minute
-    
-    def clean_old_requests(self, request_times: deque, current_time: float, window_seconds: int = 60):
-        """Remove requests older than the window."""
-        cutoff_time = current_time - window_seconds
-        while request_times and request_times[0] < cutoff_time:
-            request_times.popleft()
-    
-    async def dispatch(self, request: Request, call_next):
-        """
-        Process the request with rate limiting.
-        """
-        # Skip rate limiting for whitelisted paths
-        if any(request.url.path.startswith(path) for path in self.whitelist_paths):
-            return await call_next(request)
-        
-        # Skip rate limiting for OPTIONS requests (CORS preflight)
-        if request.method == "OPTIONS":
-            return await call_next(request)
-        
-        client_key = self.get_client_key(request)
-        
-        # Use lock to prevent race conditions
-        lock = await self.get_lock(client_key)
-        
-        async with lock:
-            now = time.time()
-            request_times = self.requests[client_key]
-            
-            # Clean old requests
-            self.clean_old_requests(request_times, now)
-            
-            # Get the limit for this endpoint
-            limit = self.get_endpoint_limit(request.url.path)
-            
-            # Check if rate limit is exceeded
-            if len(request_times) >= limit:
-                # Calculate retry time
-                oldest_request = request_times[0]
-                retry_after = int(60 - (now - oldest_request))
-                
-                logger.warning(
-                    f"Rate limit exceeded for {client_key} on {request.url.path}. "
-                    f"Requests: {len(request_times)}/{limit}"
-                )
-                
-                return JSONResponse(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    content={
-                        "error": {
-                            "code": "rate_limit_exceeded",
-                            "message": f"Too many requests. Please try again in {retry_after} seconds.",
-                            "retry_after": retry_after,
-                            "limit": limit,
-                            "window": "60 seconds"
-                        }
-                    },
-                    headers={
-                        "Retry-After": str(retry_after),
-                        "X-RateLimit-Limit": str(limit),
-                        "X-RateLimit-Remaining": "0",
-                        "X-RateLimit-Reset": str(int(oldest_request + 60))
-                    }
-                )
-            
-            # Add current request timestamp
-            request_times.append(now)
-            remaining = limit - len(request_times)
-        
-        # Process the request
+        # Process request
         response = await call_next(request)
         
-        # Add rate limit headers to the response
-        response.headers["X-RateLimit-Limit"] = str(limit)
-        response.headers["X-RateLimit-Remaining"] = str(max(0, remaining))
-        response.headers["X-RateLimit-Reset"] = str(int(now + 60))
+        # Add rate limit headers
+        response.headers["X-RateLimit-Limit"] = str(self.requests_per_minute)
+        response.headers["X-RateLimit-Remaining"] = str(
+            self.requests_per_minute - len(self.request_counts[client_ip])
+        )
         
         return response

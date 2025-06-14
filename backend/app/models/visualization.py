@@ -8,8 +8,15 @@ from typing import Optional, Dict, Any
 from uuid import uuid4
 
 from sqlalchemy import (
-    Column, String, Boolean, Integer, DateTime, ForeignKey,
-    Text, ARRAY, UniqueConstraint
+    String,
+    Column,
+    Boolean,
+    Integer,
+    DateTime,
+    ForeignKey,
+    Text,
+    ARRAY,
+    UniqueConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -20,7 +27,7 @@ class ChartType(Base):
     """Available chart types in the system"""
     __tablename__ = 'chart_types'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(50), unique=True, nullable=False)
     display_name = Column(String(100))
     description = Column(Text)
@@ -55,16 +62,16 @@ class Chart(Base):
     """Chart configurations and metadata"""
     __tablename__ = 'charts'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    chart_type_id = Column(UUID(as_uuid=True), ForeignKey('chart_types.id'), nullable=False)
-    query_id = Column(UUID(as_uuid=True), ForeignKey('natural_language_queries.id'))
+    chart_type_id = Column(UUID, ForeignKey('chart_types.id'), nullable=False)
+    query_id = Column(UUID, ForeignKey('natural_language_queries.id'))
     data_source = Column(JSONB, nullable=False)
     config = Column(JSONB, default={})
     filters = Column(JSONB, default={})
     is_public = Column(Boolean, default=False)
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    created_by = Column(String(50), ForeignKey('user.id'), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -99,9 +106,9 @@ class SavedChart(Base):
     """User-saved charts"""
     __tablename__ = 'saved_charts'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    chart_id = Column(UUID(as_uuid=True), ForeignKey('charts.id'), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    user_id = Column(String(50), ForeignKey('user.id'), nullable=False)
+    chart_id = Column(UUID, ForeignKey('charts.id'), nullable=False)
     name = Column(String(255))
     is_favorite = Column(Boolean, default=False)
     tags = Column(ARRAY(Text), default=[])
@@ -124,17 +131,17 @@ class Dashboard(Base):
     """Dashboard configurations"""
     __tablename__ = 'dashboards'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    user_id = Column(String(50), ForeignKey('user.id'), nullable=False)
     layout_config = Column(JSONB, nullable=False, default={})
     theme = Column(String(50), default='default')
     refresh_interval = Column(Integer)  # seconds
     is_public = Column(Boolean, default=False)
     is_default = Column(Boolean, default=False)
     tags = Column(ARRAY(Text), default=[])
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    created_by = Column(String(50), ForeignKey('user.id'), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -178,9 +185,9 @@ class DashboardChart(Base):
     """Charts within dashboards"""
     __tablename__ = 'dashboard_charts'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    dashboard_id = Column(UUID(as_uuid=True), ForeignKey('dashboards.id', ondelete='CASCADE'), nullable=False)
-    chart_id = Column(UUID(as_uuid=True), ForeignKey('charts.id'), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    dashboard_id = Column(UUID, ForeignKey('dashboards.id', ondelete='CASCADE'), nullable=False)
+    chart_id = Column(UUID, ForeignKey('charts.id'), nullable=False)
     position = Column(JSONB, nullable=False)  # {x, y, w, h}
     config_overrides = Column(JSONB, default={})
     display_order = Column(Integer, default=0)
@@ -233,8 +240,8 @@ class DashboardWidget(Base):
     """Generic widgets within dashboards"""
     __tablename__ = 'dashboard_widgets'
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    dashboard_id = Column(UUID(as_uuid=True), ForeignKey('dashboards.id'), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    dashboard_id = Column(UUID, ForeignKey('dashboards.id'), nullable=False)
     widget_type = Column(String(50), nullable=False)
     title = Column(String(200))
     config = Column(JSONB)

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from enum import Enum
 import uuid
 
+from app.api.middleware.client_context import get_client_context
 from app.analytics.inventory_optimization.safety_stock_calculator import calculate_safety_stock
 from app.analytics.inventory_optimization.abc_analysis import ABCAnalysis, perform_abc_analysis
 from app.analytics.inventory_optimization.forecast_engine import generate_forecast

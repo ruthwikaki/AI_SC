@@ -39,7 +39,7 @@ class NaturalLanguageQuery(BaseModel):
     completion_tokens = Column(Integer, nullable=True)
     
     # Additional metadata
-    metadata = Column(JSON, nullable=True)
+    query_metadata = Column(JSON, nullable=True)
     tags = Column(JSON, nullable=True)  # User or system tags
     
     # Caching
@@ -192,3 +192,30 @@ class QueryTemplate(BaseModel):
     
     # Tags for discovery
     tags = Column(JSON, nullable=True)
+
+class QueryResultCache(BaseModel):
+    """Cache for query results"""
+    __tablename__ = "query_result_cache"
+    
+    query_hash = Column(String, unique=True, nullable=False, index=True)
+    query_text = Column(Text, nullable=False)
+    result_data = Column(JSON, nullable=False)
+    created_at = Column(String, nullable=False)
+    expires_at = Column(String, nullable=False)
+    access_count = Column(Integer, default=0)
+    
+    def __repr__(self):
+        return f"<QueryResultCache(query_hash={self.query_hash})>"
+
+
+class QuerySuggestion(BaseModel):
+    """Query suggestions for users"""
+    __tablename__ = "query_suggestion"
+    
+    suggestion_text = Column(Text, nullable=False)
+    category = Column(String, nullable=True)
+    usage_count = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    
+    def __repr__(self):
+        return f"<QuerySuggestion(text='{self.suggestion_text[:50]}...')>"

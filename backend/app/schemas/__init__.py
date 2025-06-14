@@ -4,11 +4,10 @@ Pydantic schemas for API request/response validation
 
 from .auth import (
     UserBase, UserCreate, UserUpdate, UserInDB, UserResponse,
-    UserLogin, TokenResponse, TokenData,
-    PasswordReset, PasswordResetRequest,
+    UserLogin, TokenData,
+    PasswordReset, PasswordReset,
     RoleBase, RoleCreate, RoleResponse,
-    PermissionBase, PermissionResponse,
-    UserPreferencesUpdate, UserPreferencesResponse
+    PermissionBase, PermissionResponse
 )
 
 from .query import (

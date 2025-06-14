@@ -339,7 +339,7 @@ class InventoryHistory(Base):
     reference_type = Column(String(50))
     reference_id = Column(UUID(as_uuid=True))
     reason = Column(String(255))
-    performed_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    performed_by = Column(UUID(as_uuid=True), ForeignKey('user.id'))
     recorded_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
@@ -373,7 +373,7 @@ class Order(Base):
     billing_address = Column(Text)
     notes = Column(Text)
     query_metadata = Column(JSONB, default={})
-    created_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    created_by = Column(UUID(as_uuid=True), ForeignKey('user.id'))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     

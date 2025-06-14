@@ -97,7 +97,7 @@ class ChartDataPoint(BaseModel):
     label: Optional[str] = None
     value: Union[float, int, str]
     category: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    viz_metadata: Optional[Dict[str, Any]] = None
 
 
 class ChartDataSeries(BaseModel):

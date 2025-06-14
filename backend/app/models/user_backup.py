@@ -56,13 +56,6 @@ class User(BaseModel):
     # Role and permissions
     role = Column(Enum(UserRole), default=UserRole.VIEWER, nullable=False)
     roles = relationship("Role", secondary=user_roles, back_populates="users")
-    
-    # Relationships
-    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-    password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
-    preferences = relationship("UserPreference", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    queries = relationship("NaturalLanguageQuery", back_populates="user", cascade="all, delete-orphan")
-    
     permissions = relationship("Permission", secondary=user_permissions, back_populates="users")
     
     # Settings and preferences
@@ -192,42 +185,3 @@ class AuditLog(BaseModel):
     
     # Relationships
     user = relationship("User", back_populates="audit_logs")
-
-class UserSession(BaseModel):
-    """User session tracking"""
-    __tablename__ = "user_session"
-    
-    user_id = Column(String, ForeignKey('user.id'), nullable=False)
-    token = Column(String, unique=True, nullable=False)
-    expires_at = Column(String, nullable=False)
-    is_active = Column(Boolean, default=True)
-    
-    # Relationships
-    user = relationship("User", back_populates="sessions")
-
-
-class PasswordResetToken(BaseModel):
-    """Password reset tokens"""
-    __tablename__ = "password_reset_token"
-    
-    user_id = Column(String, ForeignKey('user.id'), nullable=False)
-    token = Column(String, unique=True, nullable=False)
-    expires_at = Column(String, nullable=False)
-    used = Column(Boolean, default=False)
-    
-    # Relationships
-    user = relationship("User", back_populates="password_reset_tokens")
-
-
-class UserPreference(BaseModel):
-    """User preferences"""
-    __tablename__ = "user_preference"
-    
-    user_id = Column(String, ForeignKey('user.id'), nullable=False, unique=True)
-    theme = Column(String, default='light')
-    language = Column(String, default='en')
-    timezone = Column(String, default='UTC')
-    notifications_enabled = Column(Boolean, default=True)
-    
-    # Relationships
-    user = relationship("User", back_populates="preferences", uselist=False)

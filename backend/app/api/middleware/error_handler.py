@@ -1,3 +1,6 @@
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -104,4 +107,40 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             status_code=status_code,
             content=content,
             headers=headers
+        )
+
+
+def add_exception_handlers(app: FastAPI):
+    """Add exception handlers to the FastAPI app"""
+    
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "error": "Validation error",
+                "message": "Request validation failed",
+                "detail": exc.errors()
+            }
+        )
+    
+    @app.exception_handler(ValueError)
+    async def value_error_handler(request: Request, exc: ValueError):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "error": "Bad request",
+                "message": str(exc)
+            }
+        )
+    
+    @app.exception_handler(Exception)
+    async def general_exception_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": "Internal server error",
+                "message": "An unexpected error occurred",
+                "detail": str(exc) if app.debug else None
+            }
         )
