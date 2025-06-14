@@ -1,11 +1,11 @@
-"""
+﻿"""
 Query-related schemas for natural language processing and SQL generation
 """
 
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict
 from enum import Enum
 
 
@@ -47,7 +47,7 @@ class NaturalLanguageQueryRequest(BaseModel):
     cache_result: bool = True
     cache_ttl_seconds: int = 3600
     
-    @validator('query_text')
+    @field_validator('query_text')
     def validate_query_text(cls, v):
         """Validate query text"""
         v = v.strip()
@@ -64,53 +64,7 @@ class QueryExecutionResult(BaseModel):
     execution_time_ms: int
     truncated: bool = False
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "columns": [
-                    {"name": "product_name", "type": "string"},
-                    {"name": "total_sales", "type": "number"}
-                ],
-                "rows": [
-                    ["Product A", 150000],
-                    ["Product B", 120000]
-                ],
-                "row_count": 2,
-                "execution_time_ms": 45,
-                "truncated": False
-            }
-        }
-
-
-class VisualizationSuggestion(BaseModel):
-    """Suggested visualization for query results"""
-    chart_type: str
-    title: str
-    description: Optional[str] = None
-    config: Dict[str, Any] = Field(default_factory=dict)
-    confidence_score: float = Field(ge=0.0, le=1.0)
-
-
-class NaturalLanguageQueryResponse(BaseModel):
-    """Response schema for natural language query"""
-    id: UUID
-    query_text: str
-    intent_classification: QueryIntent
-    generated_sql: str
-    sql_parameters: List[Any] = []
-    result: Optional[QueryExecutionResult] = None
-    explanation: Optional[str] = None
-    visualization_suggestions: List[VisualizationSuggestion] = []
-    confidence_score: float = Field(ge=0.0, le=1.0)
-    model_used: str
-    tokens_used: int
-    from_cache: bool = False
-    status: QueryStatus
-    error_message: Optional[str] = None
-    created_at: datetime
-    
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
         use_enum_values = True
 
 
@@ -155,8 +109,7 @@ class SavedQueryResponse(SavedQueryBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # =====================================================
@@ -177,8 +130,7 @@ class QueryTemplateResponse(BaseModel):
     is_active: bool
     created_at: datetime
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QueryTemplateExecute(BaseModel):
@@ -200,8 +152,7 @@ class QuerySuggestion(BaseModel):
     context_keywords: List[str] = []
     usage_count: int
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QuerySuggestionRequest(BaseModel):
@@ -226,8 +177,7 @@ class QueryHistoryItem(BaseModel):
     error_message: Optional[str] = None
     created_at: datetime
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
         use_enum_values = True
 
 

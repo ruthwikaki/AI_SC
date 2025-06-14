@@ -1,4 +1,4 @@
-from uuid import UUID
+﻿from uuid import UUID
 """
 Authentication schemas for request/response validation
 Located at: /backend/app/schemas/auth.py
@@ -39,13 +39,13 @@ class UserRegister(BaseModel):
     full_name: Optional[str] = None
     department: Optional[str] = None
     
-    @validator('confirm_password')
+    @field_validator('confirm_password')
     def passwords_match(cls, v, values):
         if 'password' in values and v != values['password']:
             raise ValueError('Passwords do not match')
         return v
     
-    @validator('password')
+    @field_validator('password')
     def password_strength(cls, v):
         """Validate password strength"""
         if not any(char.isdigit() for char in v):
@@ -62,7 +62,7 @@ class PasswordChange(BaseModel):
     new_password: str = Field(..., min_length=8)
     confirm_password: str
     
-    @validator('confirm_password')
+    @field_validator('confirm_password')
     def passwords_match(cls, v, values):
         if 'new_password' in values and v != values['new_password']:
             raise ValueError('Passwords do not match')
@@ -78,7 +78,7 @@ class PasswordResetConfirm(BaseModel):
     new_password: str = Field(..., min_length=8)
     confirm_password: str
     
-    @validator('confirm_password')
+    @field_validator('confirm_password')
     def passwords_match(cls, v, values):
         if 'new_password' in values and v != values['new_password']:
             raise ValueError('Passwords do not match')

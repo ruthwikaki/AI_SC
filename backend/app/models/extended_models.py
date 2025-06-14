@@ -1,4 +1,4 @@
-# Note: Report and AnalyticsMetric classes have been moved to analytics.py
+﻿# Note: Report and AnalyticsMetric classes have been moved to analytics.py
 
 # AuditLog class is in user.py
 
@@ -148,10 +148,6 @@ class ExportJob(Base):
 
 # ExtendedReport as alias for backwards compatibility
 
-ExtendedReport = Report
-
-
-
 class ScheduledReport(Base):
 
     __tablename__ = "scheduled_reports"
@@ -189,11 +185,50 @@ class ScheduledReport(Base):
     template = relationship("ReportTemplate")
 
     user = relationship("User", foreign_keys=[user_id])
-
-
-
-
-
+
+
+class ReportTemplate(Base):
+    """Template for generating reports"""
+    __tablename__ = "report_templates"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    category = Column(String(50))
+    template_type = Column(String(50))
+    parameters = Column(JSONB)  # Required parameters for the template
+    layout_config = Column(JSONB)  # Layout configuration
+    preview_image = Column(String(500))
+    estimated_generation_time = Column(Integer)  # in seconds
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    reports = relationship("ExtendedReport", back_populates="template")
+    scheduled_reports = relationship("ScheduledReport", back_populates="template")
+
+
+class ExtendedReport(Base):
+    """Extended report model for generated reports"""
+    __tablename__ = "extended_reports"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(200), nullable=False)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("report_templates.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    parameters = Column(JSONB)
+    status = Column(Enum('generating', 'completed', 'failed', name='extended_report_status'), default='generating')
+    file_path = Column(String(500))
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    completed_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    template = relationship("ReportTemplate", back_populates="reports")
+    user = relationship("User", foreign_keys=[user_id])
+
+
 class NotificationSetting(Base):
 
     __tablename__ = "notification_settings"
@@ -290,6 +325,21 @@ class DataSource(Base):
 
 
 
+
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    key = Column(String(100), unique=True, nullable=False)
+    value = Column(Text)
+    value_type = Column(String(20), default='string')
+    description = Column(Text)
+    category = Column(String(50))
+    is_public = Column(Boolean, default=False)  # Whether non-admins can read
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
 class APIKey(Base):
 
     """API key model for external access"""
@@ -324,7 +374,4 @@ class APIKey(Base):
 
     # Relationships
 
-    user = relationship('User')
-
-
-
+    user = relationship('User')

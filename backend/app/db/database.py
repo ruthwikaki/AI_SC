@@ -1,4 +1,4 @@
-"""
+﻿"""
 Database connection and session management
 """
 
@@ -24,12 +24,12 @@ logger = logging.getLogger(__name__)
 # Database URL construction
 def get_database_url() -> str:
     """Construct database URL from settings"""
-    return settings.database_url
+    return settings.DATABASE_URL
 
 # Engine configuration based on environment
 def get_engine_config():
     """Get engine configuration based on environment"""
-    if settings.environment == "production":
+    if settings.ENVIRONMENT == "production":
         return {
             "pool_size": 20,
             "max_overflow": 40,
@@ -39,7 +39,7 @@ def get_engine_config():
             "echo": False,
             "poolclass": QueuePool
         }
-    elif settings.environment == "testing":
+    elif settings.ENVIRONMENT == "testing":
         return {
             "poolclass": NullPool,  # No connection pooling for tests
             "echo": False
@@ -51,7 +51,7 @@ def get_engine_config():
             "pool_timeout": 30,
             "pool_recycle": 3600,  # 1 hour
             "pool_pre_ping": True,
-            "echo": settings.debug,
+            "echo": settings.DEBUG,
             "poolclass": QueuePool
         }
 
@@ -77,14 +77,14 @@ ScopedSession = scoped_session(SessionLocal)
 def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
     """Log slow queries in development"""
     conn.info.setdefault('query_start_time', []).append(time.time())
-    if settings.debug:
+    if settings.DEBUG:
         logger.debug(f"Start Query: {statement[:100]}...")
 
 @event.listens_for(Engine, "after_cursor_execute")
 def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
     """Log query execution time"""
     total = time.time() - conn.info['query_start_time'].pop(-1)
-    if settings.debug and total > 1.0:  # Log queries slower than 1 second
+    if settings.DEBUG and total > 1.0:  # Log queries slower than 1 second
         logger.warning(f"Slow Query ({total:.3f}s): {statement[:100]}...")
 
 # Database dependency for FastAPI

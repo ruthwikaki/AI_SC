@@ -1,263 +1,128 @@
-"""
-Configuration loader.
-
-This module provides functions for loading and accessing application settings.
+﻿"""
+Application configuration using Pydantic v2
 """
 
 import os
-from typing import List, Dict, Any, Optional, Union
-from pydantic_settings import BaseSettings
-from pydantic import Field, field_validator, ConfigDict
+from typing import List, Optional, Union, Any
 from functools import lru_cache
-import json
-import dotenv
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
 
-# Load environment variables from .env file if present
-dotenv.load_dotenv()
 
 class Settings(BaseSettings):
-    cors_origins: list = ["http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3001", "http://127.0.0.1:5173"]
-    """Application settings."""
+    # Application
+    APP_NAME: str = Field(default="AI Supply Chain", validation_alias="APP_NAME")
+    APP_VERSION: str = Field(default="1.0.0", validation_alias="APP_VERSION")
+    DEBUG: bool = Field(default=True, validation_alias="DEBUG")
+    ENVIRONMENT: str = Field(default="development", validation_alias="ENVIRONMENT")
     
-    # General settings
-    app_name: str = "Supply Chain LLM API"
-    version: str = "1.0.0"
-    # CORS settings
-    cors_origins: list = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"]
-    cors_allow_credentials: bool = True
-    cors_allow_methods: list = ["*"]
-    cors_allow_headers: list = ["*"]
-
-    api_version: str = "1.0.0"
-    environment: str = "development"
-    debug: bool = False
+    # API
+    API_V1_STR: str = Field(default="/api/v1", validation_alias="API_V1_STR")
     
-    # Server settings
-    host: str = "0.0.0.0"
-    port: int = 8000
-    uvicorn_workers: int = 1
-    allowed_hosts: List[str] = ["*"]
-    cors_origins: List[str] = ["*"]
+    # Security
+    SECRET_KEY: str = Field(default="your-secret-key-here-change-in-production", validation_alias="SECRET_KEY")
+    ALGORITHM: str = Field(default="HS256", validation_alias="ALGORITHM")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     
-    # Database settings - FIXED: Using correct database name
-    database_url: str = Field(
-        default="postgresql://postgres:123456789@localhost:5432/Supplychain_AI",
-        validation_alias="DATABASE_URL"
-    )
-    database_pool_size: int = 5
-    database_pool_overflow: int = 10
+    # Database
+    DATABASE_URL: str = Field(default="sqlite:///./app.db", validation_alias="DATABASE_URL")
     
-    # Authentication settings
-    jwt_secret_key: str = Field(
-        default="CHANGE_THIS_IN_PRODUCTION",
-        validation_alias="JWT_SECRET_KEY"
-    )
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
-    refresh_token_expire_days: int = 7
-    
-    # Admin settings
-    admin_email: str = Field(
-        default="admin@example.com",
-        validation_alias="ADMIN_EMAIL"
-    )
-    admin_password: str = Field(
-        default="changeme123",
-        validation_alias="ADMIN_PASSWORD"
+    # CORS
+    BACKEND_CORS_ORIGINS: List[str] = Field(
+        default=["http://localhost:3000", "http://localhost:5173", "http://localhost:8000"],
+        validation_alias="BACKEND_CORS_ORIGINS"
     )
     
-    # Encryption settings
-    encryption_key: Optional[str] = Field(
-        default=None,
-        validation_alias="ENCRYPTION_KEY"
-    )
+    # Ollama Configuration
+    OLLAMA_BASE_URL: str = Field(default="http://localhost:11434", validation_alias="OLLAMA_BASE_URL")
+    OLLAMA_MODEL: str = Field(default="llama2", validation_alias="OLLAMA_MODEL")
     
-    # Rate limiting settings
-    rate_limit_requests: int = 100
-    rate_limit_window: int = 60  # seconds
-    token_limit_count: int = 10000
-    token_limit_window: int = 3600  # seconds
+    # Server
+    HOST: str = Field(default="0.0.0.0", validation_alias="HOST")
+    PORT: int = Field(default=8000, validation_alias="PORT")
+    RELOAD: bool = Field(default=True, validation_alias="RELOAD")
     
-    # LLM settings
-    llm_api_key: Optional[str] = Field(
-        default=None,
-        validation_alias="LLM_API_KEY"
-    )
-    llm_api_base: Optional[str] = Field(
-        default=None,
-        validation_alias="LLM_API_BASE"
-    )
-    default_model: str = "mistral-medium"
-    active_model: Optional[str] = None
-
-    # Additional settings
-    llm_provider: str = ""  # TODO: Set appropriate default
-    redis_url: str = ""  # TODO: Set appropriate default
-    upload_dir: str = "uploads"
-    # Feature flags
-    enable_analytics: bool = True
-    enable_export: bool = True
-    enable_multi_tier: bool = True
-    enable_forecasting: bool = True
-    enable_ai_insights: bool = True
-
-    # Analytics settings
-    analytics_retention_days: int = 90
-    analytics_batch_size: int = 1000
-
-    model_config_path: str = "app/llm/config"
-    llama3_model_path: Optional[str] = Field(
-        default=None,
-        validation_alias="LLAMA3_MODEL_PATH"
-    )
+    # Logging
+    LOG_LEVEL: str = Field(default="INFO", validation_alias="LOG_LEVEL")
     
-    # LLM health check settings
-    llm_health_check_interval: int = 300  # seconds
-    llm_max_health_check_latency: float = 5.0  # seconds
-    llm_max_consecutive_failures: int = 3
+    # Project root
+    PROJECT_ROOT: str = Field(default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))), validation_alias="PROJECT_ROOT")
     
-    # Logging settings
-    log_level: str = "INFO"
-    log_to_file: bool = False
-    log_directory: str = "logs"
+    # Additional settings that might be expected
+    FIRST_SUPERUSER: Optional[str] = Field(default=None, validation_alias="FIRST_SUPERUSER")
+    FIRST_SUPERUSER_PASSWORD: Optional[str] = Field(default=None, validation_alias="FIRST_SUPERUSER_PASSWORD")
     
-    # Template settings
-    templates_dir: str = "app/llm/prompt/templates"
-    
-    # Cache settings
-    cache_type: str = "memory"  # memory, redis
-    cache_redis_url: Optional[str] = None
-    cache_ttl: int = 3600  # seconds
-    
-    # Client settings
-    default_client_id: Optional[str] = None
-    admin_db_client_id: str = "admin"
-    
-    # File storage settings
-    storage_provider: str = "local"  # local, s3
-    storage_local_path: str = "storage"
-    storage_s3_bucket: Optional[str] = None
-    storage_s3_region: Optional[str] = None
+    # Redis/Cache settings
+    REDIS_URL: Optional[str] = Field(default=None, validation_alias="REDIS_URL")
+    CACHE_ENABLED: bool = Field(default=True, validation_alias="CACHE_ENABLED")
+    CACHE_TTL: int = Field(default=300, validation_alias="CACHE_TTL")  # seconds
     
     # Email settings
-    smtp_server: Optional[str] = None
-    smtp_port: int = 587
-    smtp_username: Optional[str] = None
-    smtp_password: Optional[str] = None
-    email_sender: str = "noreply@example.com"
+    SMTP_TLS: bool = Field(default=True, validation_alias="SMTP_TLS")
+    SMTP_PORT: Optional[int] = Field(default=None, validation_alias="SMTP_PORT")
+    SMTP_HOST: Optional[str] = Field(default=None, validation_alias="SMTP_HOST")
+    SMTP_USER: Optional[str] = Field(default=None, validation_alias="SMTP_USER")
+    SMTP_PASSWORD: Optional[str] = Field(default=None, validation_alias="SMTP_PASSWORD")
+    EMAILS_FROM_EMAIL: Optional[str] = Field(default=None, validation_alias="EMAILS_FROM_EMAIL")
+    EMAILS_FROM_NAME: Optional[str] = Field(default=None, validation_alias="EMAILS_FROM_NAME")
     
-    model_config = ConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore"
-    )
+    # Pagination
+    DEFAULT_PAGE_SIZE: int = Field(default=20, validation_alias="DEFAULT_PAGE_SIZE")
+    MAX_PAGE_SIZE: int = Field(default=100, validation_alias="MAX_PAGE_SIZE")
     
-    @field_validator("environment")
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }
+    
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def validate_environment(cls, v):
-        """Validate environment setting."""
-        allowed = ["development", "testing", "staging", "production"]
-        if v.lower() not in allowed:
-            raise ValueError(f"environment must be one of {allowed}")
-        return v.lower()
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, (list, str)):
+            return v
+        raise ValueError(v)
     
-    @field_validator("log_level")
+    @field_validator("DATABASE_URL", mode="before")
     @classmethod
-    def validate_log_level(cls, v):
-        """Validate log level setting."""
-        allowed = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-        if v.upper() not in allowed:
-            raise ValueError(f"log_level must be one of {allowed}")
-        return v.upper()
-    
-    @field_validator("database_url")
-    @classmethod
-    def validate_database_url(cls, v, info):
-        """Validate database URL based on environment."""
-        if info.data.get("environment") == "production" and "localhost" in v:
-            raise ValueError("Production environment should not use localhost database")
+    def validate_database_url(cls, v: str) -> str:
+        if not v:
+            return "sqlite:///./app.db"
         return v
-    
-    @field_validator("jwt_secret_key")
-    @classmethod
-    def validate_jwt_secret(cls, v, info):
-        """Validate JWT secret key."""
-        if info.data.get("environment") == "production" and v == "CHANGE_THIS_IN_PRODUCTION":
-            raise ValueError("Production environment requires a secure JWT secret key")
-        return v
+
 
 @lru_cache()
 def get_settings() -> Settings:
     """
-    Get application settings.
-    
-    This function uses lru_cache to cache the settings object
-    for improved performance.
-    
-    Returns:
-        Settings object
+    Create and cache settings instance.
+    Use lru_cache to ensure we only create one instance.
     """
     return Settings()
 
-def load_config_file(file_path: str) -> Dict[str, Any]:
-    """
-    Load a JSON configuration file.
-    
-    Args:
-        file_path: Path to configuration file
-        
-    Returns:
-        Configuration dictionary
-    """
-    try:
-        if os.path.exists(file_path):
-            with open(file_path, "r") as f:
-                return json.load(f)
-        else:
-            return {}
-    except Exception as e:
-        print(f"Error loading config file {file_path}: {e}")
-        return {}
 
-def save_config_file(file_path: str, config: Dict[str, Any]) -> bool:
-    """
-    Save a configuration dictionary to a JSON file.
-    
-    Args:
-        file_path: Path to save configuration file
-        config: Configuration dictionary
-        
-    Returns:
-        True if successful, False otherwise
-    """
-    try:
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        
-        # Save file
-        with open(file_path, "w") as f:
-            json.dump(config, f, indent=2)
-        
-        return True
-    except Exception as e:
-        print(f"Error saving config file {file_path}: {e}")
-        return False
-
-def get_environment_variables(prefix: str = "APP_") -> Dict[str, str]:
-    """
-    Get all environment variables with a specified prefix.
-    
-    Args:
-        prefix: Prefix to filter environment variables
-        
-    Returns:
-        Dictionary of environment variables
-    """
-    return {
-        k[len(prefix):]: v
-        for k, v in os.environ.items()
-        if k.startswith(prefix)
-    }
+# Create a settings instance for backward compatibility
+settings = get_settings()
 
 
+# Additional helper functions that might be used
+def get_project_root() -> str:
+    """Get the project root directory"""
+    return settings.PROJECT_ROOT
+
+
+def get_database_url() -> str:
+    """Get the database URL"""
+    return settings.DATABASE_URL
+
+
+def is_debug() -> bool:
+    """Check if we're in debug mode"""
+    return settings.DEBUG
+
+
+def get_cors_origins() -> List[str]:
+    """Get CORS origins"""
+    return settings.BACKEND_CORS_ORIGINS
