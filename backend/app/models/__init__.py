@@ -4,7 +4,7 @@ Exports all database models for easy importing
 """
 
 from .user import (
-    User, UserSession, PasswordResetToken, 
+    User, UserSession, PasswordResetToken, UserPreference, UserProfile, 
     Role, Permission, AuditLog
 )
 
@@ -38,7 +38,6 @@ from .analytics import (
 from .extended_models import (
     ForecastModel,
     ExtendedAnalyticsMetric,
-    AnalyticsMetric,  # Alias
     ExportJob,
     ScheduledReport,
     ReportTemplate,
@@ -53,7 +52,7 @@ from .extended_models import (
 # Re-export all models
 __all__ = [
     # User models
-    'User', 'UserSession', 'PasswordResetToken', 
+    'User', 'UserSession', 'PasswordResetToken', 'UserPreference', 'UserProfile', 
       
     
     # Query models
