@@ -3,11 +3,9 @@ Database Models Package
 Exports all database models for easy importing
 """
 
-from .base import Base
-
 from .user import (
-    User, UserSession, PasswordResetToken, UserPreference,
-    Role, Permission, RolePermission, UserRole, AuditLog
+    User, UserSession, PasswordResetToken, 
+    Role, Permission, AuditLog
 )
 
 from .query import (
@@ -28,7 +26,7 @@ from .supply_chain import (
 
 from .analytics import (
     AnalyticsResult, ScheduledAnalytic, AnalyticsTemplate,
-    Report, ReportSchedule,
+    ReportSchedule,
     SupplierPerformanceMetric, InventoryMetric,
     DeliveryPerformance, RiskAssessment, ComplianceCheck,
     ABCAnalysisResult, ForecastResult, SafetyStockCalculation,
@@ -37,7 +35,7 @@ from .analytics import (
 )
 
 # Add these imports to your existing backend/app/models/__init__.py:
-from .extended_models import (
+from app.models.extended_models import (
     ForecastModel,
     AnalyticsMetric,
     ExportJob,
@@ -45,20 +43,20 @@ from .extended_models import (
     ScheduledReport,
     SystemSetting,
     NotificationSetting,
-    WidgetType,
-    DataSource,
-    APIKey,
-    AuditLog as ExtendedAuditLog
+    WidgetType
 )
 
 # Re-export all models
 __all__ = [
-    # Base
-    'Base',
-    
     # User models
-    'User', 'UserSession', 'PasswordResetToken', 'UserPreference',
-    'Role', 'Permission', 'RolePermission', 'UserRole', 'AuditLog',
+    'User', 'UserSession', 'PasswordResetToken',
+    'UserRole', 'UserPermission', 'RolePermission',
+    'UserRoleAssignment', 'UserProfile', 'UserActivity',
+    'EmailVerificationToken',
+    'UserRole', 'UserPermission', 'RolePermission',
+    'UserRoleAssignment', 'UserProfile', 'UserActivity',
+    'EmailVerificationToken', 
+      
     
     # Query models
     'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',
@@ -85,6 +83,5 @@ __all__ = [
     # Extended models
     'ForecastModel', 'AnalyticsMetric', 'ExportJob',
     'ReportTemplate', 'ScheduledReport',
-    'SystemSetting', 'NotificationSetting', 'WidgetType',
-    'DataSource', 'APIKey', 'ExtendedAuditLog'
+    'SystemSetting', 'NotificationSetting', 'WidgetType'
 ]

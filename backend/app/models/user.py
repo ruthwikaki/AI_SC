@@ -1,4 +1,4 @@
-﻿"""
+"""
 User and authentication related models
 """
 
@@ -7,13 +7,35 @@ from typing import Optional
 from uuid import uuid4
 
 from sqlalchemy import (
+    Table,
     Column, String, Boolean, DateTime, ForeignKey, Text, Integer,
-    UniqueConstraint, Index
-)
+    UniqueConstraint, Index, BigInteger)
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
+
+# Association tables for many-to-many relationships
+role_permissions = Table(
+    'role_permissions',
+    Base.metadata,
+    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
+    Column('permission_id', UUID(as_uuid=True), ForeignKey('permissions.id', ondelete='CASCADE'), primary_key=True),
+    Column('granted_at', DateTime(timezone=True), default=datetime.utcnow)
+,
+    extend_existing=True
+)
+
+user_roles = Table(
+    'user_roles',
+    Base.metadata,
+    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    Column('role_id', UUID(as_uuid=True), ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
+    Column('assigned_at', DateTime(timezone=True), default=datetime.utcnow)
+,
+    extend_existing=True
+)
+
 
 # Removed incorrect import
 
@@ -38,6 +60,10 @@ class User(Base):
     locked_until = Column(DateTime(timezone=True))
     
     # Relationships
+    preferences = relationship('UserPreference', back_populates='user', uselist=False, cascade='all, delete-orphan')
+    roles = relationship('Role', secondary='user_roles', back_populates='users')
+    audit_logs = relationship('AuditLog', back_populates='user', foreign_keys='AuditLog.user_id')
+
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     roles = relationship("UserRole", secondary="user_role_assignments", back_populates="users")
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -247,3 +273,96 @@ class EmailVerificationToken(Base):
 # Alias for backward compatibility
 Role = UserRole
 Permission = UserPermission
+
+
+class UserPreference(Base):
+    """User preferences and settings"""
+    __tablename__ = 'user_preferences'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
+    theme = Column(String(50), default='light')
+    language = Column(String(10), default='en')
+    timezone = Column(String(50), default='UTC')
+    date_format = Column(String(20), default='MM/DD/YYYY')
+    number_format = Column(String(20), default='en-US')
+    default_chart_type = Column(String(50), default='bar')
+    dashboard_layout = Column(JSON, default={})
+    notification_preferences = Column(JSON, default={})
+    ui_preferences = Column(JSON, default={})
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship('User', back_populates='preferences')
+    
+    def __repr__(self):
+        return f"<UserPreference(user_id={self.user_id}, theme={self.theme})>"
+
+
+class Role(Base):
+    """Roles for role-based access control"""
+    __tablename__ = 'roles'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(50), unique=True, nullable=False)
+    display_name = Column(String(100))
+    description = Column(Text)
+    is_system = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    permissions = relationship('Permission', secondary='role_permissions', back_populates='roles')
+    users = relationship('User', secondary='user_roles', back_populates='roles')
+    
+    def __repr__(self):
+        return f"<Role(name={self.name}, display_name={self.display_name})>"
+
+
+class Permission(Base):
+    """Permissions for fine-grained access control"""
+    __tablename__ = 'permissions'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    resource = Column(String(100), nullable=False)
+    action = Column(String(50), nullable=False)
+    display_name = Column(String(200))
+    description = Column(Text)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    roles = relationship('Role', secondary='role_permissions', back_populates='permissions')
+    
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint('resource', 'action', name='uq_permission_resource_action'),
+    )
+    
+    def __repr__(self):
+        return f"<Permission(resource={self.resource}, action={self.action})>"
+
+
+class AuditLog(Base):
+    """Audit log for tracking system changes"""
+    __tablename__ = 'audit_logs'
+    
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    action = Column(String(100), nullable=False)
+    resource_type = Column(String(100), nullable=False)
+    resource_id = Column(String(255))
+    old_values = Column(JSON)
+    new_values = Column(JSON)
+    ip_address = Column(String(45))  # Using String instead of INET for compatibility
+    user_agent = Column(Text)
+    metadata = Column(JSON, default={})
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    
+    # Relationships
+    user = relationship('User', back_populates='audit_logs', foreign_keys=[user_id])
+    
+    def __repr__(self):
+        return f"<AuditLog(id={self.id}, action={self.action}, resource_type={self.resource_type})>"

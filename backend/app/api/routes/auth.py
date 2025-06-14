@@ -1,4 +1,3 @@
-﻿# backend/app/api/routes/auth.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -6,14 +5,13 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 from passlib.context import CryptContext
-from sqlalchemy.orm import Session
 
 from app.db.interfaces.user_interface import UserInterface
 from app.security.rbac_manager import get_user_permissions
 from app.utils.logger import get_logger
-from app.db.interfaces.user_interface import User as DBUser
+# Fix: Remove the incorrect import of User from user_interface
+# from app.db.interfaces.user_interface import User as DBUser
 from app.config import get_settings
-from app.db.database import get_db
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -84,7 +82,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return encoded_jwt, expire
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     """Dependency to get the current user from a JWT token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -106,37 +104,38 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         logger.error("JWT token validation failed")
         raise credentials_exception
     
-    # Get user from database - FIXED: Use synchronous method
-    user_interface = UserInterface(db)
-    user = user_interface.get_user_by_username(token_data.username)
+    # Get user from database
+    user_interface = UserInterface()
+    user = await user_interface.get_user_by_username(token_data.username)
     
     if user is None:
         logger.warning(f"User not found: {token_data.username}")
         raise credentials_exception
     
-    return user
+    # Convert the user dict to User model
+    return User(**user)
 
-async def get_current_active_user(current_user: DBUser = Depends(get_current_user)):
+async def get_current_active_user(current_user: User = Depends(get_current_user)):
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
 # Routes
 @router.post("/register", response_model=User)
-async def register_user(user_create: UserCreate, db: Session = Depends(get_db)):
+async def register_user(user_create: UserCreate):
     """Register a new user"""
-    user_interface = UserInterface(db)
+    user_interface = UserInterface()
     
-    # Check if username already exists - FIXED: Use synchronous method
-    existing_user = user_interface.get_user_by_username(user_create.username)
+    # Check if username already exists
+    existing_user = await user_interface.get_user_by_username(user_create.username)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
         )
     
-    # Check if email already exists - FIXED: Use synchronous method
-    existing_email = user_interface.get_user_by_email(user_create.email)
+    # Check if email already exists
+    existing_email = await user_interface.get_user_by_email(user_create.email)
     if existing_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -146,8 +145,8 @@ async def register_user(user_create: UserCreate, db: Session = Depends(get_db)):
     # Hash password
     hashed_password = get_password_hash(user_create.password)
     
-    # Create user in database - FIXED: Use synchronous method
-    new_user = user_interface.create_user(
+    # Create user in database
+    new_user = await user_interface.create_user(
         username=user_create.username,
         email=user_create.email,
         hashed_password=hashed_password,
@@ -155,70 +154,41 @@ async def register_user(user_create: UserCreate, db: Session = Depends(get_db)):
         client_id=user_create.client_id
     )
     
-    if not new_user:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create user"
-        )
-    
     logger.info(f"New user registered: {user_create.username}")
-    return User(
-        id=new_user.id,
-        username=new_user.username,
-        email=new_user.email,
-        role=new_user.role,
-        is_active=new_user.is_active,
-        client_id=new_user.client_id
-    )
+    return User(**new_user)
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """Login to get an access token"""
-    user_interface = UserInterface(db)
-    
-    # Try to get user by username first, then by email if not found
-    user = user_interface.get_user_by_username(form_data.username)
-    if not user:
-        # Try email as fallback since frontend might send email as username
-        user = user_interface.get_user_by_email(form_data.username)
+    user_interface = UserInterface()
+    user = await user_interface.get_user_by_username(form_data.username)
     
     # Check if user exists and password is correct
-    if not user or not user.hashed_password:
-        logger.warning(f"Failed login attempt - user not found: {form_data.username}")
+    if not user or not verify_password(form_data.password, user.get('hashed_password', '')):
+        logger.warning(f"Failed login attempt for user: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    if not verify_password(form_data.password, user.hashed_password):
-        logger.warning(f"Failed login attempt - invalid password for user: {form_data.username}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
     # Create access token
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token, expires_at = create_access_token(
-        data={"sub": user.username, "user_id": user.id, "role": user.role},
+        data={"sub": user['username'], "user_id": user['id'], "role": user['role']},
         expires_delta=access_token_expires
     )
     
     # Get user permissions
-    permissions = get_user_permissions(user.role)
+    permissions = get_user_permissions(user['role'])
     
-    logger.info(f"User logged in: {user.username}")
+    logger.info(f"User logged in: {form_data.username}")
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "expires_at": expires_at,
-        "user_id": user.id,
-        "role": user.role,
+        "user_id": user['id'],
+        "role": user['role'],
         "permissions": permissions
     }
 
@@ -236,25 +206,17 @@ async def logout(current_user: User = Depends(get_current_active_user)):
     return {"detail": "Successfully logged out"}
 
 @router.get("/me", response_model=User)
-async def read_users_me(current_user: DBUser = Depends(get_current_active_user)):
+async def read_users_me(current_user: User = Depends(get_current_active_user)):
     """Get the current user's information"""
-    return User(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email,
-        role=current_user.role,
-        is_active=current_user.is_active,
-        client_id=current_user.client_id
-    )
+    return current_user
 
 @router.put("/me", response_model=User)
 async def update_user(
     user_update: dict,
-    current_user: DBUser = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Update the current user's information"""
-    user_interface = UserInterface(db)
+    user_interface = UserInterface()
     
     # Only allow certain fields to be updated
     allowed_fields = {"email", "password"}
@@ -264,21 +226,8 @@ async def update_user(
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
     
-    # Update user in database - FIXED: Use synchronous method
-    updated_user = user_interface.update_user(current_user.id, update_data)
-    
-    if not updated_user:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update user"
-        )
+    # Update user in database
+    updated_user = await user_interface.update_user(current_user.id, update_data)
     
     logger.info(f"User updated: {current_user.username}")
-    return User(
-        id=updated_user.id,
-        username=updated_user.username,
-        email=updated_user.email,
-        role=updated_user.role,
-        is_active=updated_user.is_active,
-        client_id=updated_user.client_id
-    )
+    return User(**updated_user)
