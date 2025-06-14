@@ -121,8 +121,8 @@ async def process_natural_language_query(
         if request.use_cache:
             # Check if we have a cached query
             cached_query = db.query(QueryModel).filter(
-                QueryModel.query_text == request.query,
-                QueryModel.is_successful == True
+                QueryModel.natural_language_query == request.query,
+                QueryModel.success == True
             ).order_by(QueryModel.created_at.desc()).first()
             
             if cached_query and cached_query.generated_sql:
@@ -269,11 +269,11 @@ async def get_query_history(
     for q in queries:
         history.append({
             "id": str(q.id),
-            "query": q.query_text,
+            "query": q.natural_language_query,
             "sql": q.generated_sql,
-            "success": q.is_successful,
+            "success": q.success,
             "timestamp": q.created_at.isoformat() if q.created_at else None,
-            "execution_time_ms": q.response_time_ms,
+            "execution_time_ms": q.execution_time_ms,
             "result_count": q.result_count,
             "error": q.error_message
         })
@@ -303,7 +303,6 @@ async def save_query(
         query_text=query.query,
         generated_sql=query.sql,
         is_successful=True,
-        query_type="saved",
         metadata={
             "saved_query_id": query.id,
             "name": query.name,
@@ -343,7 +342,7 @@ async def get_saved_queries(
             "id": metadata.get("saved_query_id", str(q.id)),
             "name": metadata.get("name", "Untitled Query"),
             "description": metadata.get("description"),
-            "query": q.query_text,
+            "query": q.natural_language_query,
             "sql": q.generated_sql,
             "created_at": q.created_at.isoformat() if q.created_at else None,
             "tags": metadata.get("tags", []),
@@ -362,9 +361,9 @@ async def suggest_queries(
     """Suggest queries based on prefix and history"""
     
     # Get recent successful queries that match the prefix
-    recent_queries = db.query(QueryModel.query_text).filter(
-        QueryModel.is_successful == True,
-        QueryModel.query_text.ilike(f"{prefix}%")
+    recent_queries = db.query(QueryModel.natural_language_query).filter(
+        QueryModel.success == True,
+        QueryModel.natural_language_query.ilike(f"{prefix}%")
     ).distinct().limit(limit * 2).all()
     
     suggestions = [q[0] for q in recent_queries]

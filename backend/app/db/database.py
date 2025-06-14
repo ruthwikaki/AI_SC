@@ -9,7 +9,7 @@ import logging
 import time
 
 from sqlalchemy import create_engine, text, event, pool
-from sqlalchemy.ext.declarative import declarative_base
+
 from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.engine import Engine
@@ -19,8 +19,7 @@ settings = get_settings()
 
 logger = logging.getLogger(__name__)
 
-# Base class for all models
-Base = declarative_base()
+# Import Base from models\nfrom app.models.base import Base
 
 # Database URL construction
 def get_database_url() -> str:
@@ -164,15 +163,14 @@ class DatabaseManager:
 def import_all_models():
     """Import all models to register them with SQLAlchemy"""
     try:
-        from app.models import (
-            user, query, visualization, supply_chain, analytics
-        )
+        # Import models package to register all models
+        import app.models
         logger.info("All models imported successfully")
     except ImportError as e:
         logger.warning(f"Some models could not be imported: {e}")
 
 # Initialize models on module load
-import_all_models()
+# import_all_models()  # Commented to prevent duplicate imports
 
 
 def init_db():
