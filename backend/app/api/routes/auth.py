@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
@@ -58,7 +58,8 @@ class UserCreate(BaseModel):
     role: Optional[str] = "user"
     client_id: Optional[str] = None
 
-class UserInDB(User):`n    password_hash: str
+class UserInDB(User):
+    password_hash: str
 
 # Auth utilities
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")

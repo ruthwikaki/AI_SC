@@ -6,7 +6,16 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 const USER_KEY = 'user';
 
 class AuthService {
-  async login(email, password) {
+  async login(emailOrCredentials, password) {
+    // Support both login(email, password) and login({email, password})
+    let email, pwd;
+    if (typeof emailOrCredentials === 'object') {
+      email = emailOrCredentials.email;
+      pwd = emailOrCredentials.password;
+    } else {
+      email = emailOrCredentials;
+      pwd = password;
+    }
     try {
       console.log('Auth service - login attempt:', { email });
       
@@ -14,7 +23,7 @@ class AuthService {
       // We'll use email as username since that's what users enter
       const formData = new URLSearchParams();
       formData.append('username', email);  // Send email as username
-      formData.append('password', password);
+      formData.append('password', pwd);
       
       const response = await api.post('/api/auth/token', formData, {
         headers: {
@@ -117,3 +126,5 @@ class AuthService {
 }
 
 export default new AuthService();
+
+

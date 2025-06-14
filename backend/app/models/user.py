@@ -203,7 +203,7 @@ class User(Base):
 
 
     # profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan") # Removed - UserProfile 
-    saved_queries = relationship("SavedQuery", back_populates="user", cascade="all, delete-orphan")class doesn't exist
+    saved_queries = relationship("SavedQuery", back_populates="user", cascade="all, delete-orphan")
 
 
     activities = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
