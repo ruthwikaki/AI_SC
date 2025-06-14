@@ -1,4 +1,4 @@
-"""
+﻿"""
 User and authentication related models
 """
 
@@ -242,3 +242,7 @@ class AuditLog(Base):
     
     def __repr__(self):
         return f"<AuditLog(id={self.id}, action={self.action}, resource_type={self.resource_type})>"
+
+
+# Alias for compatibility
+UserProfile = UserPreference
