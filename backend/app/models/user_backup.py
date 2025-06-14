@@ -1,4 +1,4 @@
-"""
+﻿"""
 User model for authentication and authorization
 Located at: /backend/app/models/user.py
 """
@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship
 import enum
 from typing import Dict, Any
 
-from app.models.base import BaseModel
+from app.schemas.base import BaseModel
 
 # Association table for user roles
 user_roles = Table(

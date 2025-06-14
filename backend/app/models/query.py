@@ -1,11 +1,11 @@
-"""
+﻿"""
 Query models for natural language processing and SQL generation
 Located at: /backend/app/models/query.py
 """
 from sqlalchemy import Column, String, Text, Integer, Float, Boolean, JSON, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
-from app.models.base import BaseModel
+from app.schemas.base import BaseModel
 
 class NaturalLanguageQuery(BaseModel):
     """Model for storing natural language queries and their SQL translations"""

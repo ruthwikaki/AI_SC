@@ -3,10 +3,10 @@ Base model configuration for SQLAlchemy
 """
 from sqlalchemy.ext.declarative import declarative_base
 
-# Create the declarative base
+# Create the declarative base for SQLAlchemy
 Base = declarative_base()
 
-# Base configuration for all models
+# Base mixin for SQLAlchemy models
 class BaseModelMixin:
     """Base mixin for common model functionality"""
     
@@ -26,3 +26,6 @@ class BaseModelMixin:
     def to_dict(self):
         """Convert model to dictionary"""
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+# Alias for backward compatibility
+BaseMixin = BaseModelMixin

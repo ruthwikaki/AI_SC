@@ -13,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.models.base import Base, BaseModelMixin
+from app.schemas.base import BaseModel
 
 
 class User(Base, BaseModelMixin):
@@ -192,6 +192,55 @@ class UserActivity(Base, BaseModelMixin):
     
     def __repr__(self):
         return f"<UserActivity(user_id={self.user_id}, type={self.activity_type})>"
+
+
+
+class PasswordResetToken(Base, BaseModelMixin):
+    """Password reset token model"""
+    __tablename__ = 'password_reset_tokens'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    token = Column(String(500), unique=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False)
+    used_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship('User', backref='password_reset_tokens')
+    
+    def __repr__(self):
+        return f"<PasswordResetToken(user_id={self.user_id}, used={self.used})>"
+    
+    @property
+    def is_expired(self):
+        """Check if token is expired"""
+        from datetime import timezone
+        return datetime.now(timezone.utc) > self.expires_at
+    
+    @property
+    def is_valid(self):
+        """Check if token is valid (not used and not expired)"""
+        return not self.used and not self.is_expired
+
+
+class EmailVerificationToken(Base, BaseModelMixin):
+    """Email verification token model"""
+    __tablename__ = 'email_verification_tokens'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    token = Column(String(500), unique=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship('User', backref='email_verification_tokens')
+    
+    def __repr__(self):
+        return f"<EmailVerificationToken(user_id={self.user_id}, used={self.used})>"
 
 # Alias for backward compatibility
 Role = UserRole

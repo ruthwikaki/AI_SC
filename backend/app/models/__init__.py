@@ -1,9 +1,9 @@
 ﻿"""
-Models package - with careful import order to avoid circular dependencies
+Models package - with all necessary exports
 """
 
 # Import base first
-from .base import Base, BaseModelMixin
+from .base import BaseModelMixin
 
 # Import system models
 try:
@@ -11,27 +11,32 @@ try:
 except ImportError:
     SystemSetting = None
 
-# Import all user models
+# Import all user models and aliases
 from .user import (
     User, UserSession, UserRole, UserPermission, 
-    RolePermission, UserRoleAssignment, UserProfile, UserActivity
+    RolePermission, UserRoleAssignment, UserProfile, UserActivity,
+    PasswordResetToken, EmailVerificationToken,
+    Role, Permission  # Aliases
 )
 
 # Import core business models
 try:
-    from .supply_chain import *
+    from .supply_chain import (
+        Supplier, Product, Inventory, Order, OrderItem, 
+        Shipment, Customer, Warehouse
+    )
 except ImportError as e:
     print(f"Warning: Could not import supply_chain models: {e}")
 
 # Import query models
 try:
-    from .query import *
+    from .query import NaturalLanguageQuery, SQLQuery, QueryExecution
 except ImportError as e:
     print(f"Warning: Could not import query models: {e}")
 
 # Import visualization models
 try:
-    from .visualization import *
+    from .visualization import Chart, Dashboard, ChartData, DashboardWidget, VisualizationTemplate
 except ImportError as e:
     print(f"Warning: Could not import visualization models: {e}")
 
@@ -41,14 +46,41 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import analytics models: {e}")
 
-# Import extended models last
+# Import extended models
 try:
-    from .extended_models import *
+    from .extended_models import (
+        ForecastModel, ExtendedAnalyticsMetric, ExportJob,
+        ReportTemplate, Report, ScheduledReport,
+        NotificationSetting, WidgetType, DataSource, APIKey, AuditLog
+    )
+    # Create alias
+    AnalyticsMetric = ExtendedAnalyticsMetric
 except ImportError as e:
     print(f"Warning: Could not import extended_models: {e}")
-
-# APIKey might be in extended_models
-try:
-    from .extended_models import APIKey
-except ImportError:
     APIKey = None
+    Report = None
+    AnalyticsMetric = None
+
+# Ensure all names are available
+__all__ = [
+    # Base
+    'Base', 'BaseModelMixin', 'BaseModelMixin',
+    # System
+    'SystemSetting',
+    # User models
+    'User', 'UserSession', 'UserRole', 'UserPermission',
+    'RolePermission', 'UserRoleAssignment', 'UserProfile', 'UserActivity',
+    'PasswordResetToken', 'EmailVerificationToken',
+    'Role', 'Permission',  # Aliases
+    # Supply chain
+    'Supplier', 'Product', 'Inventory', 'Order', 'OrderItem',
+    'Shipment', 'Customer', 'Warehouse',
+    # Query
+    'NaturalLanguageQuery', 'SQLQuery', 'QueryExecution',
+    # Visualization
+    'Chart', 'Dashboard', 'ChartData', 'DashboardWidget', 'VisualizationTemplate',
+    # Extended
+    'ForecastModel', 'ExtendedAnalyticsMetric', 'AnalyticsMetric',
+    'ExportJob', 'ReportTemplate', 'Report', 'ScheduledReport',
+    'NotificationSetting', 'WidgetType', 'DataSource', 'APIKey', 'AuditLog'
+]
