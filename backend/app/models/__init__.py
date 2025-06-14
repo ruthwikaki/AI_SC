@@ -1,9 +1,9 @@
-﻿"""
+"""
 Models package - with all necessary exports
 """
 
 # Import base first
-from .base import BaseModelMixin
+from .base import Base
 
 # Import system models
 try:
@@ -22,15 +22,15 @@ from .user import (
 # Import core business models
 try:
     from .supply_chain import (
-        Supplier, Product, Inventory, Order, OrderItem, 
-        Shipment, Customer, Warehouse
-    )
+    Supplier, Product, Inventory, Order, OrderItem, 
+    Shipment, Customer, Warehouse
+)
 except ImportError as e:
     print(f"Warning: Could not import supply_chain models: {e}")
 
 # Import query models
 try:
-    from .query import NaturalLanguageQuery, SQLQuery, QueryExecution
+    from .query import NaturalLanguageQuery, SQLQuery, QueryExecution, SavedQuery, QueryResultCache, QueryTemplate, QuerySuggestion
 except ImportError as e:
     print(f"Warning: Could not import query models: {e}")
 
@@ -73,10 +73,10 @@ __all__ = [
     'PasswordResetToken', 'EmailVerificationToken',
     'Role', 'Permission',  # Aliases
     # Supply chain
-    'Supplier', 'Product', 'Inventory', 'Order', 'OrderItem',
+    'Supplier', 'Product', 'Material', 'Inventory', 'Order', 'OrderItem',
     'Shipment', 'Customer', 'Warehouse',
     # Query
-    'NaturalLanguageQuery', 'SQLQuery', 'QueryExecution',
+    'NaturalLanguageQuery', 'SQLQuery', 'QueryExecution', 'SavedQuery', 'QueryResultCache', 'QueryTemplate', 'QuerySuggestion',
     # Visualization
     'Chart', 'Dashboard', 'ChartData', 'DashboardWidget', 'VisualizationTemplate',
     # Extended

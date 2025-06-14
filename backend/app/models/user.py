@@ -13,10 +13,12 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.schemas.base import BaseModel
+from app.models.base import Base
+
+# Removed incorrect import
 
 
-class User(Base, BaseModelMixin):
+class User(Base):
     """User model for authentication and authorization"""
     __tablename__ = 'users'
     
@@ -61,7 +63,7 @@ class User(Base, BaseModelMixin):
         return False
 
 
-class UserSession(Base, BaseModelMixin):
+class UserSession(Base):
     """User session tracking"""
     __tablename__ = 'user_sessions'
     
@@ -90,7 +92,7 @@ class UserSession(Base, BaseModelMixin):
         return datetime.now(timezone.utc) > self.expires_at
 
 
-class UserRole(Base, BaseModelMixin):
+class UserRole(Base):
     """User roles for RBAC"""
     __tablename__ = 'user_roles'
     
@@ -110,7 +112,7 @@ class UserRole(Base, BaseModelMixin):
         return f"<UserRole(name={self.name})>"
 
 
-class UserPermission(Base, BaseModelMixin):
+class UserPermission(Base):
     """Permissions for RBAC"""
     __tablename__ = 'user_permissions'
     
@@ -147,7 +149,7 @@ class UserRoleAssignment(Base):
     assigned_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
 
 
-class UserProfile(Base, BaseModelMixin):
+class UserProfile(Base):
     """Extended user profile information"""
     __tablename__ = 'user_profiles'
     
@@ -173,7 +175,7 @@ class UserProfile(Base, BaseModelMixin):
         return f"<UserProfile(user_id={self.user_id}, full_name={self.full_name})>"
 
 
-class UserActivity(Base, BaseModelMixin):
+class UserActivity(Base):
     """User activity tracking"""
     __tablename__ = 'user_activities'
     
@@ -195,7 +197,7 @@ class UserActivity(Base, BaseModelMixin):
 
 
 
-class PasswordResetToken(Base, BaseModelMixin):
+class PasswordResetToken(Base):
     """Password reset token model"""
     __tablename__ = 'password_reset_tokens'
     
@@ -225,7 +227,7 @@ class PasswordResetToken(Base, BaseModelMixin):
         return not self.used and not self.is_expired
 
 
-class EmailVerificationToken(Base, BaseModelMixin):
+class EmailVerificationToken(Base):
     """Email verification token model"""
     __tablename__ = 'email_verification_tokens'
     

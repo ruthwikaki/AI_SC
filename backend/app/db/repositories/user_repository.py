@@ -1,4 +1,4 @@
-﻿"""
+"""
 User repository for user-related database operations
 """
 
@@ -16,7 +16,7 @@ from app.models import (
     User, 
     UserSession, 
     PasswordResetToken, 
-    UserPreference, 
+    UserProfile, 
     Permission, 
     AuditLog
 )
@@ -47,7 +47,7 @@ class UserRepository:
             self.db.add(user)
             
             # Create default preferences
-            preferences = UserPreference(user_id=user.id)
+            preferences = UserProfile(user_id=user.id)
             self.db.add(preferences)
             
             # Assign default UserRole
@@ -327,20 +327,20 @@ class UserRepository:
     # User Preferences Operations
     # =====================================================
     
-    def get_user_preferences(self, user_id: UUID) -> Optional[UserPreference]:
+    def get_user_preferences(self, user_id: UUID) -> Optional[UserProfile]:
         """Get user preferences"""
-        return self.db.query(UserPreference).filter(
-            UserPreference.user_id == user_id
+        return self.db.query(UserProfile).filter(
+            UserProfile.user_id == user_id
         ).first()
     
     def update_user_preferences(
         self, user_id: UUID, preferences_data: Dict[str, Any]
-    ) -> Optional[UserPreference]:
+    ) -> Optional[UserProfile]:
         """Update user preferences"""
         preferences = self.get_user_preferences(user_id)
         if not preferences:
             # Create if doesn't exist
-            preferences = UserPreference(user_id=user_id, **preferences_data)
+            preferences = UserProfile(user_id=user_id, **preferences_data)
             self.db.add(preferences)
         else:
             # Update existing

@@ -13,8 +13,7 @@ from sqlalchemy import func, or_, and_, desc, case
 from sqlalchemy.exc import IntegrityError
 
 from app.models import (
-    Inventory, InventoryHistory, Product, Material,
-    ABCAnalysisResult, SafetyStockCalculation
+    Inventory, Product, Warehouse
 )
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ class InventoryRepository:
         location_code: str,
         quantity_on_hand: Decimal,
         product_id: Optional[UUID] = None,
-        material_id: Optional[UUID] = None,
+        warehouse_id: Optional[UUID] = None,
         reorder_point: Optional[Decimal] = None,
         reorder_quantity: Optional[Decimal] = None,
         metadata: Optional[Dict[str, Any]] = None
@@ -140,8 +139,7 @@ class InventoryRepository:
             if category:
                 query = query.filter(
                     or_(
-                        Product.category == category,
-                        Material.type == category
+                        Product.category == category.type == category
                     )
                 )
             
@@ -150,9 +148,7 @@ class InventoryRepository:
                 query = query.filter(
                     or_(
                         Product.name.ilike(search_filter),
-                        Product.sku.ilike(search_filter),
-                        Material.name.ilike(search_filter),
-                        Material.code.ilike(search_filter)
+                        Product.sku.ilike(search_filter).name.ilike(search_filter).code.ilike(search_filter)
                     )
                 )
         
@@ -339,7 +335,7 @@ class InventoryRepository:
         ).outerjoin(
             Product, Inventory.product_id == Product.id
         ).outerjoin(
-            Material, Inventory.material_id == Material.id
+            Inventory.material_id == Material.id
         )
         
         if location_code:
@@ -397,7 +393,7 @@ class InventoryRepository:
         ).outerjoin(
             Product, Inventory.product_id == Product.id
         ).outerjoin(
-            Material, Inventory.material_id == Material.id
+            Inventory.material_id == Material.id
         )
         
         if location_code:
@@ -406,8 +402,7 @@ class InventoryRepository:
         if category:
             query = query.filter(
                 or_(
-                    Product.category == category,
-                    Material.type == category
+                    Product.category == category.type == category
                 )
             )
         
@@ -438,7 +433,7 @@ class InventoryRepository:
         ).outerjoin(
             Product, Inventory.product_id == Product.id
         ).outerjoin(
-            Material, Inventory.material_id == Material.id
+            Inventory.material_id == Material.id
         )
         
         if location_code:
@@ -460,14 +455,13 @@ class InventoryRepository:
                 )
             )
         ).join(
-            Inventory, InventoryHistory.inventory_id == Inventory.id
+            Inventory.inventory_id == Inventory.id
         ).outerjoin(
             Product, Inventory.product_id == Product.id
         ).outerjoin(
-            Material, Inventory.material_id == Material.id
+            Inventory.material_id == Material.id
         ).filter(
-            InventoryHistory.recorded_at.between(start_date, end_date),
-            InventoryHistory.transaction_type.in_(['sale', 'consumption'])
+            InventoryHistory.recorded_at.between(start_date, end_date).transaction_type.in_(['sale', 'consumption'])
         )
         
         if location_code:
@@ -508,7 +502,7 @@ class InventoryRepository:
         ).outerjoin(
             Product, Inventory.product_id == Product.id
         ).outerjoin(
-            Material, Inventory.material_id == Material.id
+            Inventory.material_id == Material.id
         )
         
         if location_code:
@@ -750,17 +744,17 @@ class InventoryRepository:
         """Get inventory movements summary"""
         # Date truncation based on grouping
         if group_by == 'day':
-            date_trunc = func.date_trunc('day', InventoryHistory.recorded_at)
+            date_trunc = func.date_trunc('day'.recorded_at)
         elif group_by == 'week':
-            date_trunc = func.date_trunc('week', InventoryHistory.recorded_at)
+            date_trunc = func.date_trunc('week'.recorded_at)
         else:
-            date_trunc = func.date_trunc('month', InventoryHistory.recorded_at)
+            date_trunc = func.date_trunc('month'.recorded_at)
         
         query = self.db.query(
             date_trunc.label('period'),
             func.sum(
                 case(
-                    (InventoryHistory.quantity_change > 0, InventoryHistory.quantity_change),
+                    (InventoryHistory.quantity_change > 0),
                     else_=0
                 )
             ).label('total_inbound'),
@@ -772,7 +766,7 @@ class InventoryRepository:
             ).label('total_outbound'),
             func.count(InventoryHistory.id).label('transaction_count')
         ).join(
-            Inventory, InventoryHistory.inventory_id == Inventory.id
+            Inventory.inventory_id == Inventory.id
         ).filter(
             InventoryHistory.recorded_at.between(start_date, end_date)
         )
