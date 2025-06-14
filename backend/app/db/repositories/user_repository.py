@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from uuid import UUID
 import logging
-from app.models.user import UserRole
+from app.models.user import Role
 
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_
@@ -78,7 +78,7 @@ class UserRepository:
         """Get user by ID"""
         query = self.db.query(User)
         if include_roles:
-            query = query.options(joinedload(User.roles).joinedload(UserRole.permissions))
+            query = query.options(joinedload(User.roles).joinedload(Role.permissions))
         return query.filter(User.id == user_id).first()
     
     def get_user_by_email(self, email: str) -> Optional[User]:
@@ -362,7 +362,7 @@ class UserRepository:
     ) -> bool:
         """Assign UserRole to user"""
         user = self.get_user_by_id(user_id)
-        UserRole = self.db.query(UserRole).filter(UserRole.id == role_id).first()
+        UserRole = self.db.query(UserRole).filter(Role.id == role_id).first()
         
         if not user or not UserRole:
             return False
@@ -376,7 +376,7 @@ class UserRepository:
         
         # Create audit log
         self._create_audit_log(
-            user_id=assigned_by, action="role_assigned", resource_type="user", resource_id=str(user_id), new_values={"role_id": str(role_id), "role_name": UserRole.name}
+            user_id=assigned_by, action="role_assigned", resource_type="user", resource_id=str(user_id), new_values={"role_id": str(role_id), "role_name": Role.name}
         )
         
         return True
@@ -396,7 +396,7 @@ class UserRepository:
         
         # Create audit log
         self._create_audit_log(
-            user_id=removed_by, action="role_removed", resource_type="user", resource_id=str(user_id), old_values={"role_id": str(role_id), "role_name": UserRole.name}
+            user_id=removed_by, action="role_removed", resource_type="user", resource_id=str(user_id), old_values={"role_id": str(role_id), "role_name": Role.name}
         )
         
         return True
@@ -409,7 +409,7 @@ class UserRepository:
         
         permissions = []
         for UserRole in user.roles:
-            permissions.extend(UserRole.permissions)
+            permissions.extend(Role.permissions)
         
         # Remove duplicates
         return list({p.id: p for p in permissions}.values())

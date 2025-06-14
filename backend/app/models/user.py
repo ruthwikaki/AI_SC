@@ -65,9 +65,9 @@ class User(Base):
     audit_logs = relationship('AuditLog', back_populates='user', foreign_keys='AuditLog.user_id')
 
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-    roles = relationship("UserRole", secondary="user_role_assignments", back_populates="users")
-    profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    activities = relationship("UserActivity", back_populates="user", cascade="all, delete-orphan")
+    roles = relationship("Role", secondary=user_roles, back_populates="users")
+    # profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan") # Removed - UserProfile class doesn't exist
+    activities = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
     created_queries = relationship("NaturalLanguageQuery", foreign_keys="NaturalLanguageQuery.created_by", back_populates="created_by_user")
     dashboards = relationship("Dashboard", foreign_keys="Dashboard.created_by", back_populates="created_by_user")
     
@@ -118,111 +118,6 @@ class UserSession(Base):
         return datetime.now(timezone.utc) > self.expires_at
 
 
-class UserRole(Base):
-    """User roles for RBAC"""
-    __tablename__ = 'user_roles'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    name = Column(String(50), unique=True, nullable=False)
-    display_name = Column(String(100))
-    description = Column(Text)
-    is_system = Column(Boolean, default=False)  # System roles can't be deleted
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    permissions = relationship('UserPermission', secondary='role_permissions', back_populates='roles')
-    users = relationship('User', secondary='user_role_assignments', back_populates='roles')
-    
-    def __repr__(self):
-        return f"<UserRole(name={self.name})>"
-
-
-class UserPermission(Base):
-    """Permissions for RBAC"""
-    __tablename__ = 'user_permissions'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    name = Column(String(100), unique=True, nullable=False)
-    resource = Column(String(50), nullable=False)  # e.g., 'dashboard', 'report', 'user'
-    action = Column(String(50), nullable=False)    # e.g., 'create', 'read', 'update', 'delete'
-    description = Column(Text)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    
-    # Relationships
-    roles = relationship('UserRole', secondary='role_permissions', back_populates='permissions')
-    
-    def __repr__(self):
-        return f"<UserPermission(name={self.name}, resource={self.resource}, action={self.action})>"
-
-
-class RolePermission(Base):
-    """Association table for role-permission relationship"""
-    __tablename__ = 'role_permissions'
-    
-    role_id = Column(UUID(as_uuid=True), ForeignKey('user_roles.id'), primary_key=True)
-    permission_id = Column(UUID(as_uuid=True), ForeignKey('user_permissions.id'), primary_key=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-
-
-class UserRoleAssignment(Base):
-    """Association table for user-role relationship"""
-    __tablename__ = 'user_role_assignments'
-    
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), primary_key=True)
-    role_id = Column(UUID(as_uuid=True), ForeignKey('user_roles.id'), primary_key=True)
-    assigned_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    assigned_by = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-
-
-class UserProfile(Base):
-    """Extended user profile information"""
-    __tablename__ = 'user_profiles'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), unique=True, nullable=False)
-    full_name = Column(String(200))
-    phone = Column(String(20))
-    department = Column(String(100))
-    job_title = Column(String(100))
-    location = Column(String(100))
-    timezone = Column(String(50), default='UTC')
-    language = Column(String(10), default='en')
-    avatar_url = Column(String(500))
-    bio = Column(Text)
-    preferences = Column(JSONB, default={})
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User', back_populates='profile', uselist=False)
-    
-    def __repr__(self):
-        return f"<UserProfile(user_id={self.user_id}, full_name={self.full_name})>"
-
-
-class UserActivity(Base):
-    """User activity tracking"""
-    __tablename__ = 'user_activities'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    activity_type = Column(String(50), nullable=False)  # 'login', 'query', 'export', etc.
-    resource_type = Column(String(50))
-    resource_id = Column(UUID(as_uuid=True))
-    details = Column(JSONB, default={})
-    ip_address = Column(String(45))
-    user_agent = Column(Text)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User', back_populates='activities')
-    
-    def __repr__(self):
-        return f"<UserActivity(user_id={self.user_id}, type={self.activity_type})>"
-
-
-
 class PasswordResetToken(Base):
     """Password reset token model"""
     __tablename__ = 'password_reset_tokens'
@@ -253,26 +148,7 @@ class PasswordResetToken(Base):
         return not self.used and not self.is_expired
 
 
-class EmailVerificationToken(Base):
-    """Email verification token model"""
-    __tablename__ = 'email_verification_tokens'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    token = Column(String(500), unique=True, nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    used = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User', backref='email_verification_tokens')
-    
-    def __repr__(self):
-        return f"<EmailVerificationToken(user_id={self.user_id}, used={self.used})>"
-
 # Alias for backward compatibility
-Role = UserRole
-Permission = UserPermission
 
 
 class UserPreference(Base):
@@ -287,9 +163,9 @@ class UserPreference(Base):
     date_format = Column(String(20), default='MM/DD/YYYY')
     number_format = Column(String(20), default='en-US')
     default_chart_type = Column(String(50), default='bar')
-    dashboard_layout = Column(JSON, default={})
-    notification_preferences = Column(JSON, default={})
-    ui_preferences = Column(JSON, default={})
+    dashboard_layout = Column(JSONB, default={})
+    notification_preferences = Column(JSONB, default={})
+    ui_preferences = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -354,11 +230,11 @@ class AuditLog(Base):
     action = Column(String(100), nullable=False)
     resource_type = Column(String(100), nullable=False)
     resource_id = Column(String(255))
-    old_values = Column(JSON)
-    new_values = Column(JSON)
+    old_values = Column(JSONB)
+    new_values = Column(JSONB)
     ip_address = Column(String(45))  # Using String instead of INET for compatibility
     user_agent = Column(Text)
-    metadata = Column(JSON, default={})
+    audit_metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
     
     # Relationships

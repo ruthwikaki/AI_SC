@@ -49,13 +49,7 @@ from app.models.extended_models import (
 # Re-export all models
 __all__ = [
     # User models
-    'User', 'UserSession', 'PasswordResetToken',
-    'UserRole', 'UserPermission', 'RolePermission',
-    'UserRoleAssignment', 'UserProfile', 'UserActivity',
-    'EmailVerificationToken',
-    'UserRole', 'UserPermission', 'RolePermission',
-    'UserRoleAssignment', 'UserProfile', 'UserActivity',
-    'EmailVerificationToken', 
+    'User', 'UserSession', 'PasswordResetToken', 
       
     
     # Query models
