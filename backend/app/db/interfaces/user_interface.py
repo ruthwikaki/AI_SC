@@ -1,255 +1,149 @@
-﻿# app/db/interfaces/user_interface.py
+# app/db/interfaces/user_interface.py
 from typing import Dict, Any, Optional, List
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime
 import json
 import uuid
 import logging
+from app.models.user import User as UserModel
+from app.db.database import get_db
 
 # Setup logger
-
-# User model class
-class User(BaseModel):
-    """User model for authentication"""
-    id: str
-    username: str
-    email: str
-    role: str
-    is_active: bool = True
-    client_id: Optional[str] = None
-    hashed_password: Optional[str] = None
-    
-    class Config:
-        orm_mode = True
-
 logger = logging.getLogger(__name__)
 
-# Simple User model class
 class User:
-    def __init__(self, id, username, email, hashed_password, role, is_active, client_id=None):
-        self.id = id
-        self.username = username
-        self.email = email
-        self.hashed_password = hashed_password
-        self.role = role
-        self.is_active = is_active
-        self.client_id = client_id
+    """User data class for auth compatibility"""
+    def __init__(self, **kwargs):
+        self.id = kwargs.get('id')
+        self.username = kwargs.get('username')
+        self.email = kwargs.get('email')
+        self.hashed_password = kwargs.get('hashed_password') or kwargs.get('password_hash')
+        self.role = kwargs.get('role', 'user')
+        self.is_active = kwargs.get('is_active', True)
+        self.is_verified = kwargs.get('is_verified', False)
+        self.first_name = kwargs.get('first_name')
+        self.last_name = kwargs.get('last_name')
+        
+    def dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "role": self.role,
+            "is_active": self.is_active
+        }
 
 class UserInterface:
     """Interface for user-related database operations"""
     
-    def __init__(self, db: Session, admin_db_client_id: Optional[str] = None):
-        self.db = db
+    def __init__(self, db: Session = None, admin_db_client_id: Optional[str] = None):
+        self.db = db or next(get_db())
         self.admin_db_client_id = admin_db_client_id
     
-    def _extract_password_hash(self, result) -> Optional[str]:
-        """Extract password hash from result, handling different column names"""
-        if not result:
-            return None
-            
-        # Try different possible column names
-        password_columns = ['hashed_password', 'password_hash', 'password', 'encrypted_password']
-        
-        for col in password_columns:
-            if hasattr(result, col):
-                return getattr(result, col)
-        
-        # If result is a dict-like object
+    async def get_user_by_username(self, username: str) -> Optional[User]:
+        """Get user by username"""
         try:
-            for col in password_columns:
-                if col in result:
-                    return result[col]
-        except:
-            pass
-            
-        logger.warning("No password column found in result")
-        return None
-    
-    def get_user_by_username(self, username: str) -> Optional[User]:
-        """Get user by username - SYNCHRONOUS"""
-        try:
-            result = self.db.execute(
-                text("SELECT * FROM users WHERE username = :username"),
-                {"username": username}
-            ).first()
-            
+            result = self.db.query(UserModel).filter(UserModel.username == username).first()
             if result:
-                password_hash = self._extract_password_hash(result)
-                
                 return User(
                     id=str(result.id),
                     username=result.username,
                     email=result.email,
-                    hashed_password=password_hash,
-                    role=getattr(result, 'role', 'user'),
-                    is_active=getattr(result, 'is_active', True),
-                    client_id=getattr(result, 'client_id', None)
+                    hashed_password=result.password_hash,
+                    role=result.role,
+                    is_active=result.is_active,
+                    is_verified=result.is_verified,
+                    first_name=result.first_name,
+                    last_name=result.last_name
                 )
             return None
         except Exception as e:
             logger.error(f"Error getting user by username: {e}")
             return None
     
-    def get_user_by_email(self, email: str) -> Optional[User]:
-        """Get user by email - SYNCHRONOUS"""
+    async def get_user_by_email(self, email: str) -> Optional[User]:
+        """Get user by email"""
         try:
-            result = self.db.execute(
-                text("SELECT * FROM users WHERE email = :email"),
-                {"email": email}
-            ).first()
-            
+            result = self.db.query(UserModel).filter(UserModel.email == email).first()
             if result:
-                password_hash = self._extract_password_hash(result)
-                
                 return User(
                     id=str(result.id),
                     username=result.username,
                     email=result.email,
-                    hashed_password=password_hash,
-                    role=getattr(result, 'role', 'user'),
-                    is_active=getattr(result, 'is_active', True),
-                    client_id=getattr(result, 'client_id', None)
+                    hashed_password=result.password_hash,
+                    role=result.role,
+                    is_active=result.is_active,
+                    is_verified=result.is_verified,
+                    first_name=result.first_name,
+                    last_name=result.last_name
                 )
             return None
         except Exception as e:
             logger.error(f"Error getting user by email: {e}")
             return None
     
-    def get_user_by_id(self, user_id: str) -> Optional[User]:
-        """Get user by ID - SYNCHRONOUS"""
+    async def create_user(self, username: str, email: str, hashed_password: str, 
+                         role: str = "user", client_id: Optional[str] = None) -> User:
+        """Create a new user"""
         try:
-            result = self.db.execute(
-                text("SELECT * FROM users WHERE id = :user_id"),
-                {"user_id": user_id}
-            ).first()
-            
-            if result:
-                password_hash = self._extract_password_hash(result)
-                
-                return User(
-                    id=str(result.id),
-                    username=result.username,
-                    email=result.email,
-                    hashed_password=password_hash,
-                    role=getattr(result, 'role', 'user'),
-                    is_active=getattr(result, 'is_active', True),
-                    client_id=getattr(result, 'client_id', None)
-                )
-            return None
-        except Exception as e:
-            logger.error(f"Error getting user by id: {e}")
-            return None
-    
-    def create_user(self, username: str, email: str, hashed_password: str, 
-                   role: str = "user", client_id: Optional[str] = None) -> Optional[User]:
-        """Create a new user - SYNCHRONOUS"""
-        try:
-            user_id = str(uuid.uuid4())
-            
-            # First, check which password column exists
-            columns_result = self.db.execute(
-                text("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'users' 
-                AND column_name IN ('hashed_password', 'password_hash', 'password')
-                """)
-            ).first()
-            
-            password_column = 'hashed_password'  # default
-            if columns_result:
-                password_column = columns_result[0]
-            
-            self.db.execute(
-                text(f"""
-                INSERT INTO users (id, username, email, {password_column}, role, is_active, client_id, created_at)
-                VALUES (:id, :username, :email, :hashed_password, :role, :is_active, :client_id, :created_at)
-                """),
-                {
-                    "id": user_id,
-                    "username": username,
-                    "email": email,
-                    "hashed_password": hashed_password,
-                    "role": role,
-                    "is_active": True,
-                    "client_id": client_id,
-                    "created_at": datetime.now()
-                }
-            )
-            self.db.commit()
-            
-            return User(
-                id=user_id,
+            db_user = UserModel(
                 username=username,
                 email=email,
-                hashed_password=hashed_password,
+                password_hash=hashed_password,
                 role=role,
-                is_active=True,
-                client_id=client_id
+                is_active=True
+            )
+            self.db.add(db_user)
+            self.db.commit()
+            self.db.refresh(db_user)
+            
+            return User(
+                id=str(db_user.id),
+                username=db_user.username,
+                email=db_user.email,
+                role=db_user.role,
+                is_active=db_user.is_active
             )
         except Exception as e:
-            self.db.rollback()
             logger.error(f"Error creating user: {e}")
-            return None
+            self.db.rollback()
+            raise
     
-    def update_user(self, user_id: str, update_data: Dict[str, Any]) -> Optional[User]:
-        """Update user data - SYNCHRONOUS"""
+    async def update_user(self, user_id: str, update_data: Dict[str, Any]) -> Optional[User]:
+        """Update user information"""
         try:
-            # Build update query dynamically
-            set_clauses = []
-            params = {"user_id": user_id}
-            
-            # Map password_hash to the correct column name
-            if "password_hash" in update_data:
-                # Check which password column exists
-                columns_result = self.db.execute(
-                    text("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'users' 
-                    AND column_name IN ('hashed_password', 'password_hash', 'password')
-                    """)
-                ).first()
-                
-                password_column = 'hashed_password'  # default
-                if columns_result:
-                    password_column = columns_result[0]
-                
-                set_clauses.append(f"{password_column} = :password_hash")
-                params["password_hash"] = update_data["password_hash"]
-                update_data.pop("password_hash")
-            
-            # Handle other fields
-            for key, value in update_data.items():
-                if key in ["email", "role", "is_active"]:
-                    set_clauses.append(f"{key} = :{key}")
-                    params[key] = value
-            
-            if not set_clauses:
+            db_user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+            if not db_user:
                 return None
             
-            query = f"""
-                UPDATE users 
-                SET {', '.join(set_clauses)}, updated_at = :updated_at
-                WHERE id = :user_id
-            """
+            # Map hashed_password to password_hash if present
+            if 'hashed_password' in update_data:
+                update_data['password_hash'] = update_data.pop('hashed_password')
             
-            params["updated_at"] = datetime.now()
+            for key, value in update_data.items():
+                if hasattr(db_user, key):
+                    setattr(db_user, key, value)
             
-            self.db.execute(text(query), params)
+            db_user.updated_at = datetime.utcnow()
             self.db.commit()
+            self.db.refresh(db_user)
             
-            return self.get_user_by_id(user_id)
+            return User(
+                id=str(db_user.id),
+                username=db_user.username,
+                email=db_user.email,
+                role=db_user.role,
+                is_active=db_user.is_active
+            )
         except Exception as e:
-            self.db.rollback()
             logger.error(f"Error updating user: {e}")
+            self.db.rollback()
             return None
     
-    # Async methods for other operations
+    # Keep existing methods for dashboard preferences
     async def get_user_dashboard_preferences(self, user_id: str) -> Dict[str, Any]:
-        """Get user's dashboard preferences - ASYNC"""
+        """Get user's dashboard preferences."""
         try:
             result = self.db.execute(
                 text("""
@@ -266,7 +160,6 @@ class UserInterface:
                     return json.loads(pref_value)
                 return pref_value
             
-            # Return default preferences
             return {
                 "selected_metrics": [
                     "inventory_value",
@@ -300,7 +193,7 @@ class UserInterface:
         user_id: str, 
         preferences: Dict[str, Any]
     ) -> bool:
-        """Save user's dashboard preferences - ASYNC"""
+        """Save user's dashboard preferences."""
         try:
             check_result = self.db.execute(
                 text("""
@@ -352,13 +245,13 @@ class UserInterface:
             return False
     
     async def get_user_accessible_metrics(self, user_id: str) -> List[str]:
-        """Get list of metrics accessible to the user based on their role - ASYNC"""
+        """Get list of metrics accessible to the user based on their role."""
         try:
-            user = self.get_user_by_id(user_id)  # Use sync method
+            user = await self.get_user_by_id(user_id)
             if not user:
                 return []
             
-            role = user.role
+            role = user.get('role', 'user')
             
             role_metrics = {
                 "admin": [
@@ -394,3 +287,34 @@ class UserInterface:
         except Exception as e:
             logger.error(f"Error getting accessible metrics: {str(e)}")
             return ["inventory_value", "order_fill_rate"]
+    
+    async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user by ID"""
+        try:
+            result = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+            
+            if result:
+                return {
+                    "id": str(result.id),
+                    "username": result.username,
+                    "email": result.email,
+                    "first_name": getattr(result, 'first_name', ''),
+                    "last_name": getattr(result, 'last_name', ''),
+                    "role": getattr(result, 'role', 'user'),
+                    "is_active": getattr(result, 'is_active', True)
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Error getting user: {e}")
+            return None
+    
+    async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Alias for get_user_by_id for backward compatibility"""
+        return await self.get_user_by_id(user_id)
+
+# Helper function if needed for connector pattern
+async def get_connector_for_client(client_id: str):
+    """Placeholder for connector pattern - not used in direct approach"""
+    return None
+
+# Import this User class in auth.py as DBUser

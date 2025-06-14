@@ -39,7 +39,7 @@ class NaturalLanguageQuery(BaseModel):
     completion_tokens = Column(Integer, nullable=True)
     
     # Additional metadata
-    query_metadata = Column(JSON, nullable=True)
+    query_meta_data = Column(JSON, nullable=True)
     tags = Column(JSON, nullable=True)  # User or system tags
     
     # Caching

@@ -1,7 +1,4 @@
-﻿"""
-FastAPI application factory and configuration
-Located at: /backend/app/api/server.py
-"""
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -18,7 +15,7 @@ from app.utils.logger import setup_logger
 from app.db.database import engine, init_db
 from app.api.middleware.error_handler import add_exception_handlers
 from app.api.middleware.rate_limit import RateLimitMiddleware
-from app.api.middleware.auth import AuthMiddleware
+from app.api.middleware.auth import JWTAuthMiddleware, AdminOnlyMiddleware
 from app.api.middleware.client_context import ClientContextMiddleware
 
 # Import all routers
@@ -45,7 +42,7 @@ async def lifespan(app: FastAPI):
         from app.db.database import SessionLocal
         db = SessionLocal()
         schema_discovery = SchemaDiscovery(db)
-        schema_discovery.discover_schema()  # Pre-cache schema
+        # schema_discovery.discover_schema()  # Pre-cache schema - Method not implemented yet
         db.close()
         logger.info("Schema cache initialized")
         
@@ -70,7 +67,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down...")
     
     # Close database connections
-    await engine.dispose()
+    engine.dispose()
     
     # Stop background jobs
     try:
@@ -124,7 +121,7 @@ def create_app() -> FastAPI:
     # CORS middleware (should be first)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "*"],
         allow_credentials=settings.cors_allow_credentials,
         allow_methods=settings.cors_allow_methods,
         allow_headers=settings.cors_allow_headers,
@@ -143,7 +140,7 @@ def create_app() -> FastAPI:
     
     # Custom middlewares
     app.add_middleware(ClientContextMiddleware)
-    app.add_middleware(AuthMiddleware)
+    app.add_middleware(JWTAuthMiddleware)
     app.add_middleware(RateLimitMiddleware)
     
     # Request timing middleware

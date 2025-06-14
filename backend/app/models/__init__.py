@@ -1,87 +1,36 @@
-"""
-Database Models Package
-Exports all database models for easy importing
-"""
+"""Database models package"""
 
-from .user import (
-    User, UserSession, PasswordResetToken, UserPreference,
-    Role, Permission, AuditLog
-)
+from .base import Base
+from .user import User, UserSession, UserPreference, Role, Permission, AuditLog, PasswordResetToken
+from .supply_chain import Supplier, Product, Inventory, Order, OrderItem, Shipment, Customer, Warehouse
+from .analytics import AnalyticsMetric
+from .query import NaturalLanguageQuery, SavedQuery
+from .visualization import Chart, Dashboard, ChartData
+from .extended_models import Report, ScheduledReport, ExportJob, NotificationSetting, DataSource, APIKey
+from .system import SystemSetting
 
-from .query import (
-    NaturalLanguageQuery, SavedQuery, QueryResultCache,
-    QueryTemplate, QuerySuggestion
-)
-
-from .visualization import (
-    ChartType, Chart, SavedChart, Dashboard, DashboardChart
-)
-
-from .supply_chain import (
-    Supplier, SupplierTier, SupplierRelationship,
-    Product, Material, ProductMaterial,
-    Inventory, InventoryHistory,
-    Order, OrderItem, Shipment, ShipmentItem
-)
-
-from .analytics import (
-    AnalyticsResult, ScheduledAnalytic, AnalyticsTemplate,
-    Report, ReportSchedule,
-    SupplierPerformanceMetric, InventoryMetric,
-    DeliveryPerformance, RiskAssessment, ComplianceCheck,
-    ABCAnalysisResult, ForecastResult, SafetyStockCalculation,
-    SupplyChainNetwork, NetworkNode, NetworkEdge,
-    BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
-)
-
-# Try to import extended models
-try:
-    from .extended_models import (
-        ForecastModel,
-        AnalyticsMetric,
-        ExportJob,
-        ReportTemplate,
-        ScheduledReport,
-        SystemSetting,
-        NotificationSetting,
-        WidgetType
-    )
-    HAS_EXTENDED_MODELS = True
-except ImportError:
-    HAS_EXTENDED_MODELS = False
-
-# Re-export all models
 __all__ = [
+    # Base
+    'Base',
+    
     # User models
-    'User', 'UserSession', 'PasswordResetToken', 'UserPreference',
-    'Role', 'Permission', 'AuditLog',
-    
-    # Query models
-    'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',
-    'QueryTemplate', 'QuerySuggestion',
-    
-    # Visualization models
-    'ChartType', 'Chart', 'SavedChart', 'Dashboard', 'DashboardChart',
+    'User', 'UserSession', 'UserPreference', 'Role', 'Permission', 'AuditLog', 'PasswordResetToken',
     
     # Supply chain models
-    'Supplier', 'SupplierTier', 'SupplierRelationship',
-    'Product', 'Material', 'ProductMaterial',
-    'Inventory', 'InventoryHistory',
-    'Order', 'OrderItem', 'Shipment', 'ShipmentItem',
+    'Supplier', 'Product', 'Inventory', 'Order', 'OrderItem', 'Shipment', 'Customer', 'Warehouse',
     
     # Analytics models
-    'AnalyticsResult', 'ScheduledAnalytic', 'AnalyticsTemplate',
-    'Report', 'ReportSchedule',
-    'SupplierPerformanceMetric', 'InventoryMetric',
-    'DeliveryPerformance', 'RiskAssessment', 'ComplianceCheck',
-    'ABCAnalysisResult', 'ForecastResult', 'SafetyStockCalculation',
-    'SupplyChainNetwork', 'NetworkNode', 'NetworkEdge',
-    'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact',
+    'AnalyticsMetric',
+    
+    # Query models
+    'NaturalLanguageQuery', 'SavedQuery',
+    
+    # Visualization models
+    'Chart', 'Dashboard', 'ChartData',
+    
+    # Extended models
+    'Report', 'ScheduledReport', 'ExportJob', 'NotificationSetting', 'DataSource', 'APIKey',
+    
+    # System models
+    'SystemSetting'
 ]
-
-if HAS_EXTENDED_MODELS:
-    __all__.extend([
-        'ForecastModel', 'AnalyticsMetric', 'ExportJob',
-        'ReportTemplate', 'ScheduledReport',
-        'SystemSetting', 'NotificationSetting', 'WidgetType'
-    ])

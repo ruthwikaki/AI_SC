@@ -1,60 +1,99 @@
-"""
-Rate limiting middleware
-"""
-from fastapi import Request, HTTPException, status
-from typing import Callable, Dict
-from datetime import datetime, timedelta
-import logging
+import time
+import asyncio
+from collections import defaultdict, deque
+from typing import Dict, Deque
+from fastapi import Request, HTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
-logger = logging.getLogger(__name__)
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
-class RateLimitMiddleware:
-    """Simple in-memory rate limiting middleware"""
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Rate limiting middleware"""
     
-    def __init__(self, app, requests_per_minute: int = 60):
-        self.app = app
+    def __init__(self, app, requests_per_minute: int = 60, cleanup_interval: int = 300):
+        super().__init__(app)
         self.requests_per_minute = requests_per_minute
-        self.request_counts: Dict[str, list] = {}
+        self.cleanup_interval = cleanup_interval
+        self.requests: Dict[str, Deque[float]] = defaultdict(lambda: deque(maxlen=requests_per_minute))
+        self.locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self.last_cleanup = time.time()
     
-    async def __call__(self, request: Request, call_next: Callable):
-        # Skip rate limiting for certain paths
-        skip_paths = ["/health", "/api/health", "/metrics"]
-        if request.url.path in skip_paths:
+    async def dispatch(self, request: Request, call_next):
+        """Process the request with rate limiting"""
+        # Skip rate limiting for health checks and OPTIONS requests
+        if request.url.path in ["/", "/api/health", "/api/health/db"] or request.method == "OPTIONS":
             return await call_next(request)
         
-        # Get client identifier (IP address)
+        # Get client identifier
         client_ip = request.client.host if request.client else "unknown"
         
-        # Initialize or get request timestamps for this client
-        now = datetime.now()
-        if client_ip not in self.request_counts:
-            self.request_counts[client_ip] = []
-        
-        # Remove timestamps older than 1 minute
-        minute_ago = now - timedelta(minutes=1)
-        self.request_counts[client_ip] = [
-            ts for ts in self.request_counts[client_ip] 
-            if ts > minute_ago
-        ]
+        # Periodic cleanup
+        await self._cleanup_old_entries()
         
         # Check rate limit
-        if len(self.request_counts[client_ip]) >= self.requests_per_minute:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Rate limit exceeded"
-            )
+        async with self.locks[client_ip]:
+            now = time.time()
+            minute_ago = now - 60
+            
+            # Remove old requests
+            while self.requests[client_ip] and self.requests[client_ip][0] < minute_ago:
+                self.requests[client_ip].popleft()
+            
+            # Check if limit exceeded
+            if len(self.requests[client_ip]) >= self.requests_per_minute:
+                logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": {
+                            "code": "rate_limit_exceeded",
+                            "message": "Too many requests. Please try again later.",
+                            "retry_after": 60
+                        }
+                    },
+                    headers={
+                        "Retry-After": "60",
+                        "X-RateLimit-Limit": str(self.requests_per_minute),
+                        "X-RateLimit-Remaining": "0",
+                        "X-RateLimit-Reset": str(int(minute_ago + 60))
+                    }
+                )
+            
+            # Add current request
+            self.requests[client_ip].append(now)
+            remaining = self.requests_per_minute - len(self.requests[client_ip])
         
-        # Add current request timestamp
-        self.request_counts[client_ip].append(now)
-        
-        # Process request
+        # Process request and add rate limit headers
         response = await call_next(request)
-        
-        # Add rate limit headers
         response.headers["X-RateLimit-Limit"] = str(self.requests_per_minute)
-        response.headers["X-RateLimit-Remaining"] = str(
-            self.requests_per_minute - len(self.request_counts[client_ip])
-        )
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        response.headers["X-RateLimit-Reset"] = str(int(minute_ago + 60))
         
         return response
+    
+    async def _cleanup_old_entries(self):
+        """Periodically clean up old entries to prevent memory leak"""
+        now = time.time()
+        if now - self.last_cleanup < self.cleanup_interval:
+            return
+        
+        self.last_cleanup = now
+        minute_ago = now - 60
+        
+        # Clean up IPs that haven't made requests recently
+        ips_to_remove = []
+        for ip, timestamps in list(self.requests.items()):
+            if not timestamps or timestamps[-1] < minute_ago:
+                ips_to_remove.append(ip)
+        
+        for ip in ips_to_remove:
+            del self.requests[ip]
+            if ip in self.locks:
+                del self.locks[ip]
+        
+        if ips_to_remove:
+            logger.info(f"Cleaned up rate limit data for {len(ips_to_remove)} IPs")

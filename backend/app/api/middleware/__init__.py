@@ -2,17 +2,18 @@
 API Middleware package
 """
 
-from .auth import AuthMiddleware, JWTAuthMiddleware, AdminOnlyMiddleware
-from .client_context import ClientContextMiddleware
-from .error_handler import ErrorHandlerMiddleware, add_exception_handlers
+from .auth import JWTAuthMiddleware, AdminOnlyMiddleware
 from .rate_limit import RateLimitMiddleware
+from .error_handler import ErrorHandlerMiddleware, add_exception_handlers
+from .client_context import ClientContextMiddleware, get_client_context, require_client_context
 
 __all__ = [
-    "AuthMiddleware",
-    "JWTAuthMiddleware", 
-    "AdminOnlyMiddleware",
-    "ClientContextMiddleware",
+    "JWTAuthMiddleware",
+    "AdminOnlyMiddleware", 
+    "RateLimitMiddleware",
     "ErrorHandlerMiddleware",
     "add_exception_handlers",
-    "RateLimitMiddleware"
+    "ClientContextMiddleware",
+    "get_client_context",
+    "require_client_context"
 ]
