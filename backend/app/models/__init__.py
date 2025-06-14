@@ -22,9 +22,10 @@ from .user import (
 # Import core business models
 try:
     from .supply_chain import (
-    Supplier, Product, Inventory, Order, OrderItem, 
-    Shipment, Customer, Warehouse
-)
+        Supplier, Product, Inventory, Order, OrderItem, 
+        Shipment, Customer, Warehouse, Material,
+        InventoryHistory, ABCAnalysisResult, SafetyStockCalculation
+    )
 except ImportError as e:
     print(f"Warning: Could not import supply_chain models: {e}")
 
@@ -64,7 +65,7 @@ except ImportError as e:
 # Ensure all names are available
 __all__ = [
     # Base
-    'Base', 'BaseModelMixin', 'BaseModelMixin',
+    'Base',
     # System
     'SystemSetting',
     # User models
@@ -74,9 +75,11 @@ __all__ = [
     'Role', 'Permission',  # Aliases
     # Supply chain
     'Supplier', 'Product', 'Material', 'Inventory', 'Order', 'OrderItem',
-    'Shipment', 'Customer', 'Warehouse',
+    'Shipment', 'Customer', 'Warehouse', 'InventoryHistory', 
+    'ABCAnalysisResult', 'SafetyStockCalculation',
     # Query
-    'NaturalLanguageQuery', 'SQLQuery', 'QueryExecution', 'SavedQuery', 'QueryResultCache', 'QueryTemplate', 'QuerySuggestion',
+    'NaturalLanguageQuery', 'SQLQuery', 'QueryExecution', 'SavedQuery', 
+    'QueryResultCache', 'QueryTemplate', 'QuerySuggestion',
     # Visualization
     'Chart', 'Dashboard', 'ChartData', 'DashboardWidget', 'VisualizationTemplate',
     # Extended
