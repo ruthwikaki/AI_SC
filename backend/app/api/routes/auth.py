@@ -230,3 +230,4 @@ async def update_user(
     
     logger.info(f"User updated: {current_user.username}")
     return User(**updated_user)
+

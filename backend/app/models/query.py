@@ -161,3 +161,96 @@ class QueryResultCache(Base):
     
     def __repr__(self):
         return f"<QueryResultCache(id={self.id}, expires_at={self.expires_at})>"
+
+
+class Query(Base):
+    """Model for storing user queries (generic wrapper)"""
+    __tablename__ = "queries"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    # Query details
+    query_text = Column(Text, nullable=False)
+    query_type = Column(String(50))  # 'natural_language', 'sql', 'structured'
+    context = Column(JSON)  # Additional context for the query
+    
+    # Status
+    status = Column(String(50), default='pending')  # pending, processing, completed, failed
+    error_message = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    completed_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    user = relationship("User", back_populates="queries")
+    results = relationship("QueryResult", back_populates="query", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<Query(id={self.id}, user_id={self.user_id}, status={self.status})>"
+
+
+class QueryResult(Base):
+    """Model for storing query results"""
+    __tablename__ = "query_results"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    query_id = Column(UUID(as_uuid=True), ForeignKey("queries.id"), nullable=False)
+    
+    # Result details
+    result_type = Column(String(50))  # 'data', 'visualization', 'report', 'error'
+    result_data = Column(JSON)  # The actual result data
+    result_summary = Column(Text)  # Human-readable summary
+    
+    # Metadata
+    row_count = Column(Integer)
+    execution_time = Column(Integer)  # in milliseconds
+    data_source = Column(String(100))
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    query = relationship("Query", back_populates="results")
+    
+    def __repr__(self):
+        return f"<QueryResult(id={self.id}, query_id={self.query_id}, type={self.result_type})>"
+
+
+class QueryHistory(Base):
+    """Track query execution history for audit and optimization"""
+    __tablename__ = "query_history"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    query_id = Column(UUID(as_uuid=True), ForeignKey("queries.id"), nullable=True)
+    
+    # Query details
+    query_text = Column(Text, nullable=False)
+    query_type = Column(String(50))
+    
+    # Execution details
+    execution_time = Column(Integer)  # milliseconds
+    rows_returned = Column(Integer)
+    status = Column(String(50))  # 'success', 'error', 'timeout'
+    error_message = Column(Text)
+    
+    # Performance metrics
+    cpu_time = Column(Float)
+    memory_used = Column(Integer)  # bytes
+    
+    # Context
+    source = Column(String(100))  # 'web_app', 'api', 'scheduled', etc.
+    ip_address = Column(String(45))
+    user_agent = Column(String(255))
+    
+    # Timestamp
+    executed_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User")
+    query = relationship("Query")
+    
+    def __repr__(self):
+        return f"<QueryHistory(id={self.id}, user_id={self.user_id}, status={self.status})>"

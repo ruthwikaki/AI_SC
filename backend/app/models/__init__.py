@@ -8,7 +8,11 @@ from .user import (
     Role, Permission, AuditLog
 )
 
-from .query import Query, QueryResult, NaturalLanguageQuery, SavedQuery, QueryTemplate, QueryHistory
+from .query import (
+    Query,QueryResult,QueryHistory,  # Basic models
+    NaturalLanguageQuery,SQLQuery,QueryExecution,  # SQL generation models
+    SavedQuery,QueryTemplate,QuerySuggestion,QueryResultCache  # Template and cache models
+)
     NaturalLanguageQuery, SavedQuery, QueryResultCache,
     QueryTemplate, QuerySuggestion
 )
@@ -91,6 +95,7 @@ __all__ = [
     "Product",
     "ProductMaterial",
     "Query",
+    "QueryExecution",
     "QueryHistory",
     "QueryResult",
     "QueryResultCache",
@@ -101,6 +106,7 @@ __all__ = [
     "ReportTemplate",
     "RiskAssessment",
     "RiskPropagationScenario",
+    "SQLQuery",
     "SafetyStockCalculation",
     "SavedChart",
     "SavedQuery",
