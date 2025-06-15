@@ -17,11 +17,20 @@ from typing import Optional
 
 
 from sqlalchemy import (
-
-    Column, String, Integer, Numeric, Boolean, DateTime, 
-
-    ForeignKey, Text, JSON, Float, Index
-
+    ARRAY,
+    Boolean,
+    Column,
+    DECIMAL,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    JSONB,
+    Numeric,
+    String,
+    Text
 )
 
 from sqlalchemy.dialects.postgresql import UUID, JSONB

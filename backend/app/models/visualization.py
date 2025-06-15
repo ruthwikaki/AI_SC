@@ -15,11 +15,18 @@ from typing import Optional, List
 
 
 from sqlalchemy import (
-
-    Column, String, Integer, Boolean, DateTime, ForeignKey,
-
-    Text, JSON, Index, UniqueConstraint
-
+    ARRAY,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    JSONB,
+    String,
+    Text,
+    UniqueConstraint
 )
 
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY

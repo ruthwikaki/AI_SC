@@ -17,6 +17,7 @@ from typing import Optional, List
 
 
 from sqlalchemy import (
+    ARRAY,
     Boolean,
     CheckConstraint,
     Column,
@@ -28,6 +29,7 @@ from sqlalchemy import (
     Index,
     Integer,
     JSON,
+    JSONB,
     Numeric,
     String,
     Table,

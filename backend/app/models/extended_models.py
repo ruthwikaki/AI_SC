@@ -610,19 +610,6 @@ class DataSource(Base):
 
 
 
-class SystemSetting(Base):
-    __tablename__ = "system_settings"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    key = Column(String(100), unique=True, nullable=False)
-    value = Column(Text)
-    value_type = Column(String(20), default='string')
-    description = Column(Text)
-    category = Column(String(50))
-    is_public = Column(Boolean, default=False)  # Whether non-admins can read
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-
 class APIKey(Base):
 
 
