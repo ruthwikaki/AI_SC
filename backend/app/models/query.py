@@ -184,7 +184,7 @@ class Query(Base):
     completed_at = Column(DateTime(timezone=True))
     
     # Relationships
-    user = relationship("User", back_populates="queries")
+    user = relationship("User", back_populates="query_records")
     results = relationship("QueryResult", back_populates="query", cascade="all, delete-orphan")
     
     def __repr__(self):

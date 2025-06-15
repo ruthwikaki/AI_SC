@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 """
 Authentication schemas for request/response validation
 Located at: /backend/app/schemas/auth.py
