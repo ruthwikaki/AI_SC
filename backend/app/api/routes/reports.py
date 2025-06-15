@@ -8,7 +8,8 @@ import uuid
 from app.db.database import get_db
 from app.api.routes.auth import get_current_active_user
 from app.models.user import User
-from app.models.extended_models import Report, ReportTemplate, ScheduledReport
+from app.models.extended_models import ExtendedReport, ReportTemplate, ScheduledReport
+from app.models.analytics import Report
 from app.models.extended_models import ReportTemplate, ScheduledReport
 from app.schemas.reports import (
     ReportRequest,

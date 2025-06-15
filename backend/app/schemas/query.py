@@ -5,7 +5,8 @@ Query-related schemas for natural language processing and SQL generation
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, Field, validator, ConfigDict
+from pydantic import BaseModel, Field, validator, field_validator
+, ConfigDict
 from enum import Enum
 
 

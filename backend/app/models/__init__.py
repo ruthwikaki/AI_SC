@@ -1,45 +1,45 @@
-﻿"""
+"""
 Database Models Package
 Exports all database models for easy importing
 """
 
+# Import Base first
+from .base import Base
+
+# User models - now including Role, Permission, AuditLog
 from .user import (
-    User, UserSession, PasswordResetToken, UserPreference, UserProfile, 
+    User, UserSession, PasswordResetToken, UserPreference,
     Role, Permission, AuditLog
 )
 
+# Add UserProfile alias
+from .user import UserPreference as UserProfile
+
+# Query models
 from .query import (
-    Query,QueryResult,QueryHistory,  # Basic models
-    NaturalLanguageQuery,SQLQuery,QueryExecution,  # SQL generation models
-    SavedQuery,QueryTemplate,QuerySuggestion,QueryResultCache  # Template and cache models
-)
+    Query, QueryResult, QueryHistory,
     NaturalLanguageQuery, SavedQuery, QueryResultCache,
-    QueryTemplate, QuerySuggestion
+    QueryTemplate, QuerySuggestion, SQLQuery, QueryExecution
 )
 
+# Visualization models
 from .visualization import (
     ChartType, Chart, SavedChart, Dashboard, DashboardChart
 )
 
+# Supply chain models
 from .supply_chain import (
-    Inventory,
-    InventoryHistory,
-    Material,
-    Order,
-    OrderItem,
-    Product,
-    ProductMaterial,
-    Shipment,
-    ShipmentItem,
-    Supplier,
-    SupplierRelationship,
-    SupplierTier,
+    Supplier, SupplierTier, SupplierRelationship,
+    Product, Material, ProductMaterial,
+    Inventory, InventoryHistory,
+    Order, OrderItem, Shipment, ShipmentItem,
     Warehouse
 )
 
+# Analytics models
 from .analytics import (
     AnalyticsResult, ScheduledAnalytic, AnalyticsTemplate,
-    ReportSchedule,
+    Report, ReportSchedule,
     SupplierPerformanceMetric, InventoryMetric,
     DeliveryPerformance, RiskAssessment, ComplianceCheck,
     ABCAnalysisResult, ForecastResult, SafetyStockCalculation,
@@ -47,83 +47,57 @@ from .analytics import (
     BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
 )
 
-# Import extended models
+# Extended models
 from .extended_models import (
     ForecastModel,
     ExtendedAnalyticsMetric,
     ExportJob,
-    ScheduledReport,
     ReportTemplate,
     ExtendedReport,
+    ScheduledReport,
+    SystemSetting,
     NotificationSetting,
     WidgetType,
     DataSource,
-    APIKey,
-    SystemSetting
+    APIKey
 )
 
 # Re-export all models
 __all__ = [
-    "ABCAnalysisResult",
-    "APIKey",
-    "AnalyticsResult",
-    "AnalyticsTemplate",
-    "BottleneckAnalysis",
-    "Chart",
-    "ChartType",
-    "ComplianceCheck",
-    "Dashboard",
-    "DashboardChart",
-    "DataSource",
-    "DeliveryPerformance",
-    "DisruptionImpact",
-    "ExportJob",
-    "ExtendedAnalyticsMetric",
-    "ForecastModel",
-    "ForecastResult",
-    "Inventory",
-    "InventoryHistory",
-    "InventoryMetric",
-    "Material",
-    "NaturalLanguageQuery",
-    "NetworkEdge",
-    "NetworkNode",
-    "NotificationSetting",
-    "Order",
-    "OrderItem",
-    "PasswordResetToken",
-    "Product",
-    "ProductMaterial",
-    "Query",
-    "QueryExecution",
-    "QueryHistory",
-    "QueryResult",
-    "QueryResultCache",
-    "QuerySuggestion",
-    "QueryTemplate",
-    "Report",
-    "ReportSchedule",
-    "ReportTemplate",
-    "RiskAssessment",
-    "RiskPropagationScenario",
-    "SQLQuery",
-    "SafetyStockCalculation",
-    "SavedChart",
-    "SavedQuery",
-    "ScheduledAnalytic",
-    "ScheduledReport",
-    "Shipment",
-    "ShipmentItem",
-    "Supplier",
-    "SupplierPerformanceMetric",
-    "SupplierRelationship",
-    "SupplierTier",
-    "SupplyChainNetwork",
-    "SystemSetting",
-    "User",
-    "UserPreference",
-    "UserProfile",
-    "UserSession",
-    "Warehouse",
-    "WidgetType"
+    # Base
+    'Base',
+    
+    # User models
+    'User', 'UserSession', 'PasswordResetToken', 'UserPreference', 'UserProfile',
+    'Role', 'Permission', 'AuditLog',
+    
+    # Query models
+    'Query', 'QueryResult', 'QueryHistory',
+    'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',
+    'QueryTemplate', 'QuerySuggestion', 'SQLQuery', 'QueryExecution',
+    
+    # Visualization models
+    'ChartType', 'Chart', 'SavedChart', 'Dashboard', 'DashboardChart',
+    
+    # Supply chain models
+    'Supplier', 'SupplierTier', 'SupplierRelationship',
+    'Product', 'Material', 'ProductMaterial',
+    'Inventory', 'InventoryHistory',
+    'Order', 'OrderItem', 'Shipment', 'ShipmentItem',
+    'Warehouse',
+    
+    # Analytics models
+    'AnalyticsResult', 'ScheduledAnalytic', 'AnalyticsTemplate',
+    'Report', 'ReportSchedule',
+    'SupplierPerformanceMetric', 'InventoryMetric',
+    'DeliveryPerformance', 'RiskAssessment', 'ComplianceCheck',
+    'ABCAnalysisResult', 'ForecastResult', 'SafetyStockCalculation',
+    'SupplyChainNetwork', 'NetworkNode', 'NetworkEdge',
+    'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact',
+    
+    # Extended models
+    'ForecastModel', 'ExtendedAnalyticsMetric', 'ExportJob',
+    'ReportTemplate', 'ExtendedReport', 'ScheduledReport',
+    'SystemSetting', 'NotificationSetting', 'WidgetType',
+    'DataSource', 'APIKey'
 ]

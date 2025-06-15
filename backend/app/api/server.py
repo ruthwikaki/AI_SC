@@ -101,14 +101,14 @@ def create_app() -> FastAPI:
     
     # Create FastAPI instance
     app = FastAPI(
-        title=settings.app_name,
+        title=settings.APP_NAME,
         description="AI-powered Supply Chain Management System",
-        version=settings.version,
-        debug=settings.debug,
+        version=settings.VERSION,
+        debug=settings.DEBUG,
         lifespan=lifespan,
-        docs_url="/api/docs" if settings.debug else None,
-        redoc_url="/api/redoc" if settings.debug else None,
-        openapi_url="/api/openapi.json" if settings.debug else None,
+        docs_url="/api/docs" if settings.DEBUG else None,
+        redoc_url="/api/redoc" if settings.DEBUG else None,
+        openapi_url="/api/openapi.json" if settings.DEBUG else None,
         swagger_ui_parameters={
             "defaultModelsExpandDepth": -1,
             "syntaxHighlight.theme": "obsidian",
@@ -164,12 +164,12 @@ def create_app() -> FastAPI:
     async def root():
         return {
             "message": "Supply Chain AI Backend API",
-            "version": settings.version,
+            "version": settings.VERSION,
             "status": "operational",
             "documentation": {
-                "interactive": "/api/docs" if settings.debug else "Disabled",
-                "redoc": "/api/redoc" if settings.debug else "Disabled",
-                "openapi": "/api/openapi.json" if settings.debug else "Disabled"
+                "interactive": "/api/docs" if settings.DEBUG else "Disabled",
+                "redoc": "/api/redoc" if settings.DEBUG else "Disabled",
+                "openapi": "/api/openapi.json" if settings.DEBUG else "Disabled"
             }
         }
     
@@ -182,7 +182,7 @@ def create_app() -> FastAPI:
         
         health_status = {
             "status": "healthy" if db_healthy else "degraded",
-            "version": settings.version,
+            "version": settings.VERSION,
             "environment": settings.environment,
             "database": "connected" if db_healthy else "disconnected",
             "timestamp": time.time()
@@ -263,7 +263,7 @@ def create_app() -> FastAPI:
     async def api_version():
         return {
             "api_version": "1.0",
-            "app_version": settings.version,
+            "app_version": settings.VERSION,
             "minimum_client_version": "1.0",
             "deprecated_endpoints": [],
             "new_features": [

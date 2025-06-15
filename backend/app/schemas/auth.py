@@ -3,7 +3,7 @@
 Authentication schemas for request/response validation
 Located at: /backend/app/schemas/auth.py
 """
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
