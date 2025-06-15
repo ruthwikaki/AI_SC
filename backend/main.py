@@ -22,6 +22,7 @@ from app.config import get_settings
 from app.utils.logger import setup_logger
 from app.db.database import engine, get_db, init_db
 from app.api.server import create_app
+from app.db.init_db import init_db
 
 # Setup logging
 logger = setup_logger(__name__)

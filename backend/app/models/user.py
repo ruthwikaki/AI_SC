@@ -206,13 +206,13 @@ class User(Base):
     saved_queries = relationship("SavedQuery", back_populates="user", cascade="all, delete-orphan")
 
 
-    activities = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
+    # activities = relationship  # Commented out to avoid conflict with audit_logs("AuditLog", back_populates="user", cascade="all, delete-orphan")
 
 
-    created_queries = relationship("NaturalLanguageQuery", foreign_keys="NaturalLanguageQuery.created_by", back_populates="created_by_user")
+    created_queries = relationship("NaturalLanguageQuery", foreign_keys=[user_id], back_populates="created_by_user")
 
 
-    dashboards = relationship("Dashboard", foreign_keys="Dashboard.created_by", back_populates="created_by_user")
+    dashboards = relationship("Dashboard", foreign_keys=[created_by], back_populates="created_by_user")
 
 
     
@@ -720,6 +720,7 @@ class AuditLog(Base):
 
 
     user = relationship('User', back_populates='audit_logs', foreign_keys=[user_id])
+    natural_language_queries = relationship("NaturalLanguageQuery", back_populates="user", cascade="all, delete-orphan")
 
 
     

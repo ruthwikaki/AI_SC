@@ -1,4 +1,4 @@
-﻿"""
+"""
 Database connection and session management
 """
 
@@ -8,8 +8,8 @@ from contextlib import contextmanager
 import logging
 import time
 
-from sqlalchemy import create_engine, text, event, pool
-
+from sqlalchemy import create_engine, event, pool
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.engine import Engine
@@ -19,7 +19,8 @@ settings = get_settings()
 
 logger = logging.getLogger(__name__)
 
-# Import Base from models\nfrom app.models.base import Base
+# Base class for all models - declared here, not imported
+Base = declarative_base()
 
 # Database URL construction
 def get_database_url() -> str:
@@ -34,14 +35,14 @@ def get_engine_config():
             "pool_size": 20,
             "max_overflow": 40,
             "pool_timeout": 30,
-            "pool_recycle": 1800,  # 30 minutes
+            "pool_recycle": 1800,
             "pool_pre_ping": True,
             "echo": False,
             "poolclass": QueuePool
         }
     elif settings.ENVIRONMENT == "testing":
         return {
-            "poolclass": NullPool,  # No connection pooling for tests
+            "poolclass": NullPool,
             "echo": False
         }
     else:  # development
@@ -49,7 +50,7 @@ def get_engine_config():
             "pool_size": 5,
             "max_overflow": 10,
             "pool_timeout": 30,
-            "pool_recycle": 3600,  # 1 hour
+            "pool_recycle": 3600,
             "pool_pre_ping": True,
             "echo": settings.DEBUG,
             "poolclass": QueuePool
@@ -66,26 +67,11 @@ SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
-    expire_on_commit=False  # Prevent expiration of objects after commit
+    expire_on_commit=False
 )
 
 # Create scoped session for thread safety
 ScopedSession = scoped_session(SessionLocal)
-
-# Event listeners for performance monitoring (optional)
-@event.listens_for(Engine, "before_cursor_execute")
-def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-    """Log slow queries in development"""
-    conn.info.setdefault('query_start_time', []).append(time.time())
-    if settings.DEBUG:
-        logger.debug(f"Start Query: {statement[:100]}...")
-
-@event.listens_for(Engine, "after_cursor_execute")
-def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-    """Log query execution time"""
-    total = time.time() - conn.info['query_start_time'].pop(-1)
-    if settings.DEBUG and total > 1.0:  # Log queries slower than 1 second
-        logger.warning(f"Slow Query ({total:.3f}s): {statement[:100]}...")
 
 # Database dependency for FastAPI
 def get_db() -> Generator[Session, None, None]:
@@ -142,73 +128,19 @@ class DatabaseManager:
         """Drop all tables (use with caution!)"""
         Base.metadata.drop_all(bind=engine)
         logger.info("All database tables dropped")
-    
-    @staticmethod
-    def get_table_sizes():
-        """Get size of all tables"""
-        with engine.connect() as conn:
-            result = conn.execute("""
-                SELECT 
-                    schemaname,
-                    tablename,
-                    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
-                    pg_total_relation_size(schemaname||'.'||tablename) AS size_bytes
-                FROM pg_tables
-                WHERE schemaname = 'public'
-                ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
-            """)
-            return result.fetchall()
 
-# Import all models to ensure they're registered with Base
-def import_all_models():
-    """Import all models to register them with SQLAlchemy"""
+# Simple init_db function for main.py
+def init_db():
+    """Initialize database tables"""
+    # Import all models to register them with Base
     try:
-        # Import models package to register all models
-        import app.models
+        from app.models import (
+            user, query, visualization, supply_chain, analytics, extended_models
+        )
         logger.info("All models imported successfully")
     except ImportError as e:
         logger.warning(f"Some models could not be imported: {e}")
-
-# Initialize models on module load
-# import_all_models()  # Commented to prevent duplicate imports
-
-
-def init_db():
-    """Initialize database tables"""
-    try:
-        # Import all models to ensure they're registered with Base
-        import_all_models()
-        
-        # Create all tables
-        Base.metadata.create_all(bind=engine)
-        print("Database tables created successfully")
-        
-        # Test connection
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        print("Database connection successful")
-        
-    except Exception as e:
-        print(f"Database initialization failed: {e}")
-        raise
-
-def drop_db():
-    """Drop all database tables - Use with caution!"""
-    try:
-        Base.metadata.drop_all(bind=engine)
-        print("All database tables dropped")
-    except Exception as e:
-        print(f"Failed to drop tables: {e}")
-        raise
-
-# Health check function
-async def check_database_health() -> bool:
-    """Check if database is accessible"""
-    try:
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
-        return True
-    except Exception as e:
-        print(f"Database health check failed: {e}")
-        return False
+    
+    # Create all tables
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created")

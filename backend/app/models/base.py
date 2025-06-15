@@ -1,10 +1,10 @@
 """
-Base model for all database models
+Base model configuration
+All models should inherit from this Base
 """
-from sqlalchemy.ext.declarative import declarative_base
 
-# Create a single Base instance to be used by all models
-Base = declarative_base()
+# Import Base from database to ensure single source of truth
+from app.db.database import Base
 
-# Metadata for the database
-metadata = Base.metadata
+# Re-export for convenience
+__all__ = ['Base']
