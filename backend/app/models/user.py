@@ -204,15 +204,17 @@ class User(Base):
 
     # profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan") # Removed - UserProfile 
     saved_queries = relationship("SavedQuery", back_populates="user", cascade="all, delete-orphan")
+    created_charts = relationship("Chart", foreign_keys="Chart.created_by", back_populates="created_by_user", cascade="all, delete-orphan")
+    owned_dashboards = relationship("Dashboard", foreign_keys="Dashboard.user_id", back_populates="user", cascade="all, delete-orphan")
 
 
     # activities = relationship  # Commented out to avoid conflict with audit_logs("AuditLog", back_populates="user", cascade="all, delete-orphan")
 
 
-    created_queries = relationship("NaturalLanguageQuery", foreign_keys=[user_id], back_populates="created_by_user")
+    queries = relationship("NaturalLanguageQuery", back_populates="user", cascade="all, delete-orphan")
 
 
-    dashboards = relationship("Dashboard", foreign_keys=[created_by], back_populates="created_by_user")
+    created_dashboards = relationship("Dashboard", foreign_keys="Dashboard.created_by", back_populates="created_by_user", cascade="all, delete-orphan")
 
 
     
