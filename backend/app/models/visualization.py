@@ -23,7 +23,6 @@ from sqlalchemy import (
     Index,
     Integer,
     JSON,
-    JSONB,
     String,
     Text,
     UniqueConstraint
@@ -111,9 +110,7 @@ class SavedChart(Base):
 
     __table_args__ = (
 
-        UniqueConstraint('user_id', 'chart_id', name='uq_user_saved_chart'),
-
-    )
+        UniqueConstraint('user_id', 'chart_id', name='uq_user_saved_chart'),)
 
     
 
@@ -261,9 +258,7 @@ class ChartData(Base):
 
     __table_args__ = (
 
-        Index('idx_chart_data_timestamp', 'chart_id', 'data_timestamp'),
-
-    )
+        Index('idx_chart_data_timestamp', 'chart_id', 'data_timestamp'),)
 
     
 
@@ -363,9 +358,7 @@ class DashboardWidget(Base):
 
     __table_args__ = (
 
-        UniqueConstraint('dashboard_id', 'position', name='uq_dashboard_widget_position'),
-
-    )
+        UniqueConstraint('dashboard_id', 'position', name='uq_dashboard_widget_position'),)
 
     
 

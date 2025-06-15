@@ -13,12 +13,12 @@ from sqlalchemy import func, or_, and_
 from sqlalchemy.exc import IntegrityError
 
 from app.models import (
-    User, 
-    UserSession, 
-    PasswordResetToken, 
-    UserProfile, 
-    Permission, 
-    AuditLog
+    User,
+    UserSession,
+    PasswordResetToken,
+    Permission,
+    AuditLog,
+    UserPreference
 )
 from app.security.password_utils import hash_password, verify_password
 
@@ -47,7 +47,7 @@ class UserRepository:
             self.db.add(user)
             
             # Create default preferences
-            preferences = UserProfile(user_id=user.id)
+            preferences = UserPreference(user_id=user.id)
             self.db.add(preferences)
             
             # Assign default UserRole
@@ -327,20 +327,20 @@ class UserRepository:
     # User Preferences Operations
     # =====================================================
     
-    def get_user_preferences(self, user_id: UUID) -> Optional[UserProfile]:
+    def get_user_preferences(self, user_id: UUID) -> Optional[UserPreference]:
         """Get user preferences"""
-        return self.db.query(UserProfile).filter(
-            UserProfile.user_id == user_id
+        return self.db.query(UserPreference).filter(
+            UserPreference.user_id == user_id
         ).first()
     
     def update_user_preferences(
         self, user_id: UUID, preferences_data: Dict[str, Any]
-    ) -> Optional[UserProfile]:
+    ) -> Optional[UserPreference]:
         """Update user preferences"""
         preferences = self.get_user_preferences(user_id)
         if not preferences:
             # Create if doesn't exist
-            preferences = UserProfile(user_id=user_id, **preferences_data)
+            preferences = UserPreference(user_id=user_id, **preferences_data)
             self.db.add(preferences)
         else:
             # Update existing

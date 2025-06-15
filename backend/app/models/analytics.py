@@ -27,7 +27,6 @@ from sqlalchemy import (
     Index,
     Integer,
     JSON,
-    JSONB,
     Numeric,
     String,
     Text
@@ -144,9 +143,7 @@ class AnalyticsSummary(Base):
 
     __table_args__ = (
 
-        Index('idx_summary_type_date', 'summary_type', 'summary_date'),
-
-    )
+        Index('idx_summary_type_date', 'summary_type', 'summary_date'),)
 
     
 

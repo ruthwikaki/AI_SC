@@ -18,7 +18,7 @@ from sqlalchemy import (
     Index,
     Integer,
     JSON,
-    JSONB,
+    
     String,
     Text
 )

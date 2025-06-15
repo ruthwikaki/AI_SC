@@ -29,7 +29,6 @@ from sqlalchemy import (
     Index,
     Integer,
     JSON,
-    JSONB,
     Numeric,
     String,
     Table,
@@ -297,9 +296,7 @@ class Inventory(Base):
 
         CheckConstraint('reserved_quantity >= 0', name='check_reserved_positive'),
 
-        CheckConstraint('reserved_quantity <= quantity', name='check_reserved_not_exceed_quantity'),
-
-    )
+        CheckConstraint('reserved_quantity <= quantity', name='check_reserved_not_exceed_quantity'))
 
     
 

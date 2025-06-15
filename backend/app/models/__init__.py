@@ -12,61 +12,34 @@ from .user import (
     Role, Permission, AuditLog
 )
 
-# Query models
-from .query import (
-    NaturalLanguageQuery, SavedQuery, QueryResult
-)
+# Query models - import what exists
+from .query import NaturalLanguageQuery, SavedQuery
+
+# Try to import QueryResult if it exists
+try:
+    from .query import QueryResult
+except ImportError:
+    pass
 
 # Try to import optional query models
 try:
-    from .query import QueryResultCache, QueryTemplate, QuerySuggestion, QueryVisualization
+    from .query import QueryResultCache, QueryTemplate, QuerySuggestion
 except ImportError:
-    # Create placeholders if they don't exist
-    class QueryResultCache(Base):
-        __tablename__ = 'query_result_cache'
-        from sqlalchemy import Column, Text, Integer, DateTime
-        from sqlalchemy.dialects.postgresql import UUID
-        from uuid import uuid4
-        from datetime import datetime as dt
-        
-        id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-        query_hash = Column(Text, nullable=False)
-        result = Column(Text)
-        ttl_seconds = Column(Integer, default=3600)
-        created_at = Column(DateTime(timezone=True), default=dt.utcnow)
-    
-    class QueryTemplate(Base):
-        __tablename__ = 'query_templates'
-        from sqlalchemy import Column, String, Text, Boolean, DateTime
-        from sqlalchemy.dialects.postgresql import UUID
-        from uuid import uuid4
-        from datetime import datetime as dt
-        
-        id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-        name = Column(String(255), nullable=False)
-        template = Column(Text, nullable=False)
-        category = Column(String(100))
-        is_active = Column(Boolean, default=True)
-        created_at = Column(DateTime(timezone=True), default=dt.utcnow)
-    
-    class QuerySuggestion(Base):
-        __tablename__ = 'query_suggestions'
-        from sqlalchemy import Column, String, Text, Integer, DateTime
-        from sqlalchemy.dialects.postgresql import UUID
-        from uuid import uuid4
-        from datetime import datetime as dt
-        
-        id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-        suggestion = Column(Text, nullable=False)
-        category = Column(String(100))
-        usage_count = Column(Integer, default=0)
-        created_at = Column(DateTime(timezone=True), default=dt.utcnow)
+    # These might not exist in query.py
+    pass
+
+# Try to import QueryVisualization
+try:
+    from .query import QueryVisualization
+except ImportError:
+    pass
 
 # Visualization models
 from .visualization import (
     ChartType, Chart, SavedChart, Dashboard, DashboardChart
 )
 
+# Try to import DashboardWidget
 try:
     from .visualization import DashboardWidget
 except ImportError:
@@ -75,16 +48,21 @@ except ImportError:
 # Supply chain models
 from .supply_chain import (
     Supplier, Product, Material, Inventory,
-    Order, OrderItem, Shipment,
-    ProductMaterial, InventoryHistory
+    Order, OrderItem, Shipment
 )
 
 # Try to import additional supply chain models
 try:
     from .supply_chain import (
         SupplierTier, SupplierRelationship, ShipmentItem,
-        SupplierProduct, Warehouse
+        ProductMaterial, InventoryHistory
     )
+except ImportError:
+    pass
+
+# Try to import Warehouse and SupplierProduct
+try:
+    from .supply_chain import Warehouse, SupplierProduct
 except ImportError:
     pass
 
@@ -110,16 +88,16 @@ except ImportError:
 try:
     from .extended_models import (
         ForecastModel,
-        ExtendedAnalyticsMetric,  # Note: renamed from AnalyticsMetric
+        ExtendedAnalyticsMetric,  # Renamed from AnalyticsMetric
         ExportJob,
         ReportTemplate,
-        ExtendedReport,  # Note: renamed from Report
+        ExtendedReport,  # Renamed from Report to avoid conflict
         ScheduledReport,
         NotificationSetting,
         WidgetType
     )
-except ImportError as e:
-    print(f"Warning: Could not import extended models: {e}")
+except ImportError:
+    pass
 
 # System models
 try:
@@ -133,23 +111,36 @@ try:
         IntegrationLog
     )
 except ImportError:
-    # If system.py doesn't have all models, at least get SystemSetting
-    from .system import SystemSetting
+    # If system.py doesn't have all models, at least try to get what exists
+    try:
+        from .system import SystemSetting
+    except ImportError:
+        pass
 
 # Build __all__ dynamically based on what's actually imported
 __all__ = []
-for name, obj in list(globals().items()):
-    if not name.startswith('_') and hasattr(obj, '__tablename__'):
+
+# Get all names in current module
+import sys
+current_module = sys.modules[__name__]
+
+for name in dir(current_module):
+    obj = getattr(current_module, name, None)
+    # Only add if it's a model (has __tablename__) or is Base
+    if obj is not None and (name == 'Base' or (hasattr(obj, '__tablename__') and not name.startswith('_'))):
         __all__.append(name)
 
-# Ensure we have the most commonly used exports
+# Ensure core models are in __all__ if they were imported
 core_exports = [
     'Base', 'User', 'Role', 'Permission', 'AuditLog',
     'NaturalLanguageQuery', 'SavedQuery',
     'Chart', 'Dashboard', 'Supplier', 'Product', 'Order',
-    'AnalyticsResult', 'Report'
+    'AnalyticsResult', 'Report', 'SystemSetting'
 ]
 
 for export in core_exports:
-    if export in globals() and export not in __all__:
+    if hasattr(current_module, export) and export not in __all__:
         __all__.append(export)
+
+# Sort for consistency
+__all__.sort()

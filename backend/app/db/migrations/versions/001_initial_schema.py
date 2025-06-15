@@ -362,3 +362,12 @@ def downgrade() -> None:
     op.drop_table('password_reset_tokens')
     op.drop_table('user_sessions')
     op.drop_table('users')
+"""Initial schema creation
+
+Revision ID: 001
+Revises: 
+Create Date: 2024-01-01 00:00:00.000000
+
+"""
+from alembic import op
+from sqlalchemy.dialects.postgresql import UUID, JSONB
