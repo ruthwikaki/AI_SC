@@ -215,6 +215,7 @@ class User(Base):
 
 
     created_dashboards = relationship("Dashboard", foreign_keys="Dashboard.created_by", back_populates="created_by_user", cascade="all, delete-orphan")
+    owned_dashboards = relationship("Dashboard", foreign_keys="Dashboard.user_id", back_populates="user")
 
 
     

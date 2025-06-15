@@ -7,8 +7,19 @@ from uuid import uuid4
 from typing import Optional
 
 from sqlalchemy import (
-    Column, String, Text, Integer, Float, Boolean, 
-    DateTime, ForeignKey, Index, JSON
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    Column,
+    DECIMAL,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    String,
+    Text
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -254,3 +265,23 @@ class QueryHistory(Base):
     
     def __repr__(self):
         return f"<QueryHistory(id={self.id}, user_id={self.user_id}, status={self.status})>"
+
+
+class QueryVisualization(Base):
+    """Visualization recommendations for queries"""
+    __tablename__ = 'query_visualizations'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    query_id = Column(UUID(as_uuid=True), ForeignKey('natural_language_queries.id'), nullable=False)
+    visualization_type = Column(String(50), nullable=False)  # bar, line, pie, etc.
+    config = Column(JSONB, default={})
+    data_mapping = Column(JSONB, default={})  # Maps query columns to chart axes
+    is_primary = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    query = relationship('NaturalLanguageQuery', back_populates='visualizations')
+    
+    def __repr__(self):
+        return f"<QueryVisualization(query_id={self.query_id}, type={self.visualization_type})>"
+
