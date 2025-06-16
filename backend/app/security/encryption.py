@@ -1,4 +1,4 @@
-"""
+﻿"""
 Encryption utilities for securing sensitive data.
 
 This module provides functions for hashing passwords, verifying hashed passwords,
@@ -22,7 +22,17 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 # Initialize password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
