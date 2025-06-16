@@ -226,3 +226,4 @@ async def update_domain_mappings(
     except Exception as e:
         logger.error(f"Error updating domain mappings for {client_id}: {str(e)}")
         raise
+

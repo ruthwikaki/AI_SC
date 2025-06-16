@@ -1,3 +1,8 @@
+﻿# Models should be imported inside methods to avoid circular imports
+# Example:
+# def get_something(self):
+#     from app.models import User  # Import here, not at module level
+#     return User.query.all()
 """
 Query repository for natural language query operations
 """
@@ -13,7 +18,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_, desc
 from sqlalchemy.exc import IntegrityError
 
-from app.models import (
+# MOVED TO METHOD LEVEL: from app.models import (
     NaturalLanguageQuery, SavedQuery, QueryResultCache,
     QueryTemplate, QuerySuggestion
 )

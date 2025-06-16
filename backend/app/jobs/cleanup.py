@@ -363,3 +363,4 @@ def estimate_cleanup_impact(retention_days: int = 30) -> dict:
         return {
             "error": str(e)
         }
+

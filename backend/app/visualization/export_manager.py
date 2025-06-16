@@ -1,4 +1,4 @@
-"""
+﻿"""
 Export manager module for the supply chain LLM platform.
 
 This module provides functionality to export visualizations and data
@@ -950,7 +950,7 @@ class ExportManager:
 
             # Add these standalone functions at the end of export_manager.py
 
-def export_chart(
+
     chart_data: Dict[str, Any],
     format: str = "png",
     include_data: bool = False
@@ -972,7 +972,7 @@ def export_chart(
     # Call the instance method
     return manager.export_chart(chart_data, format, include_data)
 
-def export_data(
+
     data: Union[pd.DataFrame, List[Dict[str, Any]], Dict[str, Any]],
     format: str = "csv",
     filename: Optional[str] = None
@@ -991,7 +991,7 @@ def export_data(
     manager = ExportManager()
     return manager.export_data(data, format, filename)
 
-def export_multiple(
+
     items: List[Dict[str, Any]], 
     format: str = "zip"
 ) -> Dict[str, Any]:
@@ -1008,7 +1008,7 @@ def export_multiple(
     manager = ExportManager()
     return manager.export_multiple(items, format)
 
-def export_report(
+
     report_data: Dict[str, Any], 
     format: str = "pdf"
 ) -> Dict[str, Any]:

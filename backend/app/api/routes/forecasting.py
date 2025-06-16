@@ -478,3 +478,4 @@ async def get_time_series_data(
         logger.error(f"Error fetching time series: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+

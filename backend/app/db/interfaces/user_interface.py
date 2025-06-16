@@ -303,3 +303,4 @@ class UserInterface:
 async def get_connector_for_client(client_id: str):
     """Placeholder for connector pattern - not used in direct approach"""
     return None
+

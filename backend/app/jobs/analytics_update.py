@@ -995,3 +995,4 @@ async def generate_scheduled_report(report_type: str, recipients: List[str]):
         logger.info(f"Generated {report_type} report for {len(recipients)} recipients")
         
         return report
+

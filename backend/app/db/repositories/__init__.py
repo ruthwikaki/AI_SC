@@ -1,52 +1,64 @@
-﻿"""Repository package with lazy loading"""
+﻿"""Repository package - ALL imports must be lazy to prevent circular dependencies"""
 
-# Lazy loading repositories to prevent circular imports
-_repo_cache = {}
+# Cache for lazy-loaded repositories
+_repository_cache = {}
 
+def _get_repository(repo_name, class_name):
+    """Generic lazy repository loader"""
+    if repo_name not in _repository_cache:
+        # Dynamic import at runtime
+        module = __import__(f'app.db.repositories.{repo_name}', fromlist=[class_name])
+        _repository_cache[repo_name] = getattr(module, class_name)
+    return _repository_cache[repo_name]
+
+# User repository
 def get_user_repository():
-    if 'user' not in _repo_cache:
-        from .user_repository import UserRepository
-        _repo_cache['user'] = UserRepository
-    return _repo_cache['user']
+    """Get UserRepository lazily"""
+    return _get_repository('user_repository', 'UserRepository')
 
+# Inventory repository
 def get_inventory_repository():
-    if 'inventory' not in _repo_cache:
-        from .inventory_repository import InventoryRepository
-        _repo_cache['inventory'] = InventoryRepository
-    return _repo_cache['inventory']
+    """Get InventoryRepository lazily"""
+    return _get_repository('inventory_repository', 'InventoryRepository')
 
+# Order repository
 def get_order_repository():
-    if 'order' not in _repo_cache:
-        from .order_repository import OrderRepository
-        _repo_cache['order'] = OrderRepository
-    return _repo_cache['order']
+    """Get OrderRepository lazily"""
+    return _get_repository('order_repository', 'OrderRepository')
 
+# Supplier repository
 def get_supplier_repository():
-    if 'supplier' not in _repo_cache:
-        from .supplier_repository import SupplierRepository
-        _repo_cache['supplier'] = SupplierRepository
-    return _repo_cache['supplier']
+    """Get SupplierRepository lazily"""
+    return _get_repository('supplier_repository', 'SupplierRepository')
 
+# Analytics repository
 def get_analytics_repository():
-    if 'analytics' not in _repo_cache:
-        from .analytics_repository import AnalyticsRepository
-        _repo_cache['analytics'] = AnalyticsRepository
-    return _repo_cache['analytics']
+    """Get AnalyticsRepository lazily"""
+    return _get_repository('analytics_repository', 'AnalyticsRepository')
 
+# Dashboard repository
 def get_dashboard_repository():
-    if 'dashboard' not in _repo_cache:
-        from .dashboard_repository import DashboardRepository
-        _repo_cache['dashboard'] = DashboardRepository
-    return _repo_cache['dashboard']
+    """Get DashboardRepository lazily"""
+    return _get_repository('dashboard_repository', 'DashboardRepository')
 
+# Query repository
 def get_query_repository():
-    if 'query' not in _repo_cache:
-        from .query_repository import QueryRepository
-        _repo_cache['query'] = QueryRepository
-    return _repo_cache['query']
+    """Get QueryRepository lazily"""
+    return _get_repository('query_repository', 'QueryRepository')
 
+# Chart repository
+def get_chart_repository():
+    """Get ChartRepository lazily"""
+    return _get_repository('chart_repository', 'ChartRepository')
+
+# NO DIRECT IMPORTS! Only export the getter functions
 __all__ = [
-    'get_user_repository', 'get_inventory_repository', 'get_order_repository',
-    'get_supplier_repository', 'get_analytics_repository', 'get_dashboard_repository',
-    'get_query_repository'
+    'get_user_repository',
+    'get_inventory_repository', 
+    'get_order_repository',
+    'get_supplier_repository',
+    'get_analytics_repository',
+    'get_dashboard_repository',
+    'get_query_repository',
+    'get_chart_repository'
 ]

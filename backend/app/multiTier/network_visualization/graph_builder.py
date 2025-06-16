@@ -680,3 +680,4 @@ class SupplyChainGraphBuilder:
 
 # Alias for backward compatibility
 GraphBuilder = SupplyChainGraphBuilder
+

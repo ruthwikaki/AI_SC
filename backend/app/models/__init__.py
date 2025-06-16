@@ -1,99 +1,99 @@
-﻿"""Models package - NO direct imports to prevent circular dependencies"""
+﻿"""Models package - Using lazy imports only"""
 
-# Only import the base
+# Base imports
 from .base import Base, get_db
 
-# DO NOT import any models directly here!
-# Use the lazy loading functions below
+# Model registry for lazy loading
+_model_registry = {}
 
-_models_cache = {}
+def _lazy_import(module_name, model_name):
+    """Lazy import models to avoid circular dependencies"""
+    key = f"{module_name}.{model_name}"
+    if key not in _model_registry:
+        module = __import__(f"app.models.{module_name}", fromlist=[model_name])
+        _model_registry[key] = getattr(module, model_name)
+    return _model_registry[key]
 
-def _get_model(module_name, model_name):
-    """Universal lazy model getter"""
-    cache_key = f"{module_name}.{model_name}"
-    if cache_key not in _models_cache:
-        # Dynamic import
-        module = __import__(f'app.models.{module_name}', fromlist=[model_name])
-        _models_cache[cache_key] = getattr(module, model_name)
-    return _models_cache[cache_key]
+# Lazy getters for all models
+def get_user():
+    return _lazy_import("user", "User")
 
-# User models
-def get_user_model():
-    return _get_model('user', 'User')
+def get_product():
+    return _lazy_import("supply_chain", "Product")
 
-# Supply chain models
-def get_product_model():
-    return _get_model('supply_chain', 'Product')
+def get_supplier():
+    return _lazy_import("supply_chain", "Supplier")
 
-def get_supplier_model():
-    return _get_model('supply_chain', 'Supplier')
+def get_order():
+    return _lazy_import("supply_chain", "Order")
 
-def get_order_model():
-    return _get_model('supply_chain', 'Order')
+def get_inventory():
+    return _lazy_import("supply_chain", "Inventory")
 
-def get_inventory_model():
-    return _get_model('supply_chain', 'Inventory')
+def get_dashboard():
+    return _lazy_import("analytics", "Dashboard")
 
-# Analytics models
-def get_dashboard_model():
-    return _get_model('analytics', 'Dashboard')
+def get_chart():
+    return _lazy_import("analytics", "Chart")
 
-def get_chart_model():
-    return _get_model('analytics', 'Chart')
+def get_query():
+    return _lazy_import("analytics", "Query")
 
-def get_query_model():
-    return _get_model('analytics', 'Query')
+def get_report():
+    return _lazy_import("analytics", "Report")
 
-def get_report_model():
-    return _get_model('analytics', 'Report')
+def get_analytics_metric():
+    return _lazy_import("analytics", "AnalyticsMetric")
 
-# Extended models - DO NOT IMPORT DIRECTLY
-def get_extended_product_model():
-    return _get_model('extended_models', 'ExtendedProduct')
+# DO NOT import extended_models directly!
+def get_extended_product():
+    return _lazy_import("extended_models", "ExtendedProduct")
 
-def get_extended_supplier_model():
-    return _get_model('extended_models', 'ExtendedSupplier')
+def get_extended_supplier():
+    return _lazy_import("extended_models", "ExtendedSupplier")
 
-def get_extended_order_model():
-    return _get_model('extended_models', 'ExtendedOrder')
+def get_extended_order():
+    return _lazy_import("extended_models", "ExtendedOrder")
 
-def get_extended_report_model():
-    return _get_model('extended_models', 'ExtendedReport')
+def get_extended_report():
+    return _lazy_import("extended_models", "ExtendedReport")
+
+def get_extended_analytics_metric():
+    return _lazy_import("extended_models", "ExtendedAnalyticsMetric")
 
 # System models
-def get_system_config_model():
-    return _get_model('system', 'SystemConfig')
+def get_system_config():
+    return _lazy_import("system", "SystemConfig")
 
-def get_audit_log_model():
-    return _get_model('system', 'AuditLog')
+def get_audit_log():
+    return _lazy_import("system", "AuditLog")
 
 # Visualization models
-def get_visualization_model():
-    return _get_model('visualization', 'Visualization')
+def get_visualization():
+    return _lazy_import("visualization", "Visualization")
 
-def get_chart_config_model():
-    return _get_model('visualization', 'ChartConfig')
+def get_chart_config():
+    return _lazy_import("visualization", "ChartConfig")
 
-# Query models
-def get_query_history_model():
-    return _get_model('query', 'QueryHistory')
+# Query history
+def get_query_history():
+    return _lazy_import("query", "QueryHistory")
 
-# Export only functions, never models directly
 __all__ = [
-    'Base', 'get_db',
+    "Base", "get_db",
     # User
-    'get_user_model',
+    "get_user",
     # Supply chain
-    'get_product_model', 'get_supplier_model', 'get_order_model', 'get_inventory_model',
+    "get_product", "get_supplier", "get_order", "get_inventory",
     # Analytics
-    'get_dashboard_model', 'get_chart_model', 'get_query_model', 'get_report_model',
-    # Extended
-    'get_extended_product_model', 'get_extended_supplier_model', 
-    'get_extended_order_model', 'get_extended_report_model',
+    "get_dashboard", "get_chart", "get_query", "get_report", "get_analytics_metric",
+    # Extended (lazy only!)
+    "get_extended_product", "get_extended_supplier", "get_extended_order",
+    "get_extended_report", "get_extended_analytics_metric",
     # System
-    'get_system_config_model', 'get_audit_log_model',
+    "get_system_config", "get_audit_log",
     # Visualization
-    'get_visualization_model', 'get_chart_config_model',
+    "get_visualization", "get_chart_config",
     # Query
-    'get_query_history_model'
+    "get_query_history"
 ]
