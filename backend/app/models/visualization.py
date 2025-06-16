@@ -111,7 +111,7 @@ class Chart(Base):
         back_populates='created_charts',
         foreign_keys=[created_by]
     )
-    query = relationship('NaturalLanguageQuery', backref='charts')
+    query = relationship('NaturalLanguageQuery', back_populates='charts')
     chart_data = relationship('ChartData', back_populates='chart', cascade='all, delete-orphan')
     
     def __repr__(self):

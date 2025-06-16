@@ -1,4 +1,4 @@
-"""
+﻿"""
 Query models for natural language processing and SQL generation
 """
 
@@ -50,6 +50,7 @@ class NaturalLanguageQuery(Base):
     
     # Relationships
     user = relationship('User', back_populates='queries')
+    charts = relationship('Chart', back_populates='query')
     executions = relationship('QueryExecution', back_populates='query', cascade='all, delete-orphan')
     
     # Indexes
@@ -62,8 +63,14 @@ class NaturalLanguageQuery(Base):
         return f"<NaturalLanguageQuery(id={self.id}, query='{self.natural_language_query[:50]}...')>"
 
 
+
+    @property
+    def visualizations(self):
+        """Alias for charts relationship for backward compatibility"""
+        return self.charts
 class SQLQuery(Base):
-    """Model for storing validated SQL queries"""
+    """Model for storing validate
+d SQL queries"""
     __tablename__ = "sql_queries"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
@@ -281,8 +288,9 @@ class QueryVisualization(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
-    query = relationship('NaturalLanguageQuery', back_populates='visualizations')
+    query = relationship('NaturalLanguageQuery', back_populates='charts')
     
     def __repr__(self):
         return f"<QueryVisualization(query_id={self.query_id}, type={self.visualization_type})>"
+
 

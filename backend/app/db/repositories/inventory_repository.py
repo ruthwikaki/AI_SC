@@ -13,7 +13,7 @@ from sqlalchemy import func, or_, and_, desc, case
 from sqlalchemy.exc import IntegrityError
 
 from app.models import (
-    Inventory, Product, Warehouse, Material,
+    Inventory, Product, Material,
     InventoryHistory, ABCAnalysisResult, SafetyStockCalculation
 )
 

@@ -8,17 +8,37 @@ IMPORTANT: Import order matters for SQLAlchemy relationships
 # Import Base first
 from .base import Base
 
-# Import user models (no dependencies)
-from .user import User, UserSession, PasswordResetToken, UserPreference, Role, Permission, AuditLog
+# Import user models - uncomment Role, Permission, AuditLog
+from .user import (
+    User, UserSession, PasswordResetToken, UserPreference,
+    Role, Permission, AuditLog
+)
 
-# Import query models (depends on User)
-from .query import NaturalLanguageQuery, SavedQuery
+# Import query models
+from .query import (
+    NaturalLanguageQuery, SavedQuery, QueryResultCache,
+    QueryTemplate, QuerySuggestion
+)
 
-# Import visualization models (depends on User and Query)
-from .visualization import ChartType, Chart, SavedChart, Dashboard, DashboardChart
+# Import visualization models
+from .visualization import (
+    ChartType, Chart, SavedChart, Dashboard, DashboardChart
+)
 
 # Import supply chain models
-from .supply_chain import Supplier, Product, Material, Inventory, Order, OrderItem, Shipment
+from .supply_chain import (
+    Supplier, Product, Material, Inventory,
+    Order, OrderItem, Shipment
+)
+
+# Try to import additional supply chain models if they exist
+try:
+    from .supply_chain import (
+        SupplierTier, SupplierRelationship,
+        ProductMaterial, InventoryHistory, ShipmentItem
+    )
+except ImportError:
+    pass
 
 # Import analytics models
 from .analytics import (
@@ -29,14 +49,23 @@ from .analytics import (
     ABCAnalysisResult, ForecastResult, SafetyStockCalculation
 )
 
-# Import extended models if they exist
+# Try to import network models
+try:
+    from .analytics import (
+        SupplyChainNetwork, NetworkNode, NetworkEdge,
+        BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
+    )
+except ImportError:
+    pass
+
+# Import extended models with correct relative imports
 try:
     from .extended_models import (
         ForecastModel,
-        ExtendedAnalyticsMetric,
+        ExtendedAnalyticsMetric,  # Note: Changed from AnalyticsMetric
         ExportJob,
         ReportTemplate,
-        ExtendedReport,
+        ExtendedReport,  # Note: Changed from Report to avoid conflict
         ScheduledReport,
         NotificationSetting,
         WidgetType
@@ -50,23 +79,31 @@ try:
 except ImportError:
     pass
 
-# List all exported models
-__all__ = [
-    # Base
-    'Base',
-    
+# Build __all__ dynamically based on what actually imported
+__all__ = ['Base']
+
+# Add all imported models to __all__
+import sys
+current_module = sys.modules[__name__]
+
+# List of all possible models
+all_models = [
     # User models
     'User', 'UserSession', 'PasswordResetToken', 'UserPreference',
     'Role', 'Permission', 'AuditLog',
     
     # Query models
-    'NaturalLanguageQuery', 'SavedQuery',
+    'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',
+    'QueryTemplate', 'QuerySuggestion',
     
     # Visualization models
     'ChartType', 'Chart', 'SavedChart', 'Dashboard', 'DashboardChart',
     
     # Supply chain models
-    'Supplier', 'Product', 'Material', 'Inventory', 'Order', 'OrderItem', 'Shipment',
+    'Supplier', 'Product', 'Material', 'Inventory',
+    'Order', 'OrderItem', 'Shipment',
+    'SupplierTier', 'SupplierRelationship',
+    'ProductMaterial', 'InventoryHistory', 'ShipmentItem',
     
     # Analytics models
     'AnalyticsResult', 'ScheduledAnalytic', 'AnalyticsTemplate',
@@ -74,17 +111,19 @@ __all__ = [
     'SupplierPerformanceMetric', 'InventoryMetric',
     'DeliveryPerformance', 'RiskAssessment', 'ComplianceCheck',
     'ABCAnalysisResult', 'ForecastResult', 'SafetyStockCalculation',
-]
-
-# Add extended models to __all__ if they were imported
-import sys
-current_module = sys.modules[__name__]
-extended_models = [
+    'SupplyChainNetwork', 'NetworkNode', 'NetworkEdge',
+    'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact',
+    
+    # Extended models
     'ForecastModel', 'ExtendedAnalyticsMetric', 'ExportJob',
     'ReportTemplate', 'ExtendedReport', 'ScheduledReport',
-    'NotificationSetting', 'WidgetType', 'SystemSetting'
+    'NotificationSetting', 'WidgetType',
+    
+    # System models
+    'SystemSetting'
 ]
 
-for model in extended_models:
-    if hasattr(current_module, model):
-        __all__.append(model)
+# Only add to __all__ if the model was successfully imported
+for model_name in all_models:
+    if hasattr(current_module, model_name):
+        __all__.append(model_name)
