@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 import uuid
+from ..deps import get_db, get_current_user, get_current_active_user, get_admin_user
 
 # Import the Pydantic schemas - FIXED: importing from auth module
 from app.schemas.auth import UserResponse as User, UserCreate, UserUpdate
@@ -16,7 +17,7 @@ from app.utils.logger import get_logger
 from app.db.schema.schema_mapper import get_domain_mappings, update_domain_mappings
 from app.db.mirroring.change_monitor import get_sync_status, trigger_sync
 
-from app.api.routes.auth import get_current_active_user
+# REMOVED CIRCULAR IMPORT: from app.api.routes.auth import get_current_active_user
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -1307,3 +1308,4 @@ async def update_domain_mapping(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating domain mappings: {str(e)}"
         )
+

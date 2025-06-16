@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 from passlib.context import CryptContext
+from ..deps import get_db, get_current_user, get_current_active_user, get_admin_user, UserResponse, UserCreate, UserAuth, Token
 
 from app.db.interfaces.user_interface import UserInterface
 from app.security.rbac_manager import get_user_permissions
@@ -206,4 +207,6 @@ async def update_user(
     
     logger.info(f"User updated: {current_user.username}")
     return User(**updated_user)
+
+
 

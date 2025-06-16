@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
 from datetime import datetime, timedelta
 from uuid import UUID
+from ..deps import get_db, get_current_user, get_current_active_user, get_admin_user
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_active_user
+# REMOVED CIRCULAR IMPORT: from app.api.routes.auth import get_current_active_user
 from app.models.user import User
 from app.models.supply_chain import Product, Supplier, Warehouse, Order, Inventory
 from app.models.extended_models import ForecastModel

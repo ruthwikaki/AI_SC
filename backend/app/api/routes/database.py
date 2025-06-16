@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 import json
+from ..deps import get_db, get_current_user, get_current_active_user, get_admin_user
 
 from app.db.schema.schema_discovery import discover_client_schema, get_table_schema
 from app.db.connectors.postgres import PostgresConnector  # This would be dynamically selected based on client
@@ -10,7 +11,7 @@ from app.models.user import User
 from app.security.rbac_manager import check_permission
 from app.utils.logger import get_logger
 from app.api.middleware.client_context import get_client_context
-from app.api.routes.auth import get_current_active_user
+# REMOVED CIRCULAR IMPORT: from app.api.routes.auth import get_current_active_user
 
 # Initialize logger
 logger = get_logger(__name__)

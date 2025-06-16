@@ -399,124 +399,11 @@ async def apply_preset(
 
 
 @router.get("/config")
-async def get_forecast_config(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get forecast configuration"""
-    return {
-        "defaultMethod": "exponential_smoothing",
-        "defaultPeriods": 12,
-        "defaultConfidenceLevel": 0.95,
-        "enabledMethods": ["moving_average", "exponential_smoothing", "arima", "prophet", "lstm"],
-        "maxPeriods": 36,
-        "minPeriods": 1,
-        "autoDetectSeasonality": True,
-        "outlierDetection": True,
-        "dataRequirements": {
-            "minHistoricalPoints": 24,
-            "preferredHistoricalPoints": 36
-        }
-    }
-
 @router.put("/config")
-async def update_forecast_config(
-    config: Dict[str, Any],
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Update forecast configuration"""
-    # In a real app, save to database
-    return {"message": "Configuration updated", "config": config}
-
 @router.get("/default-params")
-async def get_default_params(
-    product_id: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get default forecast parameters"""
-    return {
-        "method": "exponential_smoothing",
-        "periods": 12,
-        "confidence_level": 0.95,
-        "include_seasonality": True,
-        "include_trend": True
-    }
-
 @router.post("/config/validate")
-async def validate_config(
-    config: Dict[str, Any],
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Validate forecast configuration"""
-    errors = []
-    warnings = []
-    
-    # Basic validation
-    if config.get("periods", 0) < 1:
-        errors.append("Periods must be at least 1")
-    if config.get("periods", 0) > 36:
-        warnings.append("Forecasting beyond 36 periods may be less accurate")
-    
-    return {
-        "valid": len(errors) == 0,
-        "errors": errors,
-        "warnings": warnings
-    }
-
 @router.get("/presets")
-async def get_forecast_presets(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get available forecast presets"""
-    return {
-        "presets": [
-            {
-                "id": "short_term",
-                "name": "Short Term (3 months)",
-                "description": "Quick forecast for immediate planning",
-                "config": {"periods": 3, "method": "moving_average"}
-            },
-            {
-                "id": "medium_term",
-                "name": "Medium Term (6 months)",
-                "description": "Standard forecast for quarterly planning",
-                "config": {"periods": 6, "method": "exponential_smoothing"}
-            },
-            {
-                "id": "long_term",
-                "name": "Long Term (12 months)",
-                "description": "Annual forecast for strategic planning",
-                "config": {"periods": 12, "method": "arima"}
-            }
-        ]
-    }
-
 @router.post("/presets/{preset_id}/apply")
-async def apply_preset(
-    preset_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Apply a forecast preset"""
-    presets = {
-        "short_term": {"periods": 3, "method": "moving_average"},
-        "medium_term": {"periods": 6, "method": "exponential_smoothing"},
-        "long_term": {"periods": 12, "method": "arima"}
-    }
-    
-    if preset_id not in presets:
-        raise HTTPException(status_code=404, detail="Preset not found")
-    
-    return {
-        "message": f"Applied {preset_id} preset",
-        "config": presets[preset_id]
-    }
-
-
 @router.get("/time-series")
 async def get_time_series_data(
     product_id: Optional[str] = None,
@@ -590,3 +477,4 @@ async def get_time_series_data(
     except Exception as e:
         logger.error(f"Error fetching time series: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+

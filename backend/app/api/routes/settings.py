@@ -1,12 +1,13 @@
-# backend/app/api/routes/settings.py
+﻿# backend/app/api/routes/settings.py
 from fastapi import APIRouter, Depends, HTTPException, Body
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
+from ..deps import get_db, get_current_user, get_current_active_user, get_admin_user
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_active_user
+# REMOVED CIRCULAR IMPORT: from app.api.routes.auth import get_current_active_user
 from app.models.user import User, UserPreference
 from app.models.system import SystemSetting
 from app.models.extended_models import NotificationSetting

@@ -1,4 +1,5 @@
-﻿# Note: Report and AnalyticsMetric classes have been moved to analytics.py
+﻿from .base import Base
+# Note: Report and AnalyticsMetric classes have been moved to analytics.py
 
 
 

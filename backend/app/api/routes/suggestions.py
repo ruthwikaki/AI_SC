@@ -1,13 +1,14 @@
-# backend/app/api/routes/suggestions.py
+﻿# backend/app/api/routes/suggestions.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
 import json
+from ..deps import get_db, get_current_user, get_current_active_user, get_admin_user
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_active_user
+# REMOVED CIRCULAR IMPORT: from app.api.routes.auth import get_current_active_user
 from app.models.user import User
 from app.models.query import NaturalLanguageQuery, SavedQuery
 from app.db.schema.schema_discovery import discover_client_schema, get_table_schema, DatabaseSchema

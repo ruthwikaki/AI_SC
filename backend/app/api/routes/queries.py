@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+﻿from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import uuid
 import json
 import time
+from ..deps import get_db, get_current_user, get_current_active_user, get_admin_user
 
 from app.db.database import get_db
 from app.models.query import NaturalLanguageQuery as QueryModel
