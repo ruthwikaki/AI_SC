@@ -19,8 +19,7 @@ from app.utils.logger import get_logger
 from app.db.interfaces.user_interface import User
 from app.models.user import User
 
-from app.api.routes.auth import get_current_active_user
-from app.security.rbac_manager import check_permission
+from ..deps import get_current_user`nfrom app.security.rbac_manager import check_permission
 
 # Initialize logger
 logger = get_logger(__name__)

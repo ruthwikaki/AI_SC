@@ -1,4 +1,4 @@
-"""
+﻿"""
 Forecast Engine Module
 
 This module provides demand forecasting functionality for inventory planning,

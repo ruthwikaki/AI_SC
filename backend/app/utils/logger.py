@@ -1,58 +1,42 @@
-"""
-Logging configuration and utilities
-Located at: /backend/app/utils/logger.py
-"""
+﻿"""Logger configuration without circular imports"""
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
-def setup_logger(name: Optional[str] = None) -> logging.Logger:
-    """
-    Set up a logger with consistent formatting
+# Logger configuration without importing config
+class LoggerSetup:
+    _logger = None
     
-    Args:
-        name: Logger name (usually __name__)
+    @classmethod
+    def get_logger(cls, name: str = __name__):
+        """Get or create logger with lazy config loading"""
+        if cls._logger is None:
+            cls._setup_logger()
+        return logging.getLogger(name)
+    
+    @classmethod
+    def _setup_logger(cls):
+        """Setup logger configuration"""
+        # Lazy load settings
+        try:
+            from ..config import get_settings
+            settings = get_settings()
+            log_level = settings.LOG_LEVEL
+        except:
+            log_level = "INFO"
         
-    Returns:
-        Configured logger instance
-    """
-    logger = logging.getLogger(name or __name__)
-    
-    # Don't add handlers if they already exist
-    if logger.handlers:
-        return logger
-    
-    # Set level
-    logger.setLevel(logging.INFO)
-    
-    # Create console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    
-    # Create formatter
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    console_handler.setFormatter(formatter)
-    
-    # Add handler to logger
-    logger.addHandler(console_handler)
-    
-    return logger
+        # Configure logging
+        logging.basicConfig(
+            level=getattr(logging, log_level),
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            handlers=[
+                logging.StreamHandler(sys.stdout)
+            ]
+        )
+        cls._logger = logging.getLogger()
 
-def get_logger(name: Optional[str] = None) -> logging.Logger:
-    """
-    Get or create a logger
-    
-    Args:
-        name: Logger name
-        
-    Returns:
-        Logger instance
-    """
-    return setup_logger(name)
+# Export function
+def get_logger(name: str = __name__):
+    return LoggerSetup.get_logger(name)
 
-# Create a default logger for the module
-logger = setup_logger(__name__)
+__all__ = ['get_logger']

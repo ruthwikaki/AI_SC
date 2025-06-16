@@ -1,4 +1,4 @@
-# app/llm/prompt/context_builder.py
+﻿# app/llm/prompt/context_builder.py
 
 from typing import Dict, List, Any, Optional, Union
 import json
@@ -12,7 +12,17 @@ from app.llm.prompt.schema_provider import get_database_schema
 logger = get_logger(__name__)
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 async def build_query_context(
     query: str,

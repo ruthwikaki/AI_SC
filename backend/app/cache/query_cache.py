@@ -1,4 +1,4 @@
-# app/cache/query_cache.py
+﻿# app/cache/query_cache.py
 
 from typing import Dict, List, Any, Optional, Union, Tuple
 import json
@@ -15,7 +15,17 @@ from app.config import get_settings
 logger = get_logger(__name__)
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 class QueryCache:
     """

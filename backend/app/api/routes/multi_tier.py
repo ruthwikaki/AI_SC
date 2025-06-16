@@ -1,12 +1,11 @@
-# backend/app/api/routes/multi_tier.py
+﻿# backend/app/api/routes/multi_tier.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_active_user
-from app.models.user import User
+from ..deps import get_current_user`nfrom app.models.user import User
 from app.models.supply_chain import Supplier, Order, Inventory
 from app.multiTier.network_visualization.graph_builder import SupplyChainGraphBuilder as GraphBuilder
 from app.multiTier.network_visualization.bottleneck_identifier import BottleneckIdentifier

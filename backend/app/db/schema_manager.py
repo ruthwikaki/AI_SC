@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional, Set, Union
+﻿from typing import Dict, List, Any, Optional, Set, Union
 from datetime import datetime
 import asyncio
 import json
@@ -18,7 +18,17 @@ logger = get_logger(__name__)
 
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 
 # Schema cache

@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional, Set, Tuple
+﻿from typing import Dict, List, Any, Optional, Set, Tuple
 import asyncio
 from datetime import datetime
 import re
@@ -15,7 +15,17 @@ from app.config import get_settings
 logger = get_logger(__name__)
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 # Type mappings between different database systems
 # These are simplified - in a production system, you'd need more nuanced mappings

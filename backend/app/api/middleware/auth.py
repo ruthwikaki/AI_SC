@@ -1,4 +1,4 @@
-from fastapi import Request, HTTPException
+﻿from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from jose import JWTError, jwt
@@ -8,7 +8,17 @@ from app.config import get_settings
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Main entry point for the Supply Chain AI Backend
 Located at: /backend/main.py

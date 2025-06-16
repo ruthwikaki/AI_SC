@@ -28,8 +28,7 @@ from app.llm.prompt.schema_provider import get_database_schema
 from app.llm.prompt.template_manager import get_template
 from app.api.middleware.client_context import get_client_context
 
-from app.api.routes.auth import get_current_active_user
-from app.db.database import get_db
+from ..deps import get_current_user`nfrom app.db.database import get_db
 
 # Initialize logger
 logger = get_logger(__name__)

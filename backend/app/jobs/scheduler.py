@@ -1,4 +1,4 @@
-# jobs/scheduler.py
+﻿# jobs/scheduler.py
 
 """
 Job scheduler setup using APScheduler
@@ -25,7 +25,17 @@ from app.models import ScheduledAnalytic, SystemSetting
 from app.db.repositories.analytics_repository import AnalyticsRepository
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 
 logger = logging.getLogger(__name__)

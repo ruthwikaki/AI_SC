@@ -1,4 +1,4 @@
-"""
+﻿"""
 Supplier Scorecard Module
 
 This module provides functionality for generating and analyzing supplier scorecards,

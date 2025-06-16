@@ -1,98 +1,76 @@
-"""
-Models package initialization
-Import order is important - base models must be imported before models that reference them
-"""
+﻿"""Models package - complete lazy loading to prevent ALL circular imports"""
 
-# Base model - must be first
-from .base import Base
+# Base imports only
+from .base import Base, get_db
 
-# User models - no foreign keys to other app models
-from .user import (
-    User,
-    UserSession,
-    PasswordResetToken,
-    UserPreference,
-    Role,
-    Permission,
-    AuditLog
-)
+# Lazy loading for ALL models to prevent circular imports
+_models_cache = {}
 
-# System models - may reference User
-from .system import (
-    SystemSetting,
-    DatabaseConnection,
-    QueryOptimization,
-    # Add other system models here
-)
+def _lazy_import(module_name, class_names):
+    """Generic lazy importer to prevent circular imports"""
+    if module_name not in _models_cache:
+        module = __import__(f'app.models.{module_name}', fromlist=class_names)
+        _models_cache[module_name] = {name: getattr(module, name) for name in class_names}
+    return _models_cache[module_name]
 
-# Query models - references User
-from .query import (
-    NaturalLanguageQuery,
-    SQLQuery,
-    QueryExecution,
-    SavedQuery,
-    QueryTemplate,
-    QuerySuggestion,
-    QueryResultCache,
-    Query,
-    QueryResult,
-    QueryHistory,
-    QueryVisualization
-)
+# User models
+def get_user_model():
+    return _lazy_import('user', ['User'])['User']
 
-# Analytics models - may reference Query and User
-from .analytics import (
-    AnalyticsMetric,
-    AnalyticsReport,
-    # Add other analytics models here
-)
+# Supply chain models
+def get_product_model():
+    return _lazy_import('supply_chain', ['Product'])['Product']
 
-# Visualization models - references Query and User
-from .visualization import (
-    ChartType,
-    Chart,
-    SavedChart,
-    Dashboard,
-    DashboardChart,
-    ChartData,
-    DashboardWidget,
-    VisualizationTemplate
-)
+def get_supplier_model():
+    return _lazy_import('supply_chain', ['Supplier'])['Supplier']
 
-# Supply chain models - may reference User
-from .supply_chain import (
-    Product,
-    Supplier,
-    SupplierProduct,
-    InventoryLevel,
-    Customer,
-    CustomerOrder,
-    DeliveryOrder,
-    Transfer,
-    ProductMovement,
-    # Add other supply chain models here
-)
+def get_order_model():
+    return _lazy_import('supply_chain', ['Order'])['Order']
 
-# Extended models - may reference multiple other models
-try:
-    from .extended_models import (
-        ExtendedAnalyticsMetric,
-        ForecastModel,
-        ExtendedReport,
-        DataQualityCheck,
-        AlertRule,
-        # Add other extended models here
-    )
-except ImportError:
-    pass  # Extended models are optional
+def get_inventory_model():
+    return _lazy_import('supply_chain', ['Inventory'])['Inventory']
 
-# Build __all__ dynamically
-import sys
-current_module = sys.modules[__name__]
+# Analytics models
+def get_dashboard_model():
+    return _lazy_import('analytics', ['Dashboard'])['Dashboard']
+
+def get_chart_model():
+    return _lazy_import('analytics', ['Chart'])['Chart']
+
+def get_query_model():
+    return _lazy_import('analytics', ['Query'])['Query']
+
+def get_report_model():
+    return _lazy_import('analytics', ['Report'])['Report']
+
+# Extended models
+def get_extended_models():
+    models = _lazy_import('extended_models', ['ExtendedProduct', 'ExtendedSupplier', 'ExtendedOrder', 'ExtendedReport'])
+    return models
+
+# System models
+def get_system_config_model():
+    return _lazy_import('system', ['SystemConfig'])['SystemConfig']
+
+def get_audit_log_model():
+    return _lazy_import('system', ['AuditLog'])['AuditLog']
+
+# Visualization models
+def get_visualization_model():
+    return _lazy_import('visualization', ['Visualization'])['Visualization']
+
+def get_chart_config_model():
+    return _lazy_import('visualization', ['ChartConfig'])['ChartConfig']
+
+# Query models
+def get_query_history_model():
+    return _lazy_import('query', ['QueryHistory'])['QueryHistory']
+
 __all__ = [
-    name for name in dir(current_module)
-    if not name.startswith('_') and name != 'Base'
+    'Base', 'get_db',
+    'get_user_model', 'get_product_model', 'get_supplier_model',
+    'get_order_model', 'get_inventory_model', 'get_dashboard_model',
+    'get_chart_model', 'get_query_model', 'get_report_model',
+    'get_extended_models', 'get_system_config_model', 'get_audit_log_model',
+    'get_visualization_model', 'get_chart_config_model', 'get_query_history_model'
 ]
-
-# Add Base to __all__
-__all__.insert(0, 'Base')

@@ -1,4 +1,4 @@
-# backend/app/api/routes/dashboards.py
+﻿# backend/app/api/routes/dashboards.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -6,8 +6,7 @@ from datetime import datetime
 import json
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_active_user
-from app.models.user import User
+from ..deps import get_current_user`nfrom app.models.user import User
 from app.models.visualization import Dashboard, DashboardWidget
 from app.models.extended_models import WidgetType
 from app.db.repositories.dashboard_repository import DashboardRepository

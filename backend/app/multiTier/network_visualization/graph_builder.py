@@ -1,4 +1,4 @@
-"""
+﻿"""
 Network graph builder module for multi-tier supply chain visualization.
 
 This module provides functionality to build visualizable network graphs

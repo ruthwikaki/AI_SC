@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+﻿from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
@@ -17,7 +17,17 @@ from app.config import get_settings
 logger = get_logger(__name__)
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -43,42 +53,7 @@ class TokenData(BaseModel):
     user_id: Optional[str] = None
     role: Optional[str] = None
 
-class User(BaseModel):
-    id: str
-    username: str
-    email: str
-    role: str
-    is_active: bool = True
-    client_id: Optional[str] = None
-
-class UserCreate(BaseModel):
-    username: str
-    email: str
-    password: str
-    role: Optional[str] = "user"
-    client_id: Optional[str] = None
-
-class UserInDB(User):
-    password_hash: str
-
-# Auth utilities
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
-
-def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt."""
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-    to_encode.update({"exp": expire})
+)
     encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return encoded_jwt, expire
 

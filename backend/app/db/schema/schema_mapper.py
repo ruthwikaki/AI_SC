@@ -12,7 +12,17 @@ from app.llm.prompt.template_manager import get_template
 logger = get_logger(__name__)
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 # Domain concept mapping cache
 _domain_mapping_cache: Dict[str, Dict[str, Any]] = {}

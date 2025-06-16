@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import random
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_user
-from app.models.user import User
+from ..deps import get_current_user`nfrom app.models.user import User
 from app.utils.logger import get_logger
 
 

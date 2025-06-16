@@ -1,4 +1,4 @@
-"""
+﻿"""
 Data synchronization jobs
 """
 
@@ -10,7 +10,17 @@ from app.config import get_settings
 from app.utils.logger import get_logger
 
 # Get settings
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
 
 # Initialize logger
 logger = get_logger(__name__)

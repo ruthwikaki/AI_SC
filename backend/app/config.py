@@ -1,4 +1,4 @@
-"""
+﻿"""
 Configuration settings for the AI Supply Chain application
 """
 
@@ -132,4 +132,14 @@ def get_settings() -> Settings:
 
 
 # Create a global settings instance
-settings = get_settings()
+# Lazy load settings to avoid circular import
+_settings = None
+
+def get_settings_cached():
+    global _settings
+    if _settings is None:
+        from ..config import get_settings
+        _settings = get_settings()
+    return _settings
+
+settings = property(lambda self: get_settings_cached())
