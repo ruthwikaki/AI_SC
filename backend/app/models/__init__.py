@@ -1,129 +1,98 @@
 """
-Database Models Package
-Exports all database models for easy importing
-
-IMPORTANT: Import order matters for SQLAlchemy relationships
+Models package initialization
+Import order is important - base models must be imported before models that reference them
 """
 
-# Import Base first
+# Base model - must be first
 from .base import Base
 
-# Import user models - uncomment Role, Permission, AuditLog
+# User models - no foreign keys to other app models
 from .user import (
-    User, UserSession, PasswordResetToken, UserPreference,
-    Role, Permission, AuditLog
+    User,
+    UserSession,
+    PasswordResetToken,
+    UserPreference,
+    Role,
+    Permission,
+    AuditLog
 )
 
-# Import query models
+# System models - may reference User
+from .system import (
+    SystemSetting,
+    DatabaseConnection,
+    QueryOptimization,
+    # Add other system models here
+)
+
+# Query models - references User
 from .query import (
-    NaturalLanguageQuery, SavedQuery, QueryResultCache,
-    QueryTemplate, QuerySuggestion
+    NaturalLanguageQuery,
+    SQLQuery,
+    QueryExecution,
+    SavedQuery,
+    QueryTemplate,
+    QuerySuggestion,
+    QueryResultCache,
+    Query,
+    QueryResult,
+    QueryHistory,
+    QueryVisualization
 )
 
-# Import visualization models
-from .visualization import (
-    ChartType, Chart, SavedChart, Dashboard, DashboardChart
-)
-
-# Import supply chain models
-from .supply_chain import (
-    Supplier, Product, Material, Inventory,
-    Order, OrderItem, Shipment
-)
-
-# Try to import additional supply chain models if they exist
-try:
-    from .supply_chain import (
-        SupplierTier, SupplierRelationship,
-        ProductMaterial, InventoryHistory, ShipmentItem
-    )
-except ImportError:
-    pass
-
-# Import analytics models
+# Analytics models - may reference Query and User
 from .analytics import (
-    AnalyticsResult, ScheduledAnalytic, AnalyticsTemplate,
-    Report, ReportSchedule,
-    SupplierPerformanceMetric, InventoryMetric,
-    DeliveryPerformance, RiskAssessment, ComplianceCheck,
-    ABCAnalysisResult, ForecastResult, SafetyStockCalculation
+    AnalyticsMetric,
+    AnalyticsReport,
+    # Add other analytics models here
 )
 
-# Try to import network models
-try:
-    from .analytics import (
-        SupplyChainNetwork, NetworkNode, NetworkEdge,
-        BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
-    )
-except ImportError:
-    pass
+# Visualization models - references Query and User
+from .visualization import (
+    ChartType,
+    Chart,
+    SavedChart,
+    Dashboard,
+    DashboardChart,
+    ChartData,
+    DashboardWidget,
+    VisualizationTemplate
+)
 
-# Import extended models with correct relative imports
+# Supply chain models - may reference User
+from .supply_chain import (
+    Product,
+    Supplier,
+    SupplierProduct,
+    InventoryLevel,
+    Customer,
+    CustomerOrder,
+    DeliveryOrder,
+    Transfer,
+    ProductMovement,
+    # Add other supply chain models here
+)
+
+# Extended models - may reference multiple other models
 try:
     from .extended_models import (
+        ExtendedAnalyticsMetric,
         ForecastModel,
-        ExtendedAnalyticsMetric,  # Note: Changed from AnalyticsMetric
-        ExportJob,
-        ReportTemplate,
-        ExtendedReport,  # Note: Changed from Report to avoid conflict
-        ScheduledReport,
-        NotificationSetting,
-        WidgetType
+        ExtendedReport,
+        DataQualityCheck,
+        AlertRule,
+        # Add other extended models here
     )
 except ImportError:
-    pass
+    pass  # Extended models are optional
 
-# Import system models
-try:
-    from .system import SystemSetting
-except ImportError:
-    pass
-
-# Build __all__ dynamically based on what actually imported
-__all__ = ['Base']
-
-# Add all imported models to __all__
+# Build __all__ dynamically
 import sys
 current_module = sys.modules[__name__]
-
-# List of all possible models
-all_models = [
-    # User models
-    'User', 'UserSession', 'PasswordResetToken', 'UserPreference',
-    'Role', 'Permission', 'AuditLog',
-    
-    # Query models
-    'NaturalLanguageQuery', 'SavedQuery', 'QueryResultCache',
-    'QueryTemplate', 'QuerySuggestion',
-    
-    # Visualization models
-    'ChartType', 'Chart', 'SavedChart', 'Dashboard', 'DashboardChart',
-    
-    # Supply chain models
-    'Supplier', 'Product', 'Material', 'Inventory',
-    'Order', 'OrderItem', 'Shipment',
-    'SupplierTier', 'SupplierRelationship',
-    'ProductMaterial', 'InventoryHistory', 'ShipmentItem',
-    
-    # Analytics models
-    'AnalyticsResult', 'ScheduledAnalytic', 'AnalyticsTemplate',
-    'Report', 'ReportSchedule',
-    'SupplierPerformanceMetric', 'InventoryMetric',
-    'DeliveryPerformance', 'RiskAssessment', 'ComplianceCheck',
-    'ABCAnalysisResult', 'ForecastResult', 'SafetyStockCalculation',
-    'SupplyChainNetwork', 'NetworkNode', 'NetworkEdge',
-    'BottleneckAnalysis', 'RiskPropagationScenario', 'DisruptionImpact',
-    
-    # Extended models
-    'ForecastModel', 'ExtendedAnalyticsMetric', 'ExportJob',
-    'ReportTemplate', 'ExtendedReport', 'ScheduledReport',
-    'NotificationSetting', 'WidgetType',
-    
-    # System models
-    'SystemSetting'
+__all__ = [
+    name for name in dir(current_module)
+    if not name.startswith('_') and name != 'Base'
 ]
 
-# Only add to __all__ if the model was successfully imported
-for model_name in all_models:
-    if hasattr(current_module, model_name):
-        __all__.append(model_name)
+# Add Base to __all__
+__all__.insert(0, 'Base')
