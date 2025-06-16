@@ -1,72 +1,26 @@
 """
 Database Models Package
 Exports all database models for easy importing
+
+IMPORTANT: Import order matters for SQLAlchemy relationships
 """
 
 # Import Base first
 from .base import Base
 
-# User and auth models
-from .user import (
-    User, UserSession, PasswordResetToken, UserPreference,
-    Role, Permission, AuditLog
-)
+# Import user models (no dependencies)
+from .user import User, UserSession, PasswordResetToken, UserPreference, Role, Permission, AuditLog
 
-# Query models - import what exists
+# Import query models (depends on User)
 from .query import NaturalLanguageQuery, SavedQuery
 
-# Try to import QueryResult if it exists
-try:
-    from .query import QueryResult
-except ImportError:
-    pass
+# Import visualization models (depends on User and Query)
+from .visualization import ChartType, Chart, SavedChart, Dashboard, DashboardChart
 
-# Try to import optional query models
-try:
-    from .query import QueryResultCache, QueryTemplate, QuerySuggestion
-except ImportError:
-    # These might not exist in query.py
-    pass
+# Import supply chain models
+from .supply_chain import Supplier, Product, Material, Inventory, Order, OrderItem, Shipment
 
-# Try to import QueryVisualization
-try:
-    from .query import QueryVisualization
-except ImportError:
-    pass
-
-# Visualization models
-from .visualization import (
-    ChartType, Chart, SavedChart, Dashboard, DashboardChart
-)
-
-# Try to import DashboardWidget
-try:
-    from .visualization import DashboardWidget
-except ImportError:
-    pass
-
-# Supply chain models
-from .supply_chain import (
-    Supplier, Product, Material, Inventory,
-    Order, OrderItem, Shipment
-)
-
-# Try to import additional supply chain models
-try:
-    from .supply_chain import (
-        SupplierTier, SupplierRelationship, ShipmentItem,
-        ProductMaterial, InventoryHistory
-    )
-except ImportError:
-    pass
-
-# Try to import Warehouse and SupplierProduct
-try:
-    from .supply_chain import Warehouse, SupplierProduct
-except ImportError:
-    pass
-
-# Analytics models
+# Import analytics models
 from .analytics import (
     AnalyticsResult, ScheduledAnalytic, AnalyticsTemplate,
     Report, ReportSchedule,
@@ -75,23 +29,14 @@ from .analytics import (
     ABCAnalysisResult, ForecastResult, SafetyStockCalculation
 )
 
-# Try to import network analytics models
-try:
-    from .analytics import (
-        SupplyChainNetwork, NetworkNode, NetworkEdge,
-        BottleneckAnalysis, RiskPropagationScenario, DisruptionImpact
-    )
-except ImportError:
-    pass
-
-# Extended models - with corrected names
+# Import extended models if they exist
 try:
     from .extended_models import (
         ForecastModel,
-        ExtendedAnalyticsMetric,  # Renamed from AnalyticsMetric
+        ExtendedAnalyticsMetric,
         ExportJob,
         ReportTemplate,
-        ExtendedReport,  # Renamed from Report to avoid conflict
+        ExtendedReport,
         ScheduledReport,
         NotificationSetting,
         WidgetType
@@ -99,48 +44,47 @@ try:
 except ImportError:
     pass
 
-# System models
+# Import system models
 try:
-    from .system import (
-        SystemSetting,  # Import from system.py, not extended_models.py
-        DatabaseConnection,
-        QueryExecutionLog,
-        SchemaCache,
-        SystemConfig,
-        ClientConfig,
-        IntegrationLog
-    )
+    from .system import SystemSetting
 except ImportError:
-    # If system.py doesn't have all models, at least try to get what exists
-    try:
-        from .system import SystemSetting
-    except ImportError:
-        pass
+    pass
 
-# Build __all__ dynamically based on what's actually imported
-__all__ = []
-
-# Get all names in current module
-import sys
-current_module = sys.modules[__name__]
-
-for name in dir(current_module):
-    obj = getattr(current_module, name, None)
-    # Only add if it's a model (has __tablename__) or is Base
-    if obj is not None and (name == 'Base' or (hasattr(obj, '__tablename__') and not name.startswith('_'))):
-        __all__.append(name)
-
-# Ensure core models are in __all__ if they were imported
-core_exports = [
-    'Base', 'User', 'Role', 'Permission', 'AuditLog',
+# List all exported models
+__all__ = [
+    # Base
+    'Base',
+    
+    # User models
+    'User', 'UserSession', 'PasswordResetToken', 'UserPreference',
+    'Role', 'Permission', 'AuditLog',
+    
+    # Query models
     'NaturalLanguageQuery', 'SavedQuery',
-    'Chart', 'Dashboard', 'Supplier', 'Product', 'Order',
-    'AnalyticsResult', 'Report', 'SystemSetting'
+    
+    # Visualization models
+    'ChartType', 'Chart', 'SavedChart', 'Dashboard', 'DashboardChart',
+    
+    # Supply chain models
+    'Supplier', 'Product', 'Material', 'Inventory', 'Order', 'OrderItem', 'Shipment',
+    
+    # Analytics models
+    'AnalyticsResult', 'ScheduledAnalytic', 'AnalyticsTemplate',
+    'Report', 'ReportSchedule',
+    'SupplierPerformanceMetric', 'InventoryMetric',
+    'DeliveryPerformance', 'RiskAssessment', 'ComplianceCheck',
+    'ABCAnalysisResult', 'ForecastResult', 'SafetyStockCalculation',
 ]
 
-for export in core_exports:
-    if hasattr(current_module, export) and export not in __all__:
-        __all__.append(export)
+# Add extended models to __all__ if they were imported
+import sys
+current_module = sys.modules[__name__]
+extended_models = [
+    'ForecastModel', 'ExtendedAnalyticsMetric', 'ExportJob',
+    'ReportTemplate', 'ExtendedReport', 'ScheduledReport',
+    'NotificationSetting', 'WidgetType', 'SystemSetting'
+]
 
-# Sort for consistency
-__all__.sort()
+for model in extended_models:
+    if hasattr(current_module, model):
+        __all__.append(model)

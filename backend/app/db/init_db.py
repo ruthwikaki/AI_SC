@@ -18,10 +18,12 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.db.database import engine, SessionLocal, Base, DatabaseManager
-from app.models import (
-    User, Role, Permission, ChartType, 
-    Supplier, Product, Material, Inventory
-)
+# Import all models to ensure relationships are loaded
+from app.models.base import Base
+from app.models.user import User, Role, Permission
+from app.models.visualization import ChartType, Chart, Dashboard, SavedChart
+from app.models.supply_chain import Supplier, Product, Material, Inventory
+from app.models.query import NaturalLanguageQuery
 from app.security.password_utils import hash_password
 from app.config import get_settings
 

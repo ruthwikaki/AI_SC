@@ -8,7 +8,7 @@ import json
 from app.db.database import get_db
 from app.api.routes.auth import get_current_active_user
 from app.models.user import User, UserPreference
-from app.models.extended_models import SystemSetting
+from app.models.system import SystemSetting
 from app.models.extended_models import NotificationSetting
 from app.schemas.auth import UserPreferencesUpdate, NotificationSettingsUpdate
 from app.utils.logger import get_logger
